@@ -651,6 +651,9 @@ class WallpaperApp(Adw.Application):
         self.win.set_default_size(1200, 800)
         # 固定一个下限尺寸，避免内容变化导致最小宽度抖动
         self.win.set_size_request(1000, 700)
+        
+        # 窗口关闭时隐藏而非退出（托盘支持）
+        self.win.connect("close-request", self.on_window_close)
 
         # 主容器
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -675,7 +678,7 @@ class WallpaperApp(Adw.Application):
         self.wp_manager.scan()
         self.refresh_wallpaper_grid()
 
-        # 恢复上次的壁纸
+        # 恢复上次的壁纸选中状态
         last_wp = self.config.get("lastWallpaper")
         if last_wp and last_wp in self.wp_manager._wallpapers:
             self.selected_wp = last_wp
@@ -684,6 +687,9 @@ class WallpaperApp(Adw.Application):
             wp = self.wp_manager._wallpapers.get(last_wp)
             if wp:
                 self.active_wp_label.set_label(wp['title'])
+            
+            # 自动应用上次壁纸
+            GLib.timeout_add(500, lambda: self.auto_apply_wallpaper(last_wp))
 
         self.win.present()
 
@@ -708,6 +714,17 @@ class WallpaperApp(Adw.Application):
         self.btn_settings.connect("toggled", self.on_nav_settings)
         nav_container.append(self.btn_settings)
 
+        # 拉伸空间
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        nav_container.append(spacer)
+
+        # 最小化按钮（隐藏到托盘）
+        minimize_btn = Gtk.Button(label="⌄ Minimize")
+        minimize_btn.add_css_class("nav-btn")
+        minimize_btn.connect("clicked", lambda _: self.win.set_visible(False))
+        nav_container.append(minimize_btn)
+
         parent.append(nav_container)
 
     def on_nav_home(self, btn):
@@ -719,6 +736,11 @@ class WallpaperApp(Adw.Application):
         if btn.get_active():
             self.btn_home.set_active(False)
             self.content_stack.set_visible_child_name("settings")
+
+    def on_window_close(self, win):
+        """窗口关闭事件处理：隐藏而非退出（托盘支持）"""
+        self.win.set_visible(False)
+        return True  # 阻止默认关闭行为
 
     # ========================================================================
     # 壁纸页面
@@ -1194,6 +1216,17 @@ class WallpaperApp(Adw.Application):
         wp = self.wp_manager._wallpapers.get(wp_id)
         if wp:
             self.active_wp_label.set_label(wp['title'])
+
+    def auto_apply_wallpaper(self, wp_id: str):
+        """启动时自动应用上次壁纸"""
+        if wp_id in self.wp_manager._wallpapers:
+            self.controller.apply(wp_id)
+            self.active_wp = wp_id
+            wp = self.wp_manager._wallpapers.get(wp_id)
+            if wp:
+                self.active_wp_label.set_label(wp['title'])
+                print(f"[AUTO-APPLY] Wallpaper auto-applied: {wp['title']}")
+        return False  # 不重复执行
 
     def on_apply_clicked(self, btn):
         """应用壁纸"""

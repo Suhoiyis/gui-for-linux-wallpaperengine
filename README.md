@@ -18,6 +18,7 @@
 - ✅ **壁纸应用**：点击 Apply 按钮或双击卡片直接应用壁纸
 - ✅ **随机选择**：I'm feeling lucky 随机应用一张壁纸
 - ✅ **快速刷新**：Refresh 按钮即时加载新下载的壁纸（无需重启）
+- ✅ **自动应用**：启动时自动应用上次壁纸（读取 config.json 的 lastWallpaper/lastScreen）
 
 ### 进程管理
 - ✅ **后端调用**：正确使用 `linux-wallpaperengine` 的参数格式
@@ -39,6 +40,7 @@
 - ✅ **窗口约束**：侧边栏固定 320px 宽度，不被图片撑宽
 - ✅ **当前壁纸显示**：顶部工具栏显示当前应用的壁纸名称
 - ✅ **Stop 按钮**：快速停止当前壁纸播放
+- ✅ **后台保活窗口隐藏**：最小化或关闭窗口会隐藏到后台（进程保留，暂无线托盘图标）
 
 ### 扩展支持
 - ✅ **配色脚本 IPC**：应用壁纸后自动执行 `~/niri/scripts/sync_colors.sh`（若存在）
@@ -47,9 +49,7 @@
 ## ❌ 尚缺功能（对标 linux-wallpaperengine-gui）
 
 ### 优先级 P1（核心缺失）
-- ❌ **自动启动**：启动 GUI 时自动应用上次壁纸（仅保存未应用）
-- ❌ **系统托盘**：无托盘图标与最小化功能
-- ❌ **后台常驻**：窗口关闭即进程结束，无后台守护
+- ❌ **系统托盘/后台常驻**：缺少 StatusNotifier/AppIndicator 托盘图标、显示/隐藏动作、systemd user 服务与开机自启动入口
 
 ### 优先级 P2（功能缺失）
 - ❌ **壁纸属性编辑**：无 UI 显示 `--list-properties` 和编辑 `--set-property`
@@ -70,8 +70,7 @@
 - [ ] 处理边界情况（空壁纸库、损坏 JSON、网络超时等）
 
 ### Phase 2：核心功能补全
-- [ ] **自动应用上次壁纸**：启动时检查 config.json，自动应用 lastWallpaper
-- [ ] **系统托盘支持**：集成 Gtk.StatusIcon 或 DBus Notifications
+- [ ] **系统托盘/后台常驻**：实现 StatusNotifier/AppIndicator 托盘图标，支持显示/隐藏窗口、退出、刷新；配套 systemd --user 服务与桌面自启动入口
 - [ ] **壁纸属性管理**：
   - 在详情侧栏下新增"属性"折叠区
   - 调用 `linux-wallpaperengine --list-properties <id>` 获取可用属性
@@ -87,6 +86,20 @@
 - [ ] 编写 PKGBUILD（AUR）
 - [ ] 生成桌面入口（.desktop）与自启动脚本
 - [ ] 撰写完整的安装与使用文档
+
+## 🧭 系统托盘与后台常驻需求
+
+为对齐 linux-wallpaperengine-gui 的托盘体验，需要满足以下要求（目前未实现，仅文档化约束）：
+
+- **托盘协议**：实现 DBus StatusNotifierItem（AppIndicator 兼容）。GNOME 需安装 appindicator 支持（如 `gir1.2-appindicator3-0.1` 或 `libayatana-appindicator3`）。
+- **托盘动作**：
+  - 左键：显示/隐藏主窗口
+  - 右键菜单：显示/隐藏窗口、Refresh、Apply last wallpaper、Quit
+  - 可选中键：快速暂停/继续
+- **启动行为**：支持 `--minimized/--hidden` 启动参数或配置项，允许开机自启动时仅托盘驻留。
+- **后台守护**：提供 systemd --user 单元，保持 python GUI 在后台运行；若进程退出可重启（`Restart=on-failure`）。
+- **桌面入口**：新增 `.desktop` 文件，既能正常启动 GUI，也能通过 `--minimized` 方式配合自启动。
+- **显示会话适配**：Wayland/X11 均应工作；确保托盘依赖在 Wayland（GNOME/KDE）上可用。
 
 ## 🛠️ 技术栈
 
