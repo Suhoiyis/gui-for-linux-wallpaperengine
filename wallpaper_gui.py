@@ -6,15 +6,27 @@ Inspired by linux-wallpaperengine-gui (Electron version)
 """
 
 import os
+import sys
 import json
 import subprocess
 import webbrowser
 import gc
 import random
+import threading
+import os.path
 
 
 
 from typing import Optional, Dict, List, Any
+
+# 托盘库需要在 GTK 前导入，以便使用合适的后端
+try:
+    os.environ['PYSTRAY_BACKEND'] = 'dbus'  # 强制使用 D-Bus 后端（避免 GTK 3 冲突）
+    import pystray
+    from PIL import Image
+    TRAY_AVAILABLE = True
+except ImportError:
+    TRAY_AVAILABLE = False
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -627,7 +639,7 @@ class WallpaperApp(Adw.Application):
     def __init__(self):
         super().__init__(
             application_id='com.github.wallpaperengine.gui',
-            flags=Gio.ApplicationFlags.FLAGS_NONE
+            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE
         )
         self.config = ConfigManager()
         self.wp_manager = WallpaperManager()
@@ -637,7 +649,48 @@ class WallpaperApp(Adw.Application):
         self.selected_wp: Optional[str] = None
         self.active_wp: Optional[str] = None
 
+        # CLI 控制：支持 --minimized/--hidden、--show/--hide/--toggle 等
+        self.start_hidden = False
+        self.cli_actions: List[str] = []
+        self.initialized = False
+
+        # 托盘
+        self.tray_icon = None
+        self.tray_thread: Optional[threading.Thread] = None
+
+    def do_command_line(self, command_line):
+        argv = command_line.get_arguments()[1:]
+        for arg in argv:
+            if arg in ("--minimized", "--hidden"):
+                if self.initialized:
+                    self.cli_actions.append("hide")
+                else:
+                    self.start_hidden = True
+            elif arg == "--show":
+                self.cli_actions.append("show")
+            elif arg == "--hide":
+                self.cli_actions.append("hide")
+            elif arg == "--toggle":
+                self.cli_actions.append("toggle")
+            elif arg == "--refresh":
+                self.cli_actions.append("refresh")
+            elif arg == "--apply-last":
+                self.cli_actions.append("apply-last")
+            elif arg == "--quit":
+                self.cli_actions.append("quit")
+
+        self.activate()
+        return 0
+
     def do_activate(self):
+        # 已初始化时仅响应 CLI 动作/显示窗口
+        if self.initialized:
+            if not self.start_hidden:
+                self.show_window()
+            self.start_hidden = False
+            self.consume_cli_actions()
+            return
+
         # Load CSS
         provider = Gtk.CssProvider()
         provider.load_from_data(CSS_STYLE.encode('utf-8'))
@@ -651,7 +704,7 @@ class WallpaperApp(Adw.Application):
         self.win.set_default_size(1200, 800)
         # 固定一个下限尺寸，避免内容变化导致最小宽度抖动
         self.win.set_size_request(1000, 700)
-        
+
         # 窗口关闭时隐藏而非退出（托盘支持）
         self.win.connect("close-request", self.on_window_close)
 
@@ -687,11 +740,24 @@ class WallpaperApp(Adw.Application):
             wp = self.wp_manager._wallpapers.get(last_wp)
             if wp:
                 self.active_wp_label.set_label(wp['title'])
-            
+
             # 自动应用上次壁纸
             GLib.timeout_add(500, lambda: self.auto_apply_wallpaper(last_wp))
 
-        self.win.present()
+        # 启动时可选择隐藏（配合 --minimized/--hidden）
+        if self.start_hidden:
+            self.win.set_visible(False)
+        else:
+            self.win.present()
+        self.start_hidden = False
+
+        self.initialized = True
+        
+        # 启动托盘（如果库可用）
+        if TRAY_AVAILABLE:
+            self.setup_tray()
+        
+        self.consume_cli_actions()
 
     # ========================================================================
     # 顶部导航栏
@@ -722,10 +788,59 @@ class WallpaperApp(Adw.Application):
         # 最小化按钮（隐藏到托盘）
         minimize_btn = Gtk.Button(label="⌄ Minimize")
         minimize_btn.add_css_class("nav-btn")
-        minimize_btn.connect("clicked", lambda _: self.win.set_visible(False))
+        minimize_btn.connect("clicked", lambda _: self.hide_window())
         nav_container.append(minimize_btn)
 
         parent.append(nav_container)
+
+    def show_window(self):
+        if self.win:
+            self.win.set_visible(True)
+            self.win.present()
+
+    def hide_window(self):
+        if self.win:
+            self.win.set_visible(False)
+
+    def toggle_window(self):
+        if self.win:
+            if self.win.get_visible():
+                self.hide_window()
+            else:
+                self.show_window()
+
+    def apply_last_from_cli(self):
+        last_wp = self.config.get("lastWallpaper")
+        if last_wp:
+            self.controller.apply(last_wp)
+            self.active_wp = last_wp
+            wp = self.wp_manager._wallpapers.get(last_wp)
+            if wp:
+                self.active_wp_label.set_label(wp['title'])
+
+    def refresh_from_cli(self):
+        self.on_reload_wallpapers(None)
+
+    def consume_cli_actions(self):
+        if not self.cli_actions:
+            return
+        actions = list(self.cli_actions)
+        self.cli_actions.clear()
+
+        for action in actions:
+            if action == "show":
+                self.show_window()
+            elif action == "hide":
+                self.hide_window()
+            elif action == "toggle":
+                self.toggle_window()
+            elif action == "refresh":
+                self.refresh_from_cli()
+            elif action == "apply-last":
+                self.apply_last_from_cli()
+            elif action == "quit":
+                self.controller.stop()
+                self.quit()
 
     def on_nav_home(self, btn):
         if btn.get_active():
@@ -739,8 +854,88 @@ class WallpaperApp(Adw.Application):
 
     def on_window_close(self, win):
         """窗口关闭事件处理：隐藏而非退出（托盘支持）"""
-        self.win.set_visible(False)
+        self.hide_window()
         return True  # 阻止默认关闭行为
+
+    # ========================================================================
+    # 托盘集成
+    # ========================================================================
+    def setup_tray(self):
+        """在后台线程中设置托盘图标"""
+        if not TRAY_AVAILABLE:
+            return
+        
+        self.tray_thread = threading.Thread(target=self._run_tray, daemon=True)
+        self.tray_thread.start()
+
+    def _run_tray(self):
+        """在独立线程中运行托盘"""
+        try:
+            # 创建简单的图标（蓝色圆形）
+            image = self._create_tray_icon()
+            
+            # 菜单项
+            menu = (
+                pystray.MenuItem(
+                    "显示/隐藏",
+                    lambda: GLib.idle_add(self.toggle_window),
+                    default=True
+                ),
+                pystray.MenuItem(
+                    "刷新壁纸",
+                    lambda: GLib.idle_add(self.refresh_from_cli)
+                ),
+                pystray.MenuItem(
+                    "应用上次壁纸",
+                    lambda: GLib.idle_add(self.apply_last_from_cli)
+                ),
+                pystray.MenuItem(
+                    "退出",
+                    lambda: GLib.idle_add(self._quit_from_tray)
+                ),
+            )
+            
+            # 创建托盘图标
+            self.tray_icon = pystray.Icon(
+                "wallpaper-engine-gui",
+                image,
+                "Linux Wallpaper Engine GUI",
+                menu
+            )
+            
+            # 运行托盘（阻塞，直到退出）
+            self.tray_icon.run()
+        except Exception as e:
+            print(f"[TRAY] 启动失败: {e}")
+
+    def _create_tray_icon(self) -> Image.Image:
+        """创建托盘图标（蓝色圆形）"""
+        try:
+            size = 64
+            image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+            pixels = image.load()
+            
+            # 绘制蓝色圆形
+            center = size // 2
+            radius = size // 2 - 2
+            for x in range(size):
+                for y in range(size):
+                    dx = x - center
+                    dy = y - center
+                    if dx*dx + dy*dy <= radius*radius:
+                        pixels[x, y] = (0, 123, 255, 255)  # 蓝色
+            
+            return image
+        except:
+            # 降级：如果绘图失败，创建最小透明图
+            return Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+
+    def _quit_from_tray(self):
+        """托盘退出"""
+        self.controller.stop()
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.quit()
 
     # ========================================================================
     # 壁纸页面
@@ -1518,4 +1713,4 @@ class WallpaperApp(Adw.Application):
 # ============================================================================
 if __name__ == '__main__':
     app = WallpaperApp()
-    app.run(None)
+    app.run(sys.argv)

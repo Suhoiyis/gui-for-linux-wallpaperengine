@@ -40,16 +40,29 @@
 - ✅ **窗口约束**：侧边栏固定 320px 宽度，不被图片撑宽
 - ✅ **当前壁纸显示**：顶部工具栏显示当前应用的壁纸名称
 - ✅ **Stop 按钮**：快速停止当前壁纸播放
-- ✅ **后台保活窗口隐藏**：最小化或关闭窗口会隐藏到后台（进程保留，暂无线托盘图标）
+- ✅ **后台保活窗口隐藏**：最小化或关闭窗口会隐藏到后台（进程保留，暂无系统托盘图标）
 
-### 扩展支持
-- ✅ **配色脚本 IPC**：应用壁纸后自动执行 `~/niri/scripts/sync_colors.sh`（若存在）
-- ✅ **缓存优化**：LRU 纹理缓存，限制内存占用
+### 后台/CLI 控制（新增 v0.3）
+- ✅ **后台启动**：支持 `--hidden/--minimized` 启动参数，启动后仅后台运行，无窗口显示
+- ✅ **单实例 CLI 控制**：所有命令行动作发往同一运行实例（复用 GTK 主线程，避免多开）
+- ✅ **显示/隐藏窗口**：
+  - `--show`：显示窗口（若已运行则展示）
+  - `--hide`：隐藏窗口（进程保持）
+  - `--toggle`：切换显示/隐藏状态
+- ✅ **快捷操作**：
+  - `--refresh`：重新扫描并加载壁纸库
+  - `--apply-last`：直接应用上次保存的壁纸
+  - `--quit`：完全退出应用与后台进程
 
 ## ❌ 尚缺功能（对标 linux-wallpaperengine-gui）
 
 ### 优先级 P1（核心缺失）
-- ❌ **系统托盘/后台常驻**：缺少 StatusNotifier/AppIndicator 托盘图标、显示/隐藏动作、systemd user 服务与开机自启动入口
+- ❌ **系统托盘图标**：
+  - 目标：在屏幕右上/下角显示托盘图标，可点击显示/隐藏、右键菜单刷新/应用/退出
+  - 当前状态：尝试过 pystray 库，但 Wayland/niri 上不兼容（D-Bus 后端无法工作）
+  - 方案评估：StatusNotifierItem 在某些 Wayland 桌面环境上不可靠；libnotify 通知栏可用但体验不同
+  - **暂时保留 CLI 控制作为替代方案**（`--show/--hide/--toggle/--quit` 等）
+- ⚠️ **systemd 用户服务与自启动**：已文档化需求，用户可自行在 niri 配置中加 `exec` 指令
 
 ### 优先级 P2（功能缺失）
 - ❌ **壁纸属性编辑**：无 UI 显示 `--list-properties` 和编辑 `--set-property`
@@ -70,12 +83,15 @@
 - [ ] 处理边界情况（空壁纸库、损坏 JSON、网络超时等）
 
 ### Phase 2：核心功能补全
-- [ ] **系统托盘/后台常驻**：实现 StatusNotifier/AppIndicator 托盘图标，支持显示/隐藏窗口、退出、刷新；配套 systemd --user 服务与桌面自启动入口
-- [ ] **壁纸属性管理**：
+- [ ] **壁纸属性管理**（下一优先级）：
   - 在详情侧栏下新增"属性"折叠区
   - 调用 `linux-wallpaperengine --list-properties <id>` 获取可用属性
   - 根据属性类型（slider/toggle/color/combolist）生成动态控件
   - 应用时合成 `--set-property` 参数列表
+- ⚠️ **系统托盘图标**（暂缓）：
+  - 原计划使用 pystray/StatusNotifier，但 Wayland/niri 兼容性问题
+  - 已用 CLI 方案替代（`--show/--hide/--toggle` 等）
+  - 可在 X11 桌面重新启用 pystray 后端
 
 ### Phase 3：增强体验
 - [ ] **多显示器支持**：自动检测屏幕列表，提供下拉选择而非手工输入
@@ -87,19 +103,69 @@
 - [ ] 生成桌面入口（.desktop）与自启动脚本
 - [ ] 撰写完整的安装与使用文档
 
-## 🧭 系统托盘与后台常驻需求
+## 🧭 后台/CLI 控制使用指南
 
-为对齐 linux-wallpaperengine-gui 的托盘体验，需要满足以下要求（目前未实现，仅文档化约束）：
+### 启动方式
+
+**前台启动（带 GUI）**：
+```bash
+python3 wallpaper_gui.py
+```
+
+**后台启动（无 GUI，仅保活进程）**：
+```bash
+python3 wallpaper_gui.py --hidden
+# 或
+python3 wallpaper_gui.py --minimized
+```
+
+### 命令行动作
+
+所有以下命令都会发往**同一运行实例**，避免重复启动：
+
+| 命令 | 效果 | 示例 |
+|------|------|------|
+| `--show` | 显示窗口（若已运行） | `python3 wallpaper_gui.py --show` |
+| `--hide` | 隐藏窗口（进程保持） | `python3 wallpaper_gui.py --hide` |
+| `--toggle` | 切换显示/隐藏状态 | `python3 wallpaper_gui.py --toggle` |
+| `--refresh` | 重新扫描壁纸库 | `python3 wallpaper_gui.py --refresh` |
+| `--apply-last` | 应用上次保存的壁纸 | `python3 wallpaper_gui.py --apply-last` |
+| `--quit` | 完全退出应用与进程 | `python3 wallpaper_gui.py --quit` |
+
+### Niri 配置示例
+
+在 `~/.config/niri/config.kdl` 中添加自启动：
+
+```kdl
+// 后台启动壁纸引擎 GUI（带自动应用上次壁纸）
+exec python3 /home/yua/suw/wallpaper_gui.py --hidden
+```
+
+在 niri 运行中，可用快捷键或脚本调用：
+
+```bash
+# 显示 GUI 以选择壁纸
+python3 wallpaper_gui.py --show
+
+# 快速应用上次壁纸
+python3 wallpaper_gui.py --apply-last
+
+# 隐藏回后台
+python3 wallpaper_gui.py --hide
+```
+
+## 🧭 系统托盘与后台常驻需求（旧文档，暂保留）
+
+为对齐 linux-wallpaperengine-gui 的托盘体验，需要满足以下要求（目前**因 Wayland 兼容性问题暂未实现**，仅文档化约束）：
 
 - **托盘协议**：实现 DBus StatusNotifierItem（AppIndicator 兼容）。GNOME 需安装 appindicator 支持（如 `gir1.2-appindicator3-0.1` 或 `libayatana-appindicator3`）。
 - **托盘动作**：
   - 左键：显示/隐藏主窗口
   - 右键菜单：显示/隐藏窗口、Refresh、Apply last wallpaper、Quit
   - 可选中键：快速暂停/继续
-- **启动行为**：支持 `--minimized/--hidden` 启动参数或配置项，允许开机自启动时仅托盘驻留。
-- **后台守护**：提供 systemd --user 单元，保持 python GUI 在后台运行；若进程退出可重启（`Restart=on-failure`）。
-- **桌面入口**：新增 `.desktop` 文件，既能正常启动 GUI，也能通过 `--minimized` 方式配合自启动。
-- **显示会话适配**：Wayland/X11 均应工作；确保托盘依赖在 Wayland（GNOME/KDE）上可用。
+- **启动行为**：支持 `--minimized/--hidden` 启动参数或配置项，允许开机自启动时仅托盘驻留。✅ **已实现 CLI 版本**
+- **后台守护**：提供 systemd --user 单元，保持 python GUI 在后台运行；若进程退出可重启（`Restart=on-failure`）。⚠️ **用户自行配置 niri exec 替代**
+- **显示会话适配**：Wayland/X11 均应工作；确保托盘依赖在 Wayland（GNOME/KDE）上可用。❌ **Wayland 不兼容，已转向 CLI 方案**
 
 ## 🛠️ 技术栈
 
