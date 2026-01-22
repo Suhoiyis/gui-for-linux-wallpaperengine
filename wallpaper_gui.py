@@ -2192,9 +2192,60 @@ class WallpaperApp(Adw.Application):
         self.log_text_view.set_editable(False)
         self.log_text_view.set_cursor_visible(False)
         self.log_text_view.set_monospace(True)
+        self.log_text_view.set_left_margin(8)
+        self.log_text_view.set_right_margin(8)
+        self.log_text_view.set_top_margin(8)
+        self.log_text_view.set_bottom_margin(8)
         log_scroll.set_child(self.log_text_view)
 
         self.log_buffer = self.log_text_view.get_buffer()
+
+        # 创建日志文本标签
+        tag_table = self.log_buffer.get_tag_table()
+
+        # 时间标签（灰色）
+        self.log_tag_timestamp = Gtk.TextTag(name="timestamp")
+        self.log_tag_timestamp.set_property("foreground", "#6b7280")
+        self.log_tag_timestamp.set_property("size-points", 10)
+        tag_table.add(self.log_tag_timestamp)
+
+        # 级别标签（不同颜色）
+        self.log_tag_debug = Gtk.TextTag(name="debug")
+        self.log_tag_debug.set_property("foreground", "#6b7280")
+        self.log_tag_debug.set_property("size-points", 10)
+        tag_table.add(self.log_tag_debug)
+
+        self.log_tag_info = Gtk.TextTag(name="info")
+        self.log_tag_info.set_property("foreground", "#3b82f6")
+        self.log_tag_info.set_property("size-points", 10)
+        tag_table.add(self.log_tag_info)
+
+        self.log_tag_warning = Gtk.TextTag(name="warning")
+        self.log_tag_warning.set_property("foreground", "#f59e0b")
+        self.log_tag_warning.set_property("size-points", 10)
+        tag_table.add(self.log_tag_warning)
+
+        self.log_tag_error = Gtk.TextTag(name="error")
+        self.log_tag_error.set_property("foreground", "#ef4444")
+        self.log_tag_error.set_property("size-points", 10)
+        tag_table.add(self.log_tag_error)
+
+        # 来源标签（紫色）
+        self.log_tag_source = Gtk.TextTag(name="source")
+        self.log_tag_source.set_property("foreground", "#a855f7")
+        self.log_tag_source.set_property("size-points", 10)
+        tag_table.add(self.log_tag_source)
+
+        # 消息标签（白色，稍大字号）
+        self.log_tag_message = Gtk.TextTag(name="message")
+        self.log_tag_message.set_property("foreground", "#e5e7eb")
+        self.log_tag_message.set_property("size-points", 10)
+        tag_table.add(self.log_tag_message)
+
+        # 行间距标签
+        self.log_tag_line = Gtk.TextTag(name="line")
+        self.log_tag_line.set_property("pixels-above-lines", 4)
+        tag_table.add(self.log_tag_line)
 
         # 操作按钮
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -2232,21 +2283,27 @@ class WallpaperApp(Adw.Application):
         source = log_entry.get("source", "")
         message = log_entry.get("message", "")
 
-        # 根据日志级别设置颜色
-        level_colors = {
-            "DEBUG": "#6b7280",
-            "INFO": "#3b82f6",
-            "WARNING": "#f59e0b",
-            "ERROR": "#ef4444"
+        # 获取位置标记
+        start_iter = self.log_buffer.get_end_iter()
+
+        # 插入时间戳
+        self.log_buffer.insert_with_tags(start_iter, f"[{timestamp}] ", self.log_tag_timestamp)
+
+        # 插入级别标签
+        level_tags = {
+            "DEBUG": self.log_tag_debug,
+            "INFO": self.log_tag_info,
+            "WARNING": self.log_tag_warning,
+            "ERROR": self.log_tag_error
         }
-        color = level_colors.get(level, "#ffffff")
+        level_tag = level_tags.get(level, self.log_tag_debug)
+        self.log_buffer.insert_with_tags(start_iter, f"[{level}] ", level_tag)
 
-        # 格式化日志条目
-        log_line = f"[{timestamp}] [{level}] [{source}] {message}\n"
+        # 插入来源
+        self.log_buffer.insert_with_tags(start_iter, f"[{source}] ", self.log_tag_source)
 
-        # 添加到缓冲区
-        iter = self.log_buffer.get_end_iter()
-        self.log_buffer.insert(iter, log_line)
+        # 插入消息
+        self.log_buffer.insert_with_tags(start_iter, f"{message}\n", self.log_tag_message, self.log_tag_line)
 
         # 自动滚动到底部
         self.log_text_view.scroll_to_mark(
