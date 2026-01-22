@@ -540,8 +540,35 @@ class WallpaperManager:
             return None
 
     def clear_cache(self):
-        """清理纹理缓存"""
+        """清空纹理缓存"""
         self._texture_cache.clear()
+
+    def delete_wallpaper(self, folder_id: str) -> bool:
+        """删除壁纸文件夹"""
+        if folder_id not in self._wallpapers:
+            return False
+
+        folder_path = os.path.join(self.workshop_path, folder_id)
+        if not os.path.exists(folder_path):
+            return False
+
+        try:
+            # 删除文件夹及其内容
+            import shutil
+            shutil.rmtree(folder_path)
+
+            # 从壁纸列表中移除
+            del self._wallpapers[folder_id]
+
+            # 清理缓存
+            cache_keys_to_remove = [k for k in self._texture_cache.keys() if k.startswith(self._wallpapers.get(folder_id, {}).get('preview', ''))]
+            for key in cache_keys_to_remove:
+                del self._texture_cache[key]
+
+            return True
+        except Exception as e:
+            print(f"[ERROR] Failed to delete wallpaper {folder_id}: {e}")
+            return False
         gc.collect()
 
 
@@ -1746,6 +1773,13 @@ class WallpaperApp(Adw.Application):
         gesture.connect("pressed", lambda g, n_press, x, y: self.on_wallpaper_activated(folder_id, n_press))
         btn.add_controller(gesture)
 
+        # 右键菜单（GestureClick 捕获右键）
+        context_gesture = Gtk.GestureClick.new()
+        context_gesture.set_button(Gdk.BUTTON_SECONDARY)
+        context_gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        context_gesture.connect("pressed", lambda g, n_press, x, y: self.on_wallpaper_context_menu(btn, folder_id))
+        btn.add_controller(context_gesture)
+
         overlay = Gtk.Overlay()
         btn.set_child(overlay)
 
@@ -1812,6 +1846,13 @@ class WallpaperApp(Adw.Application):
         gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         gesture.connect("pressed", lambda g, n_press, x, y: self.on_wallpaper_activated(folder_id, n_press))
         btn.add_controller(gesture)
+
+        # 右键菜单（GestureClick 捕获右键）
+        context_gesture = Gtk.GestureClick.new()
+        context_gesture.set_button(Gdk.BUTTON_SECONDARY)
+        context_gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        context_gesture.connect("pressed", lambda g, n_press, x, y: self.on_wallpaper_context_menu(btn, folder_id))
+        btn.add_controller(context_gesture)
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         btn.set_child(hbox)
@@ -1893,6 +1934,98 @@ class WallpaperApp(Adw.Application):
             wp = self.wp_manager._wallpapers.get(folder_id)
             if wp:
                 self.active_wp_label.set_label(wp['title'])
+
+    def on_wallpaper_context_menu(self, widget: Gtk.Widget, folder_id: str):
+        """显示壁纸右键菜单"""
+        menu = Gtk.PopoverMenu()
+
+        # 应用壁纸
+        apply_action = Gio.SimpleAction.new("apply", None)
+        apply_action.connect("activate", lambda a, p: self._apply_wallpaper_from_context(folder_id))
+        self.win.add_action(apply_action)
+
+        # 停止壁纸
+        stop_action = Gio.SimpleAction.new("stop", None)
+        stop_action.connect("activate", lambda a, p: self._stop_wallpaper_from_context())
+        self.win.add_action(stop_action)
+
+        # 删除壁纸
+        delete_action = Gio.SimpleAction.new("delete", None)
+        delete_action.connect("activate", lambda a, p: self._delete_wallpaper_from_context(folder_id))
+        self.win.add_action(delete_action)
+
+        # 创建菜单模型
+        menu_model = Gio.Menu()
+        apply_item = Gio.MenuItem.new("Apply Wallpaper", "win.apply")
+        stop_item = Gio.MenuItem.new("Stop Wallpaper", "win.stop")
+        delete_item = Gio.MenuItem.new("Delete Wallpaper", "win.delete")
+
+        menu_model.append_item(apply_item)
+        menu_model.append_item(stop_item)
+        menu_model.append_item(delete_item)
+
+        menu.set_menu_model(menu_model)
+        menu.set_parent(widget)
+        menu.set_pointing_to(Gdk.Rectangle())
+        menu.popup()
+
+    def _apply_wallpaper_from_context(self, folder_id: str):
+        """从右键菜单应用壁纸"""
+        self.on_select_wallpaper(folder_id)
+        self.controller.apply(folder_id)
+        self.active_wp = folder_id
+        wp = self.wp_manager._wallpapers.get(folder_id)
+        if wp:
+            self.active_wp_label.set_label(wp['title'])
+
+    def _stop_wallpaper_from_context(self):
+        """从右键菜单停止壁纸"""
+        self.controller.stop()
+        self.active_wp = None
+        self.active_wp_label.set_label("None")
+
+    def _delete_wallpaper_from_context(self, folder_id: str):
+        """从右键菜单删除壁纸"""
+        # 创建确认对话框
+        dialog = Gtk.MessageDialog(
+            transient_for=self.win,
+            modal=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Delete Wallpaper?"
+        )
+        dialog.format_secondary_text(
+            f"Are you sure you want to delete wallpaper {folder_id}?\nThis action cannot be undone."
+        )
+
+        response = dialog.run()
+        dialog.destroy()
+
+        if response == Gtk.ResponseType.YES:
+            self.log_manager.add_info(f"Deleting wallpaper {folder_id}", "GUI")
+            if self.wp_manager.delete_wallpaper(folder_id):
+                self.log_manager.add_info(f"Wallpaper {folder_id} deleted successfully", "GUI")
+                # 从属性管理器中移除
+                if hasattr(self.prop_manager, '_user_properties') and folder_id in self.prop_manager._user_properties:
+                    del self.prop_manager._user_properties[folder_id]
+                # 刷新壁纸列表
+                self.refresh_wallpaper_grid()
+                # 如果删除的是当前选中的壁纸，清空侧边栏
+                if self.selected_wp == folder_id:
+                    self.selected_wp = None
+                    self.update_sidebar()
+            else:
+                self.log_manager.add_error(f"Failed to delete wallpaper {folder_id}", "GUI")
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=self.win,
+                    modal=True,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Deletion Failed"
+                )
+                error_dialog.format_secondary_text(f"Could not delete wallpaper {folder_id}. Check permissions.")
+                error_dialog.run()
+                error_dialog.destroy()
 
     def on_feeling_lucky(self, btn):
         """随机挑选并应用一张壁纸"""
