@@ -2029,36 +2029,40 @@ class WallpaperApp(Adw.Application):
             buttons=Gtk.ButtonsType.YES_NO,
             text="Delete Wallpaper?"
         )
-        dialog.set_property("secondary-text", f"Are you sure you want to delete wallpaper {folder_id}?\nThis action cannot be undone.")
+        dialog.set_property("secondary-text", f"Are you sure you want to delete wallpaper {folder_id}?\\nThis action cannot be undone.")
 
-        response = dialog.run()
-        dialog.destroy()
+        # 连接响应信号
+        def on_dialog_response(dialog, response):
+            if response == Gtk.ResponseType.YES:
+                self.log_manager.add_info(f"Deleting wallpaper {folder_id}", "GUI")
+                if self.wp_manager.delete_wallpaper(folder_id):
+                    self.log_manager.add_info(f"Wallpaper {folder_id} deleted successfully", "GUI")
+                    # 从属性管理器中移除
+                    if hasattr(self.prop_manager, '_user_properties') and folder_id in self.prop_manager._user_properties:
+                        del self.prop_manager._user_properties[folder_id]
+                    # 刷新壁纸列表
+                    self.refresh_wallpaper_grid()
+                    # 如果删除的是当前选中的壁纸，清空侧边栏
+                    if self.selected_wp == folder_id:
+                        self.selected_wp = None
+                        self.update_sidebar()
+                else:
+                    self.log_manager.add_error(f"Failed to delete wallpaper {folder_id}", "GUI")
+                    error_dialog = Gtk.MessageDialog(
+                        transient_for=self.win,
+                        modal=True,
+                        message_type=Gtk.MessageType.ERROR,
+                        buttons=Gtk.ButtonsType.OK,
+                        text="Deletion Failed"
+                    )
+                    error_dialog.set_property("secondary-text", f"Could not delete wallpaper {folder_id}. Check permissions.")
+                    error_dialog.connect("response", lambda d, r: d.destroy())
+                    error_dialog.present()
 
-        if response == Gtk.ResponseType.YES:
-            self.log_manager.add_info(f"Deleting wallpaper {folder_id}", "GUI")
-            if self.wp_manager.delete_wallpaper(folder_id):
-                self.log_manager.add_info(f"Wallpaper {folder_id} deleted successfully", "GUI")
-                # 从属性管理器中移除
-                if hasattr(self.prop_manager, '_user_properties') and folder_id in self.prop_manager._user_properties:
-                    del self.prop_manager._user_properties[folder_id]
-                # 刷新壁纸列表
-                self.refresh_wallpaper_grid()
-                # 如果删除的是当前选中的壁纸，清空侧边栏
-                if self.selected_wp == folder_id:
-                    self.selected_wp = None
-                    self.update_sidebar()
-            else:
-                self.log_manager.add_error(f"Failed to delete wallpaper {folder_id}", "GUI")
-                error_dialog = Gtk.MessageDialog(
-                    transient_for=self.win,
-                    modal=True,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text="Deletion Failed"
-                )
-                error_dialog.format_secondary_text(f"Could not delete wallpaper {folder_id}. Check permissions.")
-                error_dialog.run()
-                error_dialog.destroy()
+            dialog.destroy()
+
+        dialog.connect("response", on_dialog_response)
+        dialog.present()
 
     def on_feeling_lucky(self, btn):
         """随机挑选并应用一张壁纸"""
