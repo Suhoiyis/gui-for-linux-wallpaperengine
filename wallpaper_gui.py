@@ -49,6 +49,7 @@ DEFAULT_CONFIG = {
     "disableMouse": False,
     "lastWallpaper": None,
     "lastScreen": None,
+    "wallpaperProperties": {},
 }
 
 # ============================================================================
@@ -215,7 +216,6 @@ window {
     margin-left: 0;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
     min-width: 320px;
-    max-width: 320px;
 }
 
 .sidebar-preview {
@@ -314,7 +314,6 @@ window {
     padding: 12px 16px;
     font-weight: 500;
     border: none;
-    text-align: left;
 }
 
 .settings-nav-item:hover {
@@ -544,11 +543,197 @@ class WallpaperManager:
 
 
 # ============================================================================
+# 屏幕管理
+# ============================================================================
+class ScreenManager:
+    def __init__(self):
+        self._screens_cache: Optional[List[str]] = None
+
+    def get_screens(self) -> List[str]:
+        """获取可用的屏幕列表"""
+        if self._screens_cache is not None:
+            return self._screens_cache
+
+        screens = []
+        try:
+            result = subprocess.run(
+                ['xrandr', '--query'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            for line in result.stdout.split('\n'):
+                if ' connected' in line:
+                    screen_name = line.split()[0]
+                    screens.append(screen_name)
+        except Exception as e:
+            print(f"[SCREEN] Failed to get screens: {e}")
+            screens = ['eDP-1']  # 默认值
+
+        self._screens_cache = screens
+        return screens
+
+    def refresh(self):
+        """刷新屏幕列表"""
+        self._screens_cache = None
+        return self.get_screens()
+
+# ============================================================================
+# 壁纸属性管理
+# ============================================================================
+class PropertiesManager:
+    def __init__(self, config: ConfigManager):
+        self._properties_cache: Dict[str, List[Dict]] = {}
+        self._property_types: Dict[str, Dict[str, str]] = {}
+        self._user_properties: Dict[str, Dict] = {}
+        self._config = config
+        self.load_from_config()
+
+    def parse_properties_output(self, output: str) -> List[Dict]:
+        """解析 --list-properties 输出"""
+        properties = []
+        lines = output.split('\n')
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            if not line or 'Running with:' in line:
+                i += 1
+                continue
+
+            if ' - ' in line:
+                parts = line.split(' - ', 1)
+                name = parts[0].strip()
+                prop_type = parts[1].strip()
+
+                prop = {
+                    'name': name,
+                    'type': prop_type,
+                    'text': '',
+                    'value': None,
+                    'min': 0,
+                    'max': 100,
+                    'step': 1,
+                    'options': []
+                }
+
+                i += 1
+                while i < len(lines):
+                    subline = lines[i].strip()
+                    if not subline:
+                        i += 1
+                        continue
+                    if ' - ' in subline:
+                        i -= 1
+                        break
+
+                    if subline.startswith('Text:'):
+                        prop['text'] = subline[5:].strip()
+                    elif subline.startswith('Value:'):
+                        value_str = subline[6:].strip()
+                        if prop_type == 'color':
+                            prop['value'] = self._parse_color(value_str)
+                        elif prop_type == 'boolean':
+                            prop['value'] = value_str == '1'
+                        else:
+                            try:
+                                prop['value'] = float(value_str)
+                                if prop['value'] == int(prop['value']):
+                                    prop['value'] = int(prop['value'])
+                            except:
+                                prop['value'] = value_str
+                    elif subline.startswith('Min:'):
+                        prop['min'] = float(subline[4:].strip())
+                    elif subline.startswith('Max:'):
+                        prop['max'] = float(subline[5:].strip())
+                    elif subline.startswith('Step:'):
+                        prop['step'] = float(subline[5:].strip())
+                    elif subline.startswith('Values:'):
+                        i += 1
+                        while i < len(lines) and '\t\t' in lines[i]:
+                            opt_line = lines[i].strip()
+                            if '=' in opt_line:
+                                label, val = opt_line.split('=', 1)
+                                prop['options'].append({'label': label.strip(), 'value': val.strip()})
+                            i += 1
+                        continue
+
+                    i += 1
+                properties.append(prop)
+            else:
+                i += 1
+        return properties
+
+    def _parse_color(self, value_str: str) -> tuple:
+        """解析颜色值"""
+        parts = [p.strip() for p in value_str.split(',')]
+        return (float(parts[0]), float(parts[1]), float(parts[2]))
+
+    def get_properties(self, wp_id: str) -> List[Dict]:
+        """获取壁纸属性列表"""
+        if wp_id in self._properties_cache:
+            return self._properties_cache[wp_id]
+
+        try:
+            result = subprocess.run(
+                ['linux-wallpaperengine', '--list-properties', wp_id],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            properties = self.parse_properties_output(result.stdout)
+            self._properties_cache[wp_id] = properties
+            # 存储属性类型信息
+            self._property_types[wp_id] = {p['name']: p['type'] for p in properties}
+            return properties
+        except Exception as e:
+            print(f"[PROPERTIES] Failed to get properties for {wp_id}: {e}")
+            return []
+
+    def get_property_type(self, wp_id: str, prop_name: str) -> str:
+        """获取属性类型"""
+        if wp_id in self._property_types and prop_name in self._property_types[wp_id]:
+            return self._property_types[wp_id][prop_name]
+        return 'unknown'
+
+    def load_from_config(self):
+        """从配置文件加载用户属性"""
+        props_data = self._config.get("wallpaperProperties", {})
+        self._user_properties = props_data
+
+    def save_to_config(self):
+        """保存用户属性到配置文件"""
+        self._config.set("wallpaperProperties", self._user_properties)
+
+    def get_user_property(self, wp_id: str, prop_name: str):
+        """获取用户修改的属性值"""
+        if wp_id in self._user_properties and prop_name in self._user_properties[wp_id]:
+            return self._user_properties[wp_id][prop_name]
+        return None
+
+    def set_user_property(self, wp_id: str, prop_name: str, value):
+        """设置用户修改的属性值"""
+        if wp_id not in self._user_properties:
+            self._user_properties[wp_id] = {}
+        self._user_properties[wp_id][prop_name] = value
+        self.save_to_config()
+
+    def format_property_value(self, prop_type: str, value) -> str:
+        """格式化属性值为命令行参数格式"""
+        if prop_type == 'color' and isinstance(value, tuple):
+            return f"{value[0]},{value[1]},{value[2]}"
+        elif isinstance(value, bool):
+            return '1' if value else '0'
+        elif isinstance(value, float):
+            return f"{value:.6f}"
+        return str(value)
+
+# ============================================================================
 # 壁纸控制器
 # ============================================================================
 class WallpaperController:
-    def __init__(self, config: ConfigManager):
+    def __init__(self, config: ConfigManager, prop_manager: PropertiesManager):
         self.config = config
+        self.prop_manager = prop_manager
         self.current_proc: Optional[subprocess.Popen] = None
 
     def apply(self, wp_id: str, screen: Optional[str] = None):
@@ -582,6 +767,12 @@ class WallpaperController:
 
         if self.config.get("disableMouse", False):
             cmd.append("--disable-mouse")
+
+        # 添加用户自定义属性
+        user_props = self.prop_manager._user_properties.get(wp_id, {})
+        for prop_name, prop_value in user_props.items():
+            prop_type = self.prop_manager.get_property_type(wp_id, prop_name)
+            cmd.extend(["--set-property", f"{prop_name}={self.prop_manager.format_property_value(prop_type, prop_value)}"])
 
         # 【调试输出】
         print(f"[DEBUG] Executing: {' '.join(cmd)}")
@@ -643,11 +834,14 @@ class WallpaperApp(Adw.Application):
         )
         self.config = ConfigManager()
         self.wp_manager = WallpaperManager()
-        self.controller = WallpaperController(self.config)
+        self.prop_manager = PropertiesManager(self.config)
+        self.screen_manager = ScreenManager()
+        self.controller = WallpaperController(self.config, self.prop_manager)
 
         self.view_mode = "grid"  # grid, list
         self.selected_wp: Optional[str] = None
         self.active_wp: Optional[str] = None
+        self.search_query = ""  # 搜索关键词
 
         # CLI 控制：支持 --minimized/--hidden、--show/--hide/--toggle 等
         self.start_hidden = False
@@ -994,10 +1188,25 @@ class WallpaperApp(Adw.Application):
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         toolbar.add_css_class("toolbar")
 
-        # 左侧空白
-        left_space = Gtk.Box()
-        left_space.set_hexpand(True)
-        toolbar.append(left_space)
+        # 左侧搜索框
+        search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        toolbar.append(search_box)
+
+        search_label = Gtk.Label(label="🔍")
+        search_label.add_css_class("status-label")
+        search_box.append(search_label)
+
+        self.search_entry = Gtk.Entry()
+        self.search_entry.set_placeholder_text("Search wallpapers...")
+        self.search_entry.set_width_chars(25)
+        self.search_entry.connect('changed', self.on_search_changed)
+        self.search_entry.connect('activate', self.on_search_activate)
+        search_box.append(self.search_entry)
+
+        # 拉伸空间
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        toolbar.append(spacer)
 
         # 状态信息
         status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
@@ -1069,6 +1278,35 @@ class WallpaperApp(Adw.Application):
             self.btn_grid.set_active(False)
             self.view_mode = "list"
             self.refresh_wallpaper_grid()
+
+    def on_search_changed(self, entry):
+        """搜索框内容变化"""
+        self.search_query = entry.get_text().lower().strip()
+        self.refresh_wallpaper_grid()
+
+    def on_search_activate(self, entry):
+        """回车键触发搜索"""
+        self.search_query = entry.get_text().lower().strip()
+        self.refresh_wallpaper_grid()
+
+    def filter_wallpapers(self) -> Dict[str, Dict]:
+        """根据搜索关键词过滤壁纸"""
+        if not self.search_query:
+            return self.wp_manager._wallpapers
+
+        filtered = {}
+        for wp_id, wp in self.wp_manager._wallpapers.items():
+            title = wp.get('title', '').lower()
+            description = wp.get('description', '').lower()
+            tags_str = ' '.join(str(t).lower() for t in wp.get('tags', []))
+            folder = wp_id.lower()
+
+            if (self.search_query in title or
+                self.search_query in description or
+                self.search_query in tags_str or
+                self.search_query in folder):
+                filtered[wp_id] = wp
+        return filtered
 
     def build_sidebar(self, parent: Gtk.Box):
         self.sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -1153,6 +1391,27 @@ class WallpaperApp(Adw.Application):
         self.sidebar_desc.set_selectable(True)
         sidebar_content.append(self.sidebar_desc)
 
+        # 属性折叠区
+        properties_separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        properties_separator.set_margin_top(20)
+        sidebar_content.append(properties_separator)
+
+        properties_label = Gtk.Label(label="Properties")
+        properties_label.add_css_class("sidebar-section")
+        properties_label.set_margin_top(15)
+        properties_label.set_halign(Gtk.Align.START)
+        sidebar_content.append(properties_label)
+
+        # 属性容器
+        self.properties_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.properties_box.set_margin_start(15)
+        self.properties_box.set_margin_end(15)
+        sidebar_content.append(self.properties_box)
+
+        self.properties_loading_label = Gtk.Label(label="Loading properties...")
+        self.properties_loading_label.add_css_class("text-muted")
+        self.properties_box.append(self.properties_loading_label)
+
         # 底部按钮区
         btn_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         btn_box.set_margin_top(20)
@@ -1216,6 +1475,133 @@ class WallpaperApp(Adw.Application):
                 chip.add_css_class("tag-chip")
                 self.sidebar_tags.append(chip)
 
+        # 加载属性
+        self.load_properties(self.selected_wp)
+
+    def load_properties(self, wp_id: str):
+        """加载并显示壁纸属性"""
+        # 清空现有属性控件
+        while True:
+            child = self.properties_box.get_first_child()
+            if child is None:
+                break
+            self.properties_box.remove(child)
+
+        # 显示加载状态
+        self.properties_box.append(self.properties_loading_label)
+
+        # 异步加载属性
+        def load_async():
+            properties = self.prop_manager.get_properties(wp_id)
+            GLib.idle_add(lambda: self.display_properties(properties))
+
+        threading.Thread(target=load_async, daemon=True).start()
+
+    def display_properties(self, properties: List[Dict]):
+        """显示属性控件"""
+        # 移除加载标签
+        self.properties_box.remove(self.properties_loading_label)
+
+        if not properties:
+            no_props = Gtk.Label(label="No properties available.")
+            no_props.add_css_class("text-muted")
+            self.properties_box.append(no_props)
+            return
+
+        # 为每个属性创建控件
+        for prop in properties:
+            prop_widget = self.create_property_widget(prop)
+            self.properties_box.append(prop_widget)
+
+    def create_property_widget(self, prop: Dict) -> Gtk.Widget:
+        """根据属性类型创建控件"""
+        container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        container.set_margin_top(8)
+
+        # 属性标题
+        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        container.append(title_box)
+
+        title_label = Gtk.Label(label=prop.get('text', prop['name']))
+        title_label.set_halign(Gtk.Align.START)
+        title_label.add_css_class("setting-label")
+        title_box.append(title_label)
+
+        # 根据类型创建控件
+        prop_type = prop['type']
+        prop_name = prop['name']
+
+        # 获取用户自定义值
+        user_value = self.prop_manager.get_user_property(self.selected_wp, prop_name)
+        current_value = user_value if user_value is not None else prop['value']
+
+        if prop_type == 'boolean':
+            switch = Gtk.Switch()
+            switch.set_active(bool(current_value))
+            switch.set_valign(Gtk.Align.CENTER)
+            switch.set_halign(Gtk.Align.START)
+            switch.connect('state-set', lambda s, v: self.on_property_changed(prop_name, v, 'boolean'))
+            container.append(switch)
+
+        elif prop_type == 'slider':
+            slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, prop['min'], prop['max'], prop['step'])
+            slider.set_value(float(current_value))
+            slider.set_hexpand(True)
+            slider.connect('value-changed', lambda s: self.on_property_changed(prop_name, s.get_value(), 'slider'))
+            container.append(slider)
+
+            # 显示当前值
+            value_label = Gtk.Label(label=f"{current_value}")
+            value_label.add_css_class("text-muted")
+            value_label.set_halign(Gtk.Align.START)
+            container.append(value_label)
+
+        elif prop_type == 'color':
+            color = Gtk.ColorChooserButton()
+            if isinstance(current_value, tuple) and len(current_value) >= 3:
+                gdk_color = Gdk.RGBA()
+                gdk_color.parse(f"rgb({int(current_value[0]*255)}, {int(current_value[1]*255)}, {int(current_value[2]*255)})")
+                color.set_rgba(gdk_color)
+            color.connect('color-set', lambda w: self.on_color_property_changed(prop_name, w.get_rgba(), 'color'))
+            container.append(color)
+
+        elif prop_type == 'combo':
+            if prop['options']:
+                option_strings = [opt['label'] for opt in prop['options']]
+                dropdown = Gtk.DropDown.new_from_strings(option_strings)
+                current_idx = 0
+                for i, opt in enumerate(prop['options']):
+                    if str(opt['value']) == str(current_value):
+                        current_idx = i
+                        break
+                dropdown.set_selected(current_idx)
+                dropdown.connect('notify::selected', lambda w, p: self.on_combo_property_changed(prop_name, prop['options'], w.get_selected(), 'combo'))
+                container.append(dropdown)
+            else:
+                lbl = Gtk.Label(label="No options available")
+                lbl.add_css_class("text-muted")
+                container.append(lbl)
+
+        return container
+
+    def on_property_changed(self, prop_name: str, value, prop_type: str):
+        """属性值变化处理"""
+        if prop_type == 'boolean':
+            self.prop_manager.set_user_property(self.selected_wp, prop_name, bool(value))
+        elif prop_type == 'slider':
+            self.prop_manager.set_user_property(self.selected_wp, prop_name, float(value))
+
+    def on_color_property_changed(self, prop_name: str, color: Gdk.RGBA, prop_type: str):
+        """颜色属性值变化处理"""
+        if prop_type == 'color':
+            r, g, b, a = color.red, color.green, color.blue, color.alpha
+            self.prop_manager.set_user_property(self.selected_wp, prop_name, (r, g, b))
+
+    def on_combo_property_changed(self, prop_name: str, options: List[Dict], selected_idx: int, prop_type: str):
+        """下拉选择属性值变化处理"""
+        if prop_type == 'combo' and selected_idx < len(options):
+            self.prop_manager.set_user_property(self.selected_wp, prop_name, options[selected_idx]['value'])
+
     def refresh_wallpaper_grid(self):
         """刷新壁纸显示"""
         if self.view_mode == "grid":
@@ -1233,7 +1619,8 @@ class WallpaperApp(Adw.Application):
                 break
             self.flowbox.remove(child)
 
-        for folder_id, wp in self.wp_manager._wallpapers.items():
+        filtered = self.filter_wallpapers()
+        for folder_id, wp in filtered.items():
             card = self.create_grid_item(folder_id, wp)
             self.flowbox.append(card)
 
@@ -1301,7 +1688,8 @@ class WallpaperApp(Adw.Application):
                 break
             self.listbox.remove(row)
 
-        for folder_id, wp in self.wp_manager._wallpapers.items():
+        filtered = self.filter_wallpapers()
+        for folder_id, wp in filtered.items():
             row = self.create_list_item(folder_id, wp)
             self.listbox.append(row)
 
@@ -1656,13 +2044,33 @@ class WallpaperApp(Adw.Application):
         path_row.append(self.path_entry)
 
         # Screen Root (Multi-monitor support)
-        screen_row = self.create_setting_row("Screen Root", "XRandR/Wayland screen name, e.g. eDP-1.")
-        screen_row.set_orientation(Gtk.Orientation.VERTICAL)
+        screen_row = self.create_setting_row("Screen Root", "Select a monitor for wallpaper.")
         box.append(screen_row)
-        self.screen_entry = Gtk.Entry()
-        self.screen_entry.set_text(str(self.config.get("lastScreen", "eDP-1")))
-        self.screen_entry.set_hexpand(True)
-        screen_row.append(self.screen_entry)
+
+        # 获取屏幕列表
+        screens = self.screen_manager.get_screens()
+        current_screen = self.config.get("lastScreen", "eDP-1")
+
+        # 如果当前屏幕不在列表中，添加它
+        if current_screen not in screens:
+            screens = screens + [current_screen]
+
+        self.screen_dropdown = Gtk.DropDown.new_from_strings(screens)
+        self.screen_dropdown.set_hexpand(True)
+
+        # 设置当前选中的屏幕
+        if current_screen in screens:
+            self.screen_dropdown.set_selected(screens.index(current_screen))
+
+        screen_row.append(self.screen_dropdown)
+
+        # 刷新屏幕按钮
+        refresh_screen_btn = Gtk.Button(label="⟳ Refresh Screens")
+        refresh_screen_btn.add_css_class("action-btn")
+        refresh_screen_btn.add_css_class("secondary")
+        refresh_screen_btn.set_margin_top(8)
+        refresh_screen_btn.connect("clicked", self.on_refresh_screens)
+        box.append(refresh_screen_btn)
 
     def create_setting_row(self, label: str, description: str) -> Gtk.Box:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
@@ -1693,9 +2101,29 @@ class WallpaperApp(Adw.Application):
         self.config.set("disableMouse", self.mouse_switch.get_active())
         self.config.set("silence", self.silence_switch.get_active())
         self.config.set("volume", int(self.volume_spin.get_value()))
-        # 确保保存有效的屏幕名称
-        screen_input = self.screen_entry.get_text().strip()
-        self.config.set("lastScreen", screen_input if screen_input else "eDP-1")
+        # 从下拉选择保存屏幕名称
+        screens = self.screen_manager.get_screens()
+        selected_idx = self.screen_dropdown.get_selected()
+        if selected_idx >= 0 and selected_idx < len(screens):
+            self.config.set("lastScreen", screens[selected_idx])
+        else:
+            self.config.set("lastScreen", "eDP-1")
+
+    def on_refresh_screens(self, btn):
+        """刷新屏幕列表"""
+        screens = self.screen_manager.refresh()
+        current_screen = self.config.get("lastScreen", "eDP-1")
+
+        # 如果当前屏幕不在列表中，添加它
+        if current_screen not in screens:
+            screens = screens + [current_screen]
+
+        # 更新下拉选择
+        self.screen_dropdown.set_model(Gtk.StringList.new(screens))
+
+        # 设置当前选中的屏幕
+        if current_screen in screens:
+            self.screen_dropdown.set_selected(screens.index(current_screen))
 
     def on_reload_wallpapers(self, btn):
         """重新加载壁纸"""
