@@ -2029,9 +2029,7 @@ class WallpaperApp(Adw.Application):
             buttons=Gtk.ButtonsType.YES_NO,
             text="Delete Wallpaper?"
         )
-        dialog.format_secondary_text(
-            f"Are you sure you want to delete wallpaper {folder_id}?\nThis action cannot be undone."
-        )
+        dialog.set_property("secondary-text", f"Are you sure you want to delete wallpaper {folder_id}?\nThis action cannot be undone.")
 
         response = dialog.run()
         dialog.destroy()
