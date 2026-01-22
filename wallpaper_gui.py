@@ -934,7 +934,8 @@ class WallpaperApp(Adw.Application):
         )
         self.config = ConfigManager()
         self.log_manager = LogManager()
-        self.wp_manager = WallpaperManager()
+        workshop_path = self.config.get("workshopPath", WORKSHOP_PATH)
+        self.wp_manager = WallpaperManager(workshop_path)
         self.prop_manager = PropertiesManager(self.config)
         self.screen_manager = ScreenManager()
         self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager)
@@ -2280,7 +2281,7 @@ class WallpaperApp(Adw.Application):
         path_row.set_orientation(Gtk.Orientation.VERTICAL)
         box.append(path_row)
         self.path_entry = Gtk.Entry()
-        self.path_entry.set_text(WORKSHOP_PATH)
+        self.path_entry.set_text(self.config.get("workshopPath", WORKSHOP_PATH))
         self.path_entry.set_hexpand(True)
         path_row.append(self.path_entry)
 
@@ -2506,6 +2507,12 @@ class WallpaperApp(Adw.Application):
         self.config.set("disableMouse", self.mouse_switch.get_active())
         self.config.set("silence", self.silence_switch.get_active())
         self.config.set("volume", int(self.volume_spin.get_value()))
+
+        # 保存 Workshop 路径
+        new_path = self.path_entry.get_text().strip()
+        if new_path:
+            self.config.set("workshopPath", new_path)
+
         # 从下拉选择保存屏幕名称
         screens = self.screen_manager.get_screens()
         selected_idx = self.screen_dropdown.get_selected()
@@ -2513,6 +2520,13 @@ class WallpaperApp(Adw.Application):
             self.config.set("lastScreen", screens[selected_idx])
         else:
             self.config.set("lastScreen", "eDP-1")
+
+        self.log_manager.add_info("Settings saved", "GUI")
+
+        # 如果当前有正在播放的壁纸，重新应用以应用新设置
+        if self.active_wp and self.active_wp in self.wp_manager._wallpapers:
+            self.log_manager.add_info(f"Re-applying wallpaper {self.active_wp} with new settings", "GUI")
+            self.controller.apply(self.active_wp)
 
     def on_refresh_screens(self, btn):
         """刷新屏幕列表"""
