@@ -711,6 +711,10 @@ class PropertiesManager:
                 timeout=5
             )
             properties = self.parse_properties_output(result.stdout)
+
+            # 过滤掉对用户无意义的属性（UI 相关等）
+            properties = self._filter_properties(properties)
+
             self._properties_cache[wp_id] = properties
             # 存储属性类型信息
             self._property_types[wp_id] = {p['name']: p['type'] for p in properties}
@@ -718,6 +722,36 @@ class PropertiesManager:
         except Exception as e:
             print(f"[PROPERTIES] Failed to get properties for {wp_id}: {e}")
             return []
+
+    def _filter_properties(self, properties: List[Dict]) -> List[Dict]:
+        """过滤掉对用户无意义的属性"""
+        filtered = []
+        ui_keywords = ['ui_', 'ui_browse', 'scheme_']
+
+        # 音量相关属性（Settings 中已有全局音量控制）
+        audio_keywords = ['volume', 'music', 'sound', 'bell']
+
+        for prop in properties:
+            name = prop.get('name', '').lower()
+            text = prop.get('text', '').lower()
+
+            # 检查是否包含 UI 相关关键词
+            should_hide = any(keyword in name or keyword in text for keyword in ui_keywords)
+
+            # 检查是否为音量相关属性
+            is_audio_prop = any(keyword in name for keyword in audio_keywords)
+
+            if not should_hide and not is_audio_prop:
+                filtered.append(prop)
+            else:
+                reason = []
+                if should_hide:
+                    reason.append("UI-related")
+                if is_audio_prop:
+                    reason.append("audio-related")
+                print(f"[PROPERTIES] Hiding property: {prop['name']} (text: {prop['text']}, reason: {', '.join(reason)})")
+
+        return filtered
 
     def get_property_type(self, wp_id: str, prop_name: str) -> str:
         """获取属性类型"""
