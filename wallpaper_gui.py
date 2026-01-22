@@ -2206,45 +2206,45 @@ class WallpaperApp(Adw.Application):
         # 时间标签（灰色）
         self.log_tag_timestamp = Gtk.TextTag(name="timestamp")
         self.log_tag_timestamp.set_property("foreground", "#6b7280")
-        self.log_tag_timestamp.set_property("size-points", 10)
+        self.log_tag_timestamp.set_property("size-points", 12)
         tag_table.add(self.log_tag_timestamp)
 
         # 级别标签（不同颜色）
         self.log_tag_debug = Gtk.TextTag(name="debug")
         self.log_tag_debug.set_property("foreground", "#6b7280")
-        self.log_tag_debug.set_property("size-points", 10)
+        self.log_tag_debug.set_property("size-points", 12)
         tag_table.add(self.log_tag_debug)
 
         self.log_tag_info = Gtk.TextTag(name="info")
         self.log_tag_info.set_property("foreground", "#3b82f6")
-        self.log_tag_info.set_property("size-points", 10)
+        self.log_tag_info.set_property("size-points", 12)
         tag_table.add(self.log_tag_info)
 
         self.log_tag_warning = Gtk.TextTag(name="warning")
         self.log_tag_warning.set_property("foreground", "#f59e0b")
-        self.log_tag_warning.set_property("size-points", 10)
+        self.log_tag_warning.set_property("size-points", 12)
         tag_table.add(self.log_tag_warning)
 
         self.log_tag_error = Gtk.TextTag(name="error")
         self.log_tag_error.set_property("foreground", "#ef4444")
-        self.log_tag_error.set_property("size-points", 10)
+        self.log_tag_error.set_property("size-points", 12)
         tag_table.add(self.log_tag_error)
 
         # 来源标签（紫色）
         self.log_tag_source = Gtk.TextTag(name="source")
         self.log_tag_source.set_property("foreground", "#a855f7")
-        self.log_tag_source.set_property("size-points", 10)
+        self.log_tag_source.set_property("size-points", 12)
         tag_table.add(self.log_tag_source)
 
         # 消息标签（白色，稍大字号）
         self.log_tag_message = Gtk.TextTag(name="message")
         self.log_tag_message.set_property("foreground", "#e5e7eb")
-        self.log_tag_message.set_property("size-points", 10)
+        self.log_tag_message.set_property("size-points", 12)
         tag_table.add(self.log_tag_message)
 
         # 行间距标签
         self.log_tag_line = Gtk.TextTag(name="line")
-        self.log_tag_line.set_property("pixels-above-lines", 4)
+        self.log_tag_line.set_property("pixels-above-lines", 8)
         tag_table.add(self.log_tag_line)
 
         # 操作按钮
