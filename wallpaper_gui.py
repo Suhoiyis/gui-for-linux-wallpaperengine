@@ -14,6 +14,7 @@ import gc
 import random
 import threading
 import os.path
+from datetime import datetime
 
 
 
@@ -728,12 +729,68 @@ class PropertiesManager:
         return str(value)
 
 # ============================================================================
+# 日志管理
+# ============================================================================
+class LogManager:
+    def __init__(self, max_entries: int = 500):
+        self._logs: List[Dict] = []
+        self._max_entries = max_entries
+        self._callbacks: List[callable] = []
+
+    def add(self, level: str, message: str, source: str = "GUI"):
+        """添加日志条目"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = {
+            "timestamp": timestamp,
+            "level": level,
+            "source": source,
+            "message": message
+        }
+        self._logs.append(log_entry)
+
+        # 限制日志数量
+        if len(self._logs) > self._max_entries:
+            self._logs = self._logs[-self._max_entries:]
+
+        # 通知监听器
+        for callback in self._callbacks:
+            try:
+                callback(log_entry)
+            except Exception as e:
+                print(f"[LOG] Callback error: {e}")
+
+    def add_debug(self, message: str, source: str = "GUI"):
+        self.add("DEBUG", message, source)
+
+    def add_info(self, message: str, source: str = "GUI"):
+        self.add("INFO", message, source)
+
+    def add_warning(self, message: str, source: str = "GUI"):
+        self.add("WARNING", message, source)
+
+    def add_error(self, message: str, source: str = "GUI"):
+        self.add("ERROR", message, source)
+
+    def get_logs(self) -> List[Dict]:
+        """获取所有日志"""
+        return self._logs.copy()
+
+    def clear(self):
+        """清空日志"""
+        self._logs.clear()
+
+    def register_callback(self, callback: callable):
+        """注册日志更新回调"""
+        self._callbacks.append(callback)
+
+# ============================================================================
 # 壁纸控制器
 # ============================================================================
 class WallpaperController:
-    def __init__(self, config: ConfigManager, prop_manager: PropertiesManager):
+    def __init__(self, config: ConfigManager, prop_manager: PropertiesManager, log_manager: LogManager):
         self.config = config
         self.prop_manager = prop_manager
+        self.log_manager = log_manager
         self.current_proc: Optional[subprocess.Popen] = None
 
     def apply(self, wp_id: str, screen: Optional[str] = None):
@@ -744,6 +801,8 @@ class WallpaperController:
             screen = self.config.get("lastScreen")
         if not screen or screen == "None":
             screen = "eDP-1"
+
+        self.log_manager.add_info(f"Applying wallpaper {wp_id} to screen {screen}", "Controller")
 
         # 使用兼容旧版本的短参数格式
         cmd = [
@@ -774,20 +833,20 @@ class WallpaperController:
         audio_props = {'musicvolume', 'music', 'bellvolume', 'sound', 'soundsettings', 'volume'}
 
         user_props = self.prop_manager._user_properties.get(wp_id, {})
-        print(f"[DEBUG] User properties for {wp_id}: {user_props}")
+        self.log_manager.add_debug(f"User properties for {wp_id}: {user_props}", "Controller")
         for prop_name, prop_value in user_props.items():
             # 静音模式下跳过音量相关属性
             if is_silent and prop_name.lower() in audio_props:
-                print(f"[DEBUG] Skipping audio property {prop_name} in silent mode")
+                self.log_manager.add_debug(f"Skipping audio property {prop_name} in silent mode", "Controller")
                 continue
 
             prop_type = self.prop_manager.get_property_type(wp_id, prop_name)
             formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)
             cmd.extend(["--set-property", f"{prop_name}={formatted_value}"])
-            print(f"[DEBUG] Adding property: {prop_name}={formatted_value} (type: {prop_type})")
+            self.log_manager.add_debug(f"Adding property: {prop_name}={formatted_value} (type: {prop_type})", "Controller")
 
         # 【调试输出】
-        print(f"[DEBUG] Executing: {' '.join(cmd)}")
+        self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
 
         try:
             self.current_proc = subprocess.Popen(
@@ -801,14 +860,13 @@ class WallpaperController:
             time.sleep(0.5)
             if self.current_proc.poll() is not None:
                 stdout, stderr = self.current_proc.communicate()
-                print(f"[ERROR] Process exited!")
-                print(f"[STDOUT] {stdout.decode()}")
-                print(f"[STDERR] {stderr.decode()}")
+                error_msg = f"Process exited!\nSTDOUT: {stdout.decode()}\nSTDERR: {stderr.decode()}"
+                self.log_manager.add_error(error_msg, "Engine")
                 return
 
             self.config.set("lastWallpaper", wp_id)
             self.config.set("lastScreen", screen)
-            print(f"[SUCCESS] Wallpaper applied: {wp_id}")
+            self.log_manager.add_info(f"Wallpaper applied: {wp_id}", "Controller")
 
             # 颜色同步脚本
             colors_script = os.path.expanduser("~/niri/scripts/sync_colors.sh")
@@ -820,10 +878,11 @@ class WallpaperController:
                 except Exception:
                     pass
         except Exception as e:
-            print(f"[EXCEPTION] Failed: {e}")
+            self.log_manager.add_error(f"Failed to apply wallpaper: {e}", "Controller")
 
     def stop(self):
         """停止壁纸"""
+        self.log_manager.add_info("Stopping wallpaper", "Controller")
         if self.current_proc:
             self.current_proc.terminate()
             self.current_proc = None
@@ -845,10 +904,11 @@ class WallpaperApp(Adw.Application):
             flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE
         )
         self.config = ConfigManager()
+        self.log_manager = LogManager()
         self.wp_manager = WallpaperManager()
         self.prop_manager = PropertiesManager(self.config)
         self.screen_manager = ScreenManager()
-        self.controller = WallpaperController(self.config, self.prop_manager)
+        self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager)
 
         self.view_mode = "grid"  # grid, list
         self.selected_wp: Optional[str] = None
@@ -1891,6 +1951,7 @@ class WallpaperApp(Adw.Application):
             ("general", "🖥 General"),
             ("audio", "🔊 Audio"),
             ("advanced", "⚙️ Advanced"),
+            ("logs", "📋 Logs"),
         ]
 
         self.settings_nav_btns = {}
@@ -1915,6 +1976,7 @@ class WallpaperApp(Adw.Application):
         self.build_general_settings()
         self.build_audio_settings()
         self.build_advanced_settings()
+        self.build_logs_settings()
 
         # 现在 stack 已经存在，安全绑定信号
         for section_id, _ in sections:
@@ -2099,6 +2161,113 @@ class WallpaperApp(Adw.Application):
         refresh_screen_btn.set_margin_top(8)
         refresh_screen_btn.connect("clicked", self.on_refresh_screens)
         box.append(refresh_screen_btn)
+
+    def build_logs_settings(self):
+        """构建日志设置页面"""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        box.set_margin_top(60)
+        box.set_margin_bottom(60)
+        box.set_margin_start(40)
+        box.set_margin_end(40)
+        self.settings_stack.add_named(box, "logs")
+
+        title = Gtk.Label(label="Logs")
+        title.add_css_class("settings-section-title")
+        title.set_halign(Gtk.Align.START)
+        box.append(title)
+
+        desc = Gtk.Label(label="View application and wallpaper engine logs.")
+        desc.add_css_class("settings-section-desc")
+        desc.set_halign(Gtk.Align.START)
+        box.append(desc)
+
+        # 日志文本视图
+        log_scroll = Gtk.ScrolledWindow()
+        log_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        log_scroll.set_vexpand(True)
+        log_scroll.set_size_request(-1, 500)
+        box.append(log_scroll)
+
+        self.log_text_view = Gtk.TextView()
+        self.log_text_view.set_editable(False)
+        self.log_text_view.set_cursor_visible(False)
+        self.log_text_view.set_monospace(True)
+        log_scroll.set_child(self.log_text_view)
+
+        self.log_buffer = self.log_text_view.get_buffer()
+
+        # 操作按钮
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        btn_box.set_halign(Gtk.Align.END)
+        box.append(btn_box)
+
+        clear_btn = Gtk.Button(label="Clear Logs")
+        clear_btn.add_css_class("action-btn")
+        clear_btn.add_css_class("secondary")
+        clear_btn.connect("clicked", self.on_clear_logs)
+        btn_box.append(clear_btn)
+
+        refresh_btn = Gtk.Button(label="Refresh")
+        refresh_btn.add_css_class("action-btn")
+        refresh_btn.add_css_class("primary")
+        refresh_btn.connect("clicked", self.on_refresh_logs)
+        btn_box.append(refresh_btn)
+
+        # 注册日志更新回调
+        self.log_manager.register_callback(self.on_log_update)
+
+        # 初始化显示日志
+        self.refresh_logs_display()
+
+    def on_log_update(self, log_entry: Dict):
+        """日志更新回调"""
+        def update_ui():
+            self.append_log_entry(log_entry)
+        GLib.idle_add(update_ui)
+
+    def append_log_entry(self, log_entry: Dict):
+        """添加日志条目到显示区域"""
+        timestamp = log_entry.get("timestamp", "")
+        level = log_entry.get("level", "")
+        source = log_entry.get("source", "")
+        message = log_entry.get("message", "")
+
+        # 根据日志级别设置颜色
+        level_colors = {
+            "DEBUG": "#6b7280",
+            "INFO": "#3b82f6",
+            "WARNING": "#f59e0b",
+            "ERROR": "#ef4444"
+        }
+        color = level_colors.get(level, "#ffffff")
+
+        # 格式化日志条目
+        log_line = f"[{timestamp}] [{level}] [{source}] {message}\n"
+
+        # 添加到缓冲区
+        iter = self.log_buffer.get_end_iter()
+        self.log_buffer.insert(iter, log_line)
+
+        # 自动滚动到底部
+        self.log_text_view.scroll_to_mark(
+            self.log_buffer.create_mark("end", self.log_buffer.get_end_iter(), False),
+            0.0, False, 0.0, 0.0
+        )
+
+    def refresh_logs_display(self):
+        """刷新日志显示"""
+        self.log_buffer.set_text("")
+        for log_entry in self.log_manager.get_logs():
+            self.append_log_entry(log_entry)
+
+    def on_clear_logs(self, btn):
+        """清空日志"""
+        self.log_manager.clear()
+        self.log_buffer.set_text("")
+
+    def on_refresh_logs(self, btn):
+        """刷新日志显示"""
+        self.refresh_logs_display()
 
     def create_setting_row(self, label: str, description: str) -> Gtk.Box:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
