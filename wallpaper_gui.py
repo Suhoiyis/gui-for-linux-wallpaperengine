@@ -769,9 +769,18 @@ class WallpaperController:
             cmd.append("--disable-mouse")
 
         # 添加用户自定义属性
+        # 在静音模式下跳过音量相关属性
+        is_silent = self.config.get("silence", True)
+        audio_props = {'musicvolume', 'music', 'bellvolume', 'sound', 'soundsettings', 'volume'}
+
         user_props = self.prop_manager._user_properties.get(wp_id, {})
         print(f"[DEBUG] User properties for {wp_id}: {user_props}")
         for prop_name, prop_value in user_props.items():
+            # 静音模式下跳过音量相关属性
+            if is_silent and prop_name.lower() in audio_props:
+                print(f"[DEBUG] Skipping audio property {prop_name} in silent mode")
+                continue
+
             prop_type = self.prop_manager.get_property_type(wp_id, prop_name)
             formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)
             cmd.extend(["--set-property", f"{prop_name}={formatted_value}"])
