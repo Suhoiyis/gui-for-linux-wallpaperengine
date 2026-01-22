@@ -218,6 +218,7 @@ window {
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
     min-width: 320px;
     max-width: 320px;
+    width: 320px;
 }
 
 .sidebar-preview {
@@ -1221,6 +1222,7 @@ class WallpaperApp(Adw.Application):
         # 主内容区（左右布局）
         content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         content_box.set_vexpand(True)
+        content_box.set_hexpand(True)
         page.append(content_box)
 
         # 左侧壁纸区
@@ -1396,10 +1398,12 @@ class WallpaperApp(Adw.Application):
         sidebar_scroll = Gtk.ScrolledWindow()
         sidebar_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sidebar_scroll.set_vexpand(True)
+        sidebar_scroll.set_hexpand(False)  # 防止水平扩展
         self.sidebar.append(sidebar_scroll)
 
         sidebar_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         sidebar_content.set_hexpand(False)  # 防止水平扩展
+        sidebar_content.set_size_request(320, -1)  # 强制宽度
         sidebar_scroll.set_child(sidebar_content)
 
         # 预览图（包裹在固定宽度容器中）
@@ -1448,12 +1452,15 @@ class WallpaperApp(Adw.Application):
         tags_label.set_halign(Gtk.Align.START)
         sidebar_content.append(tags_label)
 
+        tags_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        tags_container.set_hexpand(False)  # 防止扩展
+        sidebar_content.append(tags_container)
+
         self.sidebar_tags = Gtk.FlowBox()
         self.sidebar_tags.set_selection_mode(Gtk.SelectionMode.NONE)
         self.sidebar_tags.set_max_children_per_line(4)
-        self.sidebar_tags.set_margin_start(20)
-        self.sidebar_tags.set_margin_end(20)
-        sidebar_content.append(self.sidebar_tags)
+        self.sidebar_tags.set_hexpand(False)  # 防止扩展
+        tags_container.append(self.sidebar_tags)
 
         # 描述
         desc_label = Gtk.Label(label="Description")
