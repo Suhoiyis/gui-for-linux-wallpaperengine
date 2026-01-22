@@ -770,9 +770,12 @@ class WallpaperController:
 
         # 添加用户自定义属性
         user_props = self.prop_manager._user_properties.get(wp_id, {})
+        print(f"[DEBUG] User properties for {wp_id}: {user_props}")
         for prop_name, prop_value in user_props.items():
             prop_type = self.prop_manager.get_property_type(wp_id, prop_name)
-            cmd.extend(["--set-property", f"{prop_name}={self.prop_manager.format_property_value(prop_type, prop_value)}"])
+            formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)
+            cmd.extend(["--set-property", f"{prop_name}={formatted_value}"])
+            print(f"[DEBUG] Adding property: {prop_name}={formatted_value} (type: {prop_type})")
 
         # 【调试输出】
         print(f"[DEBUG] Executing: {' '.join(cmd)}")
@@ -847,6 +850,7 @@ class WallpaperApp(Adw.Application):
         self.start_hidden = False
         self.cli_actions: List[str] = []
         self.initialized = False
+        self._is_first_activation = True
 
         # 托盘
         self.tray_icon = None
@@ -879,9 +883,12 @@ class WallpaperApp(Adw.Application):
     def do_activate(self):
         # 已初始化时仅响应 CLI 动作/显示窗口
         if self.initialized:
-            if not self.start_hidden:
+            # 只在首次启动时考虑 start_hidden，后续 CLI 调用不受影响
+            if self._is_first_activation and not self.start_hidden:
                 self.show_window()
+            self._is_first_activation = False
             self.start_hidden = False
+            self._is_first_activation = False
             self.consume_cli_actions()
             return
 
@@ -1557,7 +1564,7 @@ class WallpaperApp(Adw.Application):
             container.append(value_label)
 
         elif prop_type == 'color':
-            color = Gtk.ColorChooserButton()
+            color = Gtk.ColorButton()
             if isinstance(current_value, tuple) and len(current_value) >= 3:
                 gdk_color = Gdk.RGBA()
                 gdk_color.parse(f"rgb({int(current_value[0]*255)}, {int(current_value[1]*255)}, {int(current_value[2]*255)})")
@@ -1590,17 +1597,29 @@ class WallpaperApp(Adw.Application):
             self.prop_manager.set_user_property(self.selected_wp, prop_name, bool(value))
         elif prop_type == 'slider':
             self.prop_manager.set_user_property(self.selected_wp, prop_name, float(value))
+        # 如果当前正在播放这个壁纸，重新应用以立即生效
+        if self.active_wp == self.selected_wp:
+            print(f"[PROPERTY] Re-applying wallpaper {self.selected_wp} with updated property {prop_name}")
+            self.controller.apply(self.selected_wp)
 
     def on_color_property_changed(self, prop_name: str, color: Gdk.RGBA, prop_type: str):
         """颜色属性值变化处理"""
         if prop_type == 'color':
             r, g, b, a = color.red, color.green, color.blue, color.alpha
             self.prop_manager.set_user_property(self.selected_wp, prop_name, (r, g, b))
+            # 如果当前正在播放这个壁纸，重新应用以立即生效
+            if self.active_wp == self.selected_wp:
+                print(f"[PROPERTY] Re-applying wallpaper {self.selected_wp} with updated property {prop_name}")
+                self.controller.apply(self.selected_wp)
 
     def on_combo_property_changed(self, prop_name: str, options: List[Dict], selected_idx: int, prop_type: str):
         """下拉选择属性值变化处理"""
         if prop_type == 'combo' and selected_idx < len(options):
             self.prop_manager.set_user_property(self.selected_wp, prop_name, options[selected_idx]['value'])
+            # 如果当前正在播放这个壁纸，重新应用以立即生效
+            if self.active_wp == self.selected_wp:
+                print(f"[PROPERTY] Re-applying wallpaper {self.selected_wp} with updated property {prop_name}")
+                self.controller.apply(self.selected_wp)
 
     def refresh_wallpaper_grid(self):
         """刷新壁纸显示"""
