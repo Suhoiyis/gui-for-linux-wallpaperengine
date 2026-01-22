@@ -217,6 +217,7 @@ window {
     margin-left: 0;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
     min-width: 320px;
+    max-width: 320px;
 }
 
 .sidebar-preview {
@@ -1398,6 +1399,7 @@ class WallpaperApp(Adw.Application):
         self.sidebar.append(sidebar_scroll)
 
         sidebar_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        sidebar_content.set_hexpand(False)  # 防止水平扩展
         sidebar_scroll.set_child(sidebar_content)
 
         # 预览图（包裹在固定宽度容器中）
@@ -1482,6 +1484,7 @@ class WallpaperApp(Adw.Application):
         self.properties_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.properties_box.set_margin_start(15)
         self.properties_box.set_margin_end(15)
+        self.properties_box.set_hexpand(False)  # 防止水平扩展
         sidebar_content.append(self.properties_box)
 
         self.properties_loading_label = Gtk.Label(label="Loading properties...")
@@ -1593,9 +1596,11 @@ class WallpaperApp(Adw.Application):
         """根据属性类型创建控件"""
         container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         container.set_margin_top(8)
+        container.set_hexpand(False)  # 防止水平扩展影响侧边栏宽度
 
         # 属性标题
         title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        title_box.set_hexpand(False)
         container.append(title_box)
 
         title_label = Gtk.Label(label=prop.get('text', prop['name']))
@@ -1616,13 +1621,15 @@ class WallpaperApp(Adw.Application):
             switch.set_active(bool(current_value))
             switch.set_valign(Gtk.Align.CENTER)
             switch.set_halign(Gtk.Align.START)
+            switch.set_hexpand(False)
             switch.connect('state-set', lambda s, v: self.on_property_changed(prop_name, v, 'boolean'))
             container.append(switch)
 
         elif prop_type == 'slider':
             slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, prop['min'], prop['max'], prop['step'])
             slider.set_value(float(current_value))
-            slider.set_hexpand(True)
+            slider.set_hexpand(False)  # 防止水平扩展
+            slider.set_size_request(280, -1)  # 固定宽度
             slider.connect('value-changed', lambda s: self.on_property_changed(prop_name, s.get_value(), 'slider'))
             container.append(slider)
 
@@ -1634,6 +1641,7 @@ class WallpaperApp(Adw.Application):
 
         elif prop_type == 'color':
             color = Gtk.ColorButton()
+            color.set_hexpand(False)  # 防止水平扩展
             if isinstance(current_value, tuple) and len(current_value) >= 3:
                 gdk_color = Gdk.RGBA()
                 gdk_color.parse(f"rgb({int(current_value[0]*255)}, {int(current_value[1]*255)}, {int(current_value[2]*255)})")
@@ -1645,6 +1653,8 @@ class WallpaperApp(Adw.Application):
             if prop['options']:
                 option_strings = [opt['label'] for opt in prop['options']]
                 dropdown = Gtk.DropDown.new_from_strings(option_strings)
+                dropdown.set_hexpand(False)  # 防止水平扩展
+                dropdown.set_size_request(280, -1)  # 固定宽度
                 current_idx = 0
                 for i, opt in enumerate(prop['options']):
                     if str(opt['value']) == str(current_value):
@@ -1656,6 +1666,7 @@ class WallpaperApp(Adw.Application):
             else:
                 lbl = Gtk.Label(label="No options available")
                 lbl.add_css_class("text-muted")
+                lbl.set_hexpand(False)
                 container.append(lbl)
 
         return container
