@@ -112,6 +112,12 @@ window {
     text-transform: uppercase;
 }
 
+.search-entry {
+    min-height: 24px;
+    padding: 2px 8px;
+    font-size: 0.9em;
+}
+
 .mode-btn {
     background: #2a2a2a;
     color: rgba(255,255,255,0.87);
@@ -1349,8 +1355,9 @@ class WallpaperApp(Adw.Application):
         search_box.append(search_label)
 
         self.search_entry = Gtk.Entry()
+        self.search_entry.add_css_class("search-entry")
         self.search_entry.set_placeholder_text("Search wallpapers...")
-        self.search_entry.set_width_chars(38) # 1.5x width
+        self.search_entry.set_width_chars(30) # 1.2x width
         self.search_entry.connect('changed', self.on_search_changed)
         self.search_entry.connect('activate', self.on_search_activate)
         search_box.append(self.search_entry)
