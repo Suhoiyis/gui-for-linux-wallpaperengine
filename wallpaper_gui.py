@@ -783,8 +783,10 @@ class PropertiesManager:
 
     def format_property_value(self, prop_type: str, value) -> str:
         """格式化属性值为命令行参数格式"""
-        if prop_type == 'color' and isinstance(value, tuple):
-            return f"{value[0]},{value[1]},{value[2]}"
+        # 修复：同时支持 tuple 和 list（JSON 加载时为 list）
+        # 即使 prop_type 未知，只要是列表/元组，就格式化为逗号分隔字符串
+        if isinstance(value, (tuple, list)):
+            return ",".join(map(str, value))
         elif isinstance(value, bool):
             return '1' if value else '0'
         elif isinstance(value, float):
