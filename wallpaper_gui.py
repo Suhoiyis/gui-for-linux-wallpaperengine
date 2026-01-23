@@ -113,9 +113,9 @@ window {
 }
 
 .search-entry {
-    min-height: 24px;
-    padding: 2px 8px;
-    font-size: 0.9em;
+    min-height: 20px;
+    padding: 0px 6px;
+    font-size: 0.85em;
 }
 
 .mode-btn {
