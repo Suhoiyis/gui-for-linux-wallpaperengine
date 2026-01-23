@@ -2448,6 +2448,12 @@ class WallpaperApp(Adw.Application):
         clear_btn.connect("clicked", self.on_clear_logs)
         btn_box.append(clear_btn)
 
+        copy_btn = Gtk.Button(label="Copy Logs")
+        copy_btn.add_css_class("action-btn")
+        copy_btn.add_css_class("secondary")
+        copy_btn.connect("clicked", self.on_copy_logs)
+        btn_box.append(copy_btn)
+
         refresh_btn = Gtk.Button(label="Refresh")
         refresh_btn.add_css_class("action-btn")
         refresh_btn.add_css_class("primary")
@@ -2511,6 +2517,20 @@ class WallpaperApp(Adw.Application):
         """清空日志"""
         self.log_manager.clear()
         self.log_buffer.set_text("")
+
+    def on_copy_logs(self, btn):
+        """复制日志到剪贴板"""
+        start_iter = self.log_buffer.get_start_iter()
+        end_iter = self.log_buffer.get_end_iter()
+        text = self.log_buffer.get_text(start_iter, end_iter, False)
+        
+        clipboard = Gdk.Display.get_default().get_clipboard()
+        clipboard.set(text)
+        
+        # 提示成功
+        original_label = btn.get_label()
+        btn.set_label("Copied!")
+        GLib.timeout_add(2000, lambda: btn.set_label(original_label))
 
     def on_refresh_logs(self, btn):
         """刷新日志显示"""
