@@ -118,7 +118,8 @@ window {
     border-radius: 10px;
     padding: 8px 12px;
     border: none;
-    min-height: 32px;
+    min-height: 42px;
+    font-size: 1.2em;
 }
 
 .mode-btn:hover {
@@ -128,6 +129,17 @@ window {
 .mode-btn.active, .mode-btn:checked {
     background: #007bff;
     color: white;
+}
+
+.stop-btn {
+    background: #2a2a2a;
+    color: #ef4444;
+    font-size: 1.4em;
+}
+
+.stop-btn:hover {
+    background: #450a0a;
+    color: #f87171;
 }
 
 /* Wallpaper card - Grid view */
@@ -1338,7 +1350,7 @@ class WallpaperApp(Adw.Application):
 
         self.search_entry = Gtk.Entry()
         self.search_entry.set_placeholder_text("Search wallpapers...")
-        self.search_entry.set_width_chars(25)
+        self.search_entry.set_width_chars(38) # 1.5x width
         self.search_entry.connect('changed', self.on_search_changed)
         self.search_entry.connect('activate', self.on_search_activate)
         search_box.append(self.search_entry)
@@ -1355,6 +1367,7 @@ class WallpaperApp(Adw.Application):
         # Stop 按钮
         stop_btn = Gtk.Button(label="⏹")
         stop_btn.add_css_class("mode-btn")
+        stop_btn.add_css_class("stop-btn")
         stop_btn.set_tooltip_text("Stop Wallpaper")
         stop_btn.connect("clicked", lambda _: self.controller.stop())
         actions_box.append(stop_btn)
