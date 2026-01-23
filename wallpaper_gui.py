@@ -1357,7 +1357,8 @@ class WallpaperApp(Adw.Application):
         self.active_wp_label = Gtk.Label(label="-")
         self.active_wp_label.add_css_class("status-value")
         self.active_wp_label.set_ellipsize(Pango.EllipsizeMode.END)
-        self.active_wp_label.set_max_width_chars(32)
+        self.active_wp_label.set_width_chars(20)  # Prevent collapsing to "..."
+        self.active_wp_label.set_max_width_chars(40)
         using_box.append(self.active_wp_label)
         status_box.append(using_box)
 
