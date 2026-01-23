@@ -1274,7 +1274,7 @@ class WallpaperApp(Adw.Application):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.content_stack.add_named(page, "wallpapers")
 
-        # 工具栏
+        # 顶部工具栏 (Row 1)
         self.build_toolbar(page)
 
         # 主内容区（左右布局）
@@ -1283,7 +1283,18 @@ class WallpaperApp(Adw.Application):
         content_box.set_hexpand(True)
         page.append(content_box)
 
-        # 左侧壁纸区
+        # 左侧区域 (状态面板 + 侧边栏)
+        left_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        left_panel.set_size_request(320, -1)
+        content_box.append(left_panel)
+
+        # 状态面板 (显示当前壁纸)
+        self.build_status_panel(left_panel)
+
+        # 侧边栏 (壁纸详情)
+        self.build_sidebar(left_panel)
+
+        # 右侧壁纸区
         workspace = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         workspace.set_hexpand(True)
         content_box.append(workspace)
@@ -1318,9 +1329,6 @@ class WallpaperApp(Adw.Application):
         # 默认显示网格
         self.wallpaper_scroll.set_child(self.flowbox)
 
-        # 右侧侧边栏
-        self.build_sidebar(content_box)
-
     def build_toolbar(self, parent: Gtk.Box):
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         toolbar.add_css_class("toolbar")
@@ -1345,65 +1353,72 @@ class WallpaperApp(Adw.Application):
         spacer.set_hexpand(True)
         toolbar.append(spacer)
 
-        # 状态信息
-        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
-        toolbar.append(status_box)
+        # 功能按钮组 (图标化，带Tooltip)
+        actions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        toolbar.append(actions_box)
 
-        # 当前壁纸
-        using_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        using_label = Gtk.Label(label="CURRENTLY USING :")
-        using_label.add_css_class("status-label")
-        using_box.append(using_label)
-        self.active_wp_label = Gtk.Label(label="-")
-        self.active_wp_label.add_css_class("status-value")
-        self.active_wp_label.set_ellipsize(Pango.EllipsizeMode.END)
-        self.active_wp_label.set_width_chars(20)  # Prevent collapsing to "..."
-        self.active_wp_label.set_max_width_chars(40)
-        using_box.append(self.active_wp_label)
-        status_box.append(using_box)
-
-        # 分隔
-        status_box.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
-
-        # 停止按钮
-        stop_btn = Gtk.Button(label="⏹ Stop")
+        # Stop 按钮
+        stop_btn = Gtk.Button(label="⏹")
         stop_btn.add_css_class("mode-btn")
+        stop_btn.set_tooltip_text("Stop Wallpaper")
         stop_btn.connect("clicked", lambda _: self.controller.stop())
-        status_box.append(stop_btn)
+        actions_box.append(stop_btn)
 
-        # 刷新壁纸列表（无需重启应用即可加载新壁纸）
-        refresh_btn = Gtk.Button(label="⟳ Refresh")
+        # Refresh 按钮
+        refresh_btn = Gtk.Button(label="⟳")
         refresh_btn.add_css_class("mode-btn")
+        refresh_btn.set_tooltip_text("Refresh Wallpapers")
         refresh_btn.connect("clicked", self.on_reload_wallpapers)
-        status_box.append(refresh_btn)
+        actions_box.append(refresh_btn)
 
-        # 随机挑选一张壁纸
-        lucky_btn = Gtk.Button(label="🎲 I'm feeling lucky")
+        # Lucky 按钮
+        lucky_btn = Gtk.Button(label="🎲")
         lucky_btn.add_css_class("mode-btn")
+        lucky_btn.set_tooltip_text("I'm feeling lucky")
         lucky_btn.connect("clicked", self.on_feeling_lucky)
-        status_box.append(lucky_btn)
-
-        # 右侧空白
-        right_space = Gtk.Box()
-        right_space.set_hexpand(True)
-        toolbar.append(right_space)
+        actions_box.append(lucky_btn)
 
         # 视图切换
         view_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        view_box.set_margin_start(10)
         toolbar.append(view_box)
 
-        self.btn_grid = Gtk.ToggleButton(label="⊞ Grid")
+        self.btn_grid = Gtk.ToggleButton(label="⊞")
+        self.btn_grid.set_tooltip_text("Grid View")
         self.btn_grid.add_css_class("mode-btn")
         self.btn_grid.set_active(True)
         self.btn_grid.connect("toggled", self.on_view_grid)
         view_box.append(self.btn_grid)
 
-        self.btn_list = Gtk.ToggleButton(label="☰ List")
+        self.btn_list = Gtk.ToggleButton(label="☰")
+        self.btn_list.set_tooltip_text("List View")
         self.btn_list.add_css_class("mode-btn")
         self.btn_list.connect("toggled", self.on_view_list)
         view_box.append(self.btn_list)
 
         parent.append(toolbar)
+
+    def build_status_panel(self, parent: Gtk.Box):
+        """构建左侧状态面板"""
+        status_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        status_box.add_css_class("status-panel")
+        status_box.set_margin_start(20)
+        status_box.set_margin_end(10)
+        status_box.set_margin_top(10)
+        status_box.set_margin_bottom(10)
+
+        title = Gtk.Label(label="CURRENTLY USING")
+        title.add_css_class("status-label")
+        title.set_halign(Gtk.Align.START)
+        status_box.append(title)
+
+        self.active_wp_label = Gtk.Label(label="-")
+        self.active_wp_label.add_css_class("status-value")
+        self.active_wp_label.set_ellipsize(Pango.EllipsizeMode.END)
+        self.active_wp_label.set_halign(Gtk.Align.START)
+        status_box.append(self.active_wp_label)
+
+        parent.append(status_box)
 
     def on_view_grid(self, btn):
         if btn.get_active():
