@@ -1121,12 +1121,6 @@ class WallpaperApp(Adw.Application):
         spacer.set_hexpand(True)
         nav_container.append(spacer)
 
-        # 最小化按钮（隐藏到托盘）
-        minimize_btn = Gtk.Button(label="⌄ Minimize")
-        minimize_btn.add_css_class("nav-btn")
-        minimize_btn.connect("clicked", lambda _: self.hide_window())
-        nav_container.append(minimize_btn)
-
         parent.append(nav_container)
 
     def show_window(self):
