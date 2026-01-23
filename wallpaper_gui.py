@@ -1283,27 +1283,19 @@ class WallpaperApp(Adw.Application):
         content_box.set_hexpand(True)
         page.append(content_box)
 
-        # 左侧区域 (状态面板 + 侧边栏)
-        left_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        left_panel.set_size_request(320, -1)
-        content_box.append(left_panel)
+        # 左侧：状态面板 + 壁纸网格区
+        left_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        left_area.set_hexpand(True)
+        content_box.append(left_area)
 
-        # 状态面板 (显示当前壁纸)
-        self.build_status_panel(left_panel)
-
-        # 侧边栏 (壁纸详情)
-        self.build_sidebar(left_panel)
-
-        # 右侧壁纸区
-        workspace = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        workspace.set_hexpand(True)
-        content_box.append(workspace)
+        # 状态面板 (显示当前壁纸，仅在左侧顶部)
+        self.build_status_panel(left_area)
 
         # 壁纸容器
         self.wallpaper_scroll = Gtk.ScrolledWindow()
         self.wallpaper_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.wallpaper_scroll.set_vexpand(True)
-        workspace.append(self.wallpaper_scroll)
+        left_area.append(self.wallpaper_scroll)
 
         # FlowBox (网格)
         self.flowbox = Gtk.FlowBox()
@@ -1328,6 +1320,9 @@ class WallpaperApp(Adw.Application):
 
         # 默认显示网格
         self.wallpaper_scroll.set_child(self.flowbox)
+
+        # 右侧侧边栏 (壁纸详情)
+        self.build_sidebar(content_box)
 
     def build_toolbar(self, parent: Gtk.Box):
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
