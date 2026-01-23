@@ -2528,9 +2528,16 @@ class WallpaperApp(Adw.Application):
         clipboard.set(text)
         
         # 提示成功
-        original_label = btn.get_label()
+        original_label = "Copy Logs" # Hardcoded or retrieve if needed, but we know it's "Copy Logs"
         btn.set_label("Copied!")
-        GLib.timeout_add(2000, lambda: btn.set_label(original_label))
+        btn.add_css_class("success")
+        
+        def restore_button():
+            btn.set_label(original_label)
+            btn.remove_css_class("success")
+            return False
+
+        GLib.timeout_add(2000, restore_button)
 
     def on_refresh_logs(self, btn):
         """刷新日志显示"""
