@@ -113,9 +113,9 @@ window {
 }
 
 .search-entry {
-    min-height: 24px;
-    padding: 2px 8px;
-    font-size: 0.9em;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 1.1em;
 }
 
 .mode-btn {
@@ -1357,7 +1357,7 @@ class WallpaperApp(Adw.Application):
         self.search_entry = Gtk.Entry()
         self.search_entry.add_css_class("search-entry")
         self.search_entry.set_placeholder_text("Search wallpapers...")
-        self.search_entry.set_width_chars(30) # 1.2x width
+        self.search_entry.set_width_chars(20) # 0.8x width
         self.search_entry.connect('changed', self.on_search_changed)
         self.search_entry.connect('activate', self.on_search_activate)
         search_box.append(self.search_entry)
