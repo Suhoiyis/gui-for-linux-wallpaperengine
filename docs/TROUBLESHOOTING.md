@@ -5,9 +5,23 @@
 ## 1. Wayland / OpenGL 相关
 
 ### `Failed to initialize GLEW: No GLX display`
-- **现象**：壁纸能运行，但部分特效（如粒子、音频波形）不可见，或者控制台刷屏报错。
-- **原因**：后端使用的 GLEW 库试图初始化 X11 的 GLX 扩展，但在纯 Wayland 环境下失败。虽然程序通常会回退到 EGL，但这可能导致某些高级渲染特性（混合模式、透明度）失效。
-- **影响**：Scene 类型壁纸的复杂特效可能无法渲染。
+- **现象**：
+  1. 壁纸能运行，但部分特效（如粒子、音频波形）不可见。
+  2. **Web 壁纸属性失效**：通过 GUI 或 CLI 设置属性（如 `language=chinese`）后，日志显示 `Applying override value`，但画面完全无变化。
+- **原因**：后端硬编码依赖 X11 的 GLX 扩展。在纯 Wayland 环境下，OpenGL 环境初始化不完整，导致 Chromium (CEF) 的 JavaScript 注入接口（用于修改网页属性）静默失效。
+- **影响**：
+  - **Scene 类型**：复杂特效无法渲染。
+  - **Web 类型**：**交互功能完全瘫痪**，无法动态调整任何壁纸属性。
+
+## 2. Web 壁纸特有错误
+
+### 日志显示 `Applying override value` 但界面没动
+- **现象**：在终端运行 `linux-wallpaperengine <ID> --set-property key=value`，看到应用成功的日志，但壁纸依然显示默认状态。
+- **根本原因**：
+  1. **环境缺失**：参考上文的 `GLX display` 错误，渲染上下文异常导致后端无法通过 `ExecuteJavaScript` 与网页通信。
+  2. **初始化时机**：部分壁纸将属性监听器注册在 `DOMContentLoaded` 事件中，而后端注入属性的时机过早，导致指令在网页准备好之前就已丢失。
+  3. **SSL 报错**：日志中若出现 `handshake failed ... net_error -101`，说明网页依赖的外部资源（如 CDN 脚本）加载失败，可能阻塞了属性监听器的初始化。
+- **结论**：这是后端（C++ 移植版）在 Linux 环境下的架构缺陷，目前在 Wayland 下基本无法通过正常手段解决。
 
 ### `GLFW error 65548: Wayland: The platform does not support setting the window position`
 - **现象**：日志中出现此错误。
