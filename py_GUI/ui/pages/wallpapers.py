@@ -136,11 +136,11 @@ class WallpapersPage(Gtk.Box):
         lucky_btn.connect("clicked", self.on_feeling_lucky)
         actions_box.append(lucky_btn)
 
-        screenshot_btn = Gtk.Button(label="📸")
-        screenshot_btn.add_css_class("mode-btn")
-        screenshot_btn.set_tooltip_text("Take Screenshot of current wallpaper")
-        screenshot_btn.connect("clicked", lambda _: self.on_screenshot_clicked())
-        actions_box.append(screenshot_btn)
+        self.btn_screenshot = Gtk.Button(label="📸")
+        self.btn_screenshot.add_css_class("mode-btn")
+        self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
+        self.btn_screenshot.connect("clicked", lambda _: self.on_screenshot_clicked())
+        actions_box.append(self.btn_screenshot)
 
         # View Toggle
         view_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -231,6 +231,16 @@ class WallpapersPage(Gtk.Box):
             show_error_dialog(self.window, "Screenshot Error", "No wallpaper is currently active or selected.")
             return
 
+        # UI Feedback: Busy state
+        self.btn_screenshot.set_sensitive(False)
+        self.btn_screenshot.set_label("⏳")
+        self.btn_screenshot.set_tooltip_text("Capturing... please wait")
+
+        def reset_ui():
+            self.btn_screenshot.set_label("📸")
+            self.btn_screenshot.set_sensitive(True)
+            self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
+
         base_dir = os.path.expanduser("~/Pictures/wallpaperengine")
         save_dir = base_dir
         fallback_used = False
@@ -256,7 +266,7 @@ class WallpapersPage(Gtk.Box):
             # Calculate max wait time (timeout)
             delay_val = self.config.get("screenshotDelay", 20)
             delay_frames = int(delay_val) if delay_val is not None else 20
-            
+
             # Xvfb software rendering is slow.
             import shutil
             is_xvfb = shutil.which("xvfb-run") is not None
@@ -294,7 +304,8 @@ class WallpapersPage(Gtk.Box):
                         except: pass
                         
                         self.log_manager.add_error(f"Screenshot process crashed: {err_msg}", "GUI")
-                        show_error_dialog(self.window, "Screenshot Failed", f"The engine crashed or exited early.\n\nBackend Error:\n{err_msg[-500:]}") # Show last 500 chars
+                        reset_ui()
+                        show_error_dialog(self.window, "Screenshot Failed", f"The engine crashed or exited early.\n\nBackend Error:\n{err_msg[-500:]}")
                     return False
 
                 # 2. Check if file exists and is stable
@@ -339,6 +350,7 @@ class WallpapersPage(Gtk.Box):
                     if fallback_used:
                         msg = f"Warning: Could not create standard folder.\nSaved to FALLBACK: {output_path}"
                     self.log_manager.add_info(f"Screenshot complete: {output_path}", "GUI")
+                    reset_ui()
                     show_error_dialog(self.window, "Screenshot Successful", msg)
                 else:
                     # Rare race condition or save failed
@@ -349,6 +361,7 @@ class WallpapersPage(Gtk.Box):
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     show_success()
                 else:
+                    reset_ui()
                     show_error_dialog(self.window, "Screenshot Timeout", "Capture timed out. Try increasing the delay in Settings.")
                 return False
 
@@ -356,6 +369,7 @@ class WallpapersPage(Gtk.Box):
             GLib.timeout_add(100, check_capture_status)
 
         except Exception as e:
+            reset_ui()
             show_error_dialog(self.window, "Screenshot Error", f"Failed to start process: {e}")
 
     def refresh_wallpaper_grid(self):
