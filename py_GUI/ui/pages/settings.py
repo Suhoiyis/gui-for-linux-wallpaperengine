@@ -314,20 +314,34 @@ class SettingsPage(Gtk.Box):
         self.screenshot_res_entry.set_width_chars(15)
         r.append(self.screenshot_res_entry)
 
-        # Xvfb Status
+        # Xvfb Status Check
         import shutil
         has_xvfb = shutil.which("xvfb-run") is not None
-        status_text = "✅ Xvfb Installed (Silent Mode)" if has_xvfb else "⚠️ Xvfb Not Found (Window Mode)"
-        status_desc = "Virtual framebuffer allows background capture without popup windows."
+        
+        status_label = "✅ Xvfb Installed (Silent Mode)" if has_xvfb else "⚠️ Xvfb Not Found (Window Mode)"
+        status_desc = "Silent mode uses a virtual framebuffer to capture screenshots without popup windows."
         
         r = self.create_row("Capture Backend", status_desc)
         box.append(r)
         
-        status_lbl = Gtk.Label(label=status_text)
-        status_lbl.add_css_class("status-value")
+        status_val = Gtk.Label(label=status_label)
+        status_val.add_css_class("status-value")
         if not has_xvfb:
-            status_lbl.add_css_class("text-muted") # Or a warning color if defined
-        r.append(status_lbl)
+            status_val.add_css_class("text-muted") 
+        
+        r.append(status_val)
+
+        # Prefer Xvfb Switch
+        r = self.create_row("Prefer Silent Capture", "Use Xvfb if installed to avoid popup windows.")
+        box.append(r)
+        self.xvfb_sw = Gtk.Switch()
+        self.xvfb_sw.set_active(self.config.get("preferXvfb", True))
+        self.xvfb_sw.set_valign(Gtk.Align.CENTER)
+        # If not installed, disable the switch to avoid confusion? 
+        # Or keep it enabled so user can preset it? Let's keep it enabled but maybe tooltip it.
+        if not has_xvfb:
+            self.xvfb_sw.set_tooltip_text("Xvfb is not installed on this system.")
+        r.append(self.xvfb_sw)
 
         btn = Gtk.Button(label="⟳ Refresh Screens")
         btn.add_css_class("action-btn")
@@ -487,6 +501,7 @@ class SettingsPage(Gtk.Box):
 
         self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
         self.config.set("screenshotRes", self.screenshot_res_entry.get_text().strip() or "3840x2160")
+        self.config.set("preferXvfb", self.xvfb_sw.get_active())
 
         screens = self.screen_manager.get_screens()
         idx = self.screen_dd.get_selected()

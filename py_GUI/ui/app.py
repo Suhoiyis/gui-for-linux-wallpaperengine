@@ -31,7 +31,7 @@ class WallpaperApp(Adw.Application):
         self.wp_manager = WallpaperManager(workshop_path)
         self.prop_manager = PropertiesManager(self.config)
         self.screen_manager = ScreenManager()
-        self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager)
+        self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager, self.screen_manager)
 
         self.start_hidden = False
         self.cli_actions = []
@@ -110,7 +110,8 @@ class WallpaperApp(Adw.Application):
         # Pages
         self.wallpapers_page = WallpapersPage(
             self.win, self.config, self.wp_manager, 
-            self.prop_manager, self.controller, self.log_manager
+            self.prop_manager, self.controller, self.log_manager,
+            self.screen_manager
         )
         self.stack.add_named(self.wallpapers_page, "wallpapers")
 
@@ -195,10 +196,36 @@ class WallpaperApp(Adw.Application):
             elif action == "quit": self.quit_app()
 
     def stop_wallpaper(self):
-        self.wallpapers_page.on_stop_clicked()
+        # Tray stop means STOP ALL
+        self.controller.stop()
+        self.config.set("active_monitors", {})
+        self.wallpapers_page.update_active_wallpaper_label()
     
     def random_wallpaper(self):
-        self.wallpapers_page.on_feeling_lucky(None)
+        # Randomize for ALL active screens (or at least the primary one if none active)
+        active_monitors = self.config.get("active_monitors", {})
+        screens = self.screen_manager.get_screens()
+        
+        # If no monitors active, activate on the last used screen or first available
+        if not active_monitors:
+            target = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+            active_monitors[target] = None # Placeholder
+            
+        all_wps = list(self.wp_manager._wallpapers.keys())
+        if not all_wps: return
+
+        import random
+        new_monitors = {}
+        
+        for scr in active_monitors.keys():
+            if scr in screens:
+                wp_id = random.choice(all_wps)
+                new_monitors[scr] = wp_id
+        
+        if new_monitors:
+            self.config.set("active_monitors", new_monitors)
+            self.controller._restart_process()
+            self.wallpapers_page.update_active_wallpaper_label()
 
     def quit_app(self):
         self.controller.stop()

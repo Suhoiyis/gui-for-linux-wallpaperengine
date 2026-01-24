@@ -18,10 +18,13 @@ from py_GUI.core.config import ConfigManager
 from py_GUI.core.logger import LogManager
 from py_GUI.utils import markdown_to_pango
 
+from py_GUI.core.screen import ScreenManager
+
 class WallpapersPage(Gtk.Box):
     def __init__(self, window: Gtk.Window, config: ConfigManager, 
                  wp_manager: WallpaperManager, prop_manager: PropertiesManager,
-                 controller: WallpaperController, log_manager: LogManager):
+                 controller: WallpaperController, log_manager: LogManager,
+                 screen_manager: ScreenManager):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         
         self.window = window
@@ -30,11 +33,15 @@ class WallpapersPage(Gtk.Box):
         self.prop_manager = prop_manager
         self.controller = controller
         self.log_manager = log_manager
+        self.screen_manager = screen_manager
 
         self.view_mode = "grid"
         self.search_query = ""
         self.selected_wp: Optional[str] = None
         self.active_wp: Optional[str] = None # Tracks running wallpaper
+        
+        # We need to track current screen selection
+        self.selected_screen = self.config.get("lastScreen", "eDP-1")
 
         self.build_ui()
 
@@ -91,6 +98,23 @@ class WallpapersPage(Gtk.Box):
     def build_toolbar(self):
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         self.toolbar.add_css_class("toolbar")
+
+        # Screen Selector
+        screen_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.toolbar.append(screen_box)
+        
+        lbl = Gtk.Label(label="🖥")
+        lbl.add_css_class("status-label")
+        screen_box.append(lbl)
+
+        screens = self.screen_manager.get_screens()
+        self.screen_dd = Gtk.DropDown.new_from_strings(screens)
+        # Select current
+        if self.selected_screen in screens:
+            self.screen_dd.set_selected(screens.index(self.selected_screen))
+        
+        self.screen_dd.connect("notify::selected", self.on_screen_changed)
+        screen_box.append(self.screen_dd)
 
         # Search
         search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -182,6 +206,24 @@ class WallpapersPage(Gtk.Box):
 
         parent.append(status_box)
 
+    def on_screen_changed(self, dd, pspec):
+        selected_item = dd.get_selected_item()
+        if selected_item:
+            self.selected_screen = selected_item.get_string()
+            self.config.set("lastScreen", self.selected_screen)
+            self.update_active_wallpaper_label()
+
+    def update_active_wallpaper_label(self):
+        active_monitors = self.config.get("active_monitors", {})
+        current_wp_id = active_monitors.get(self.selected_screen)
+        
+        if current_wp_id:
+            wp = self.wp_manager._wallpapers.get(current_wp_id)
+            title = wp['title'] if wp else current_wp_id
+            self.active_wp_label.set_markup(markdown_to_pango(title))
+        else:
+            self.active_wp_label.set_label("None")
+
     def on_view_grid(self, btn):
         if btn.get_active():
             self.btn_list.set_active(False)
@@ -203,9 +245,9 @@ class WallpapersPage(Gtk.Box):
         self.refresh_wallpaper_grid()
 
     def on_stop_clicked(self):
-        self.controller.stop()
-        self.active_wp = None
-        self.active_wp_label.set_label("None")
+        # Stop wallpaper on current screen
+        self.controller.stop_screen(self.selected_screen)
+        self.update_active_wallpaper_label()
 
     def on_reload_wallpapers(self, btn):
         self.wp_manager.clear_cache()
@@ -280,7 +322,9 @@ class WallpapersPage(Gtk.Box):
             # Calculate max wait time (timeout)
             # Xvfb software rendering is slow.
             import shutil
-            is_xvfb = shutil.which("xvfb-run") is not None
+            has_xvfb_bin = shutil.which("xvfb-run") is not None
+            prefer_xvfb = self.config.get("preferXvfb", True)
+            is_xvfb = has_xvfb_bin and prefer_xvfb
             
             # Massive timeout for Xvfb software rendering at 4K
             fps_target = 1.0 if is_xvfb else 60.0 
@@ -560,11 +604,8 @@ class WallpapersPage(Gtk.Box):
         self.sidebar.update(folder_id)
 
     def apply_wallpaper(self, wp_id: str):
-        self.controller.apply(wp_id)
-        self.active_wp = wp_id
-        wp = self.wp_manager._wallpapers.get(wp_id)
-        if wp:
-            self.active_wp_label.set_markup(markdown_to_pango(wp['title']))
+        self.controller.apply(wp_id, self.selected_screen)
+        self.update_active_wallpaper_label()
 
     def on_item_activated(self, folder_id: str, n_press: int):
         if n_press == 2:

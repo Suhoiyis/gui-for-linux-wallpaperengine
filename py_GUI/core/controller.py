@@ -6,11 +6,15 @@ from py_GUI.core.config import ConfigManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.logger import LogManager
 
+from py_GUI.core.screen import ScreenManager
+
 class WallpaperController:
-    def __init__(self, config: ConfigManager, prop_manager: PropertiesManager, log_manager: LogManager):
+    def __init__(self, config: ConfigManager, prop_manager: PropertiesManager, 
+                 log_manager: LogManager, screen_manager: ScreenManager):
         self.config = config
         self.prop_manager = prop_manager
         self.log_manager = log_manager
+        self.screen_manager = screen_manager
         self.current_proc: Optional[subprocess.Popen] = None
         
         # Log Xvfb status on startup
@@ -20,22 +24,65 @@ class WallpaperController:
             self.log_manager.add_info("Xvfb not found: Screenshots will spawn a window", "Controller")
 
     def apply(self, wp_id: str, screen: Optional[str] = None):
-        """Apply wallpaper"""
-        self.stop()
-        
+        """Apply wallpaper (Multi-monitor support)"""
+        # 1. Determine screen
         if not screen:
             screen = self.config.get("lastScreen")
         if not screen or screen == "None":
             screen = "eDP-1"
 
-        self.log_manager.add_info(f"Applying wallpaper {wp_id} to screen {screen}", "Controller")
+        # 2. Update active monitors state
+        active_monitors = self.config.get("active_monitors", {})
+        active_monitors[screen] = wp_id
+        self.config.set("active_monitors", active_monitors)
+        self.config.set("lastWallpaper", wp_id)
+        self.config.set("lastScreen", screen)
 
-        cmd = [
-            "linux-wallpaperengine",
-            str(wp_id),
-            "-r", screen,
-            "-f", str(self.config.get("fps", 30)),
-        ]
+        self.log_manager.add_info(f"Applying configuration: {active_monitors}", "Controller")
+        self._restart_process()
+
+    def stop_screen(self, screen: str):
+        """Stop wallpaper on a specific screen"""
+        active_monitors = self.config.get("active_monitors", {})
+        if screen in active_monitors:
+            del active_monitors[screen]
+            self.config.set("active_monitors", active_monitors)
+            self.log_manager.add_info(f"Stopped wallpaper on {screen}", "Controller")
+            
+            if not active_monitors:
+                self.stop()
+            else:
+                self._restart_process()
+
+    def _restart_process(self):
+        """Restart the engine with current active_monitors configuration"""
+        self.stop()
+        
+        # Validate screens
+        active_monitors = self.config.get("active_monitors", {})
+        connected_screens = self.screen_manager.get_screens()
+        
+        # Filter out disconnected screens
+        valid_monitors = {scr: wid for scr, wid in active_monitors.items() if scr in connected_screens}
+        
+        # If monitors were removed, update config
+        if len(valid_monitors) != len(active_monitors):
+            self.log_manager.add_info(f"Removing disconnected screens from config. Valid: {list(valid_monitors.keys())}", "Controller")
+            self.config.set("active_monitors", valid_monitors)
+            active_monitors = valid_monitors
+
+        if not active_monitors:
+            self.log_manager.add_info("No active wallpapers for connected screens.", "Controller")
+            return
+
+        cmd = ["linux-wallpaperengine"]
+        
+        # Add screens
+        for scr, wid in active_monitors.items():
+            cmd.extend(["--screen-root", scr, "--bg", str(wid)])
+
+        # Global args
+        cmd.extend(["-f", str(self.config.get("fps", 30))])
 
         if self.config.get("silence", True):
             cmd.append("--silent")
@@ -68,21 +115,18 @@ class WallpaperController:
         if clamp != "clamp":
             cmd.extend(["--clamp", clamp])
 
-        # User properties
-        is_silent = self.config.get("silence", True)
+        # Properties (Apply for all active wallpapers)
         audio_props = {'musicvolume', 'music', 'bellvolume', 'sound', 'soundsettings', 'volume'}
+        is_silent = self.config.get("silence", True)
 
-        user_props = self.prop_manager._user_properties.get(wp_id, {})
-        self.log_manager.add_debug(f"User properties for {wp_id}: {user_props}", "Controller")
-        
-        for prop_name, prop_value in user_props.items():
-            if is_silent and prop_name.lower() in audio_props:
-                continue
-
-            prop_type = self.prop_manager.get_property_type(wp_id, prop_name)
-            formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)
-            cmd.extend(["--set-property", f"{prop_name}={formatted_value}"])
-            self.log_manager.add_debug(f"Adding property: {prop_name}={formatted_value} (type: {prop_type})", "Controller")
+        for wid in set(active_monitors.values()):
+            user_props = self.prop_manager._user_properties.get(wid, {})
+            for prop_name, prop_value in user_props.items():
+                if is_silent and prop_name.lower() in audio_props:
+                    continue
+                prop_type = self.prop_manager.get_property_type(wid, prop_name)
+                formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)
+                cmd.extend(["--set-property", f"{prop_name}={formatted_value}"])
 
         self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
 
@@ -102,7 +146,6 @@ class WallpaperController:
             time.sleep(0.5)
             if self.current_proc.poll() is not None:
                 # Process exited immediately
-                # Read log file to get error
                 self.engine_log.close() # Flush and close handle
                 with open(log_path, "r") as f:
                     output = f.read()
@@ -111,9 +154,7 @@ class WallpaperController:
                 self.log_manager.add_error(error_msg, "Engine")
                 return
 
-            self.config.set("lastWallpaper", wp_id)
-            self.config.set("lastScreen", screen)
-            self.log_manager.add_info(f"Wallpaper applied: {wp_id}", "Controller")
+            self.log_manager.add_info("Engine started successfully", "Controller")
 
             # Niri color sync script support
             colors_script = os.path.expanduser("~/niri/scripts/sync_colors.sh")
@@ -124,7 +165,7 @@ class WallpaperController:
                     pass
 
         except Exception as e:
-            self.log_manager.add_error(f"Failed to apply wallpaper: {e}", "Controller")
+            self.log_manager.add_error(f"Failed to start engine: {e}", "Controller")
 
     def take_screenshot(self, wp_id: str, output_path: str, delay: Optional[int] = None):
         """Take a high-resolution screenshot of a specific wallpaper"""
@@ -132,9 +173,10 @@ class WallpaperController:
             delay = self.config.get("screenshotDelay", 20)
         res = self.config.get("screenshotRes", "3840x2160")
         
-        # Check for xvfb-run dynamically
+        # Check for xvfb-run dynamically and preference
         xvfb_path = shutil.which("xvfb-run")
-        has_xvfb = xvfb_path is not None
+        prefer_xvfb = self.config.get("preferXvfb", True)
+        has_xvfb = (xvfb_path is not None) and prefer_xvfb
         
         # Base command for the engine
         engine_cmd = [

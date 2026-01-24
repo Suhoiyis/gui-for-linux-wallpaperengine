@@ -28,6 +28,8 @@ DEFAULT_CONFIG = {
     "wallpaperProperties": {},
     "screenshotDelay": 20,
     "screenshotRes": "3840x2160",
+    "preferXvfb": True,
+    "active_monitors": {},
 }
 
 # CSS Styling
