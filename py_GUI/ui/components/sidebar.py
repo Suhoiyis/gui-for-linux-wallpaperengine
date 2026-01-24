@@ -77,10 +77,14 @@ class Sidebar(Gtk.Box):
         type_header.set_halign(Gtk.Align.START)
         content.append(type_header)
 
+        type_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        type_container.set_margin_start(20)
+        content.append(type_container)
+
         self.lbl_type = Gtk.Label(label="-")
-        self.lbl_type.add_css_class("sidebar-desc")
+        self.lbl_type.add_css_class("tag-chip")
         self.lbl_type.set_halign(Gtk.Align.START)
-        content.append(self.lbl_type)
+        type_container.append(self.lbl_type)
 
         # Tags
         tags_header = Gtk.Label(label="Tags")
