@@ -436,9 +436,9 @@ class WallpapersPage(Gtk.Box):
             
             # List of file managers to try in order of preference
             file_managers = [
+                "thunar",     # XFCE (Preferred)
                 "nautilus",   # GNOME
                 "dolphin",    # KDE
-                "thunar",     # XFCE
                 "nemo",       # Cinnamon
                 "pcmanfm",    # LXDE
                 "pcmanfm-qt", # LXQt
