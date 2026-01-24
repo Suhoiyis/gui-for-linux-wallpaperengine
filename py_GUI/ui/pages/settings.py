@@ -314,6 +314,21 @@ class SettingsPage(Gtk.Box):
         self.screenshot_res_entry.set_width_chars(15)
         r.append(self.screenshot_res_entry)
 
+        # Xvfb Status
+        import shutil
+        has_xvfb = shutil.which("xvfb-run") is not None
+        status_text = "✅ Xvfb Installed (Silent Mode)" if has_xvfb else "⚠️ Xvfb Not Found (Window Mode)"
+        status_desc = "Virtual framebuffer allows background capture without popup windows."
+        
+        r = self.create_row("Capture Backend", status_desc)
+        box.append(r)
+        
+        status_lbl = Gtk.Label(label=status_text)
+        status_lbl.add_css_class("status-value")
+        if not has_xvfb:
+            status_lbl.add_css_class("text-muted") # Or a warning color if defined
+        r.append(status_lbl)
+
         btn = Gtk.Button(label="⟳ Refresh Screens")
         btn.add_css_class("action-btn")
         btn.add_css_class("secondary")

@@ -10,7 +10,7 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gtk, Gdk, Gio, Pango, GLib
 
 from py_GUI.ui.components.sidebar import Sidebar
-from py_GUI.ui.components.dialogs import show_delete_dialog, show_error_dialog
+from py_GUI.ui.components.dialogs import show_delete_dialog, show_error_dialog, show_screenshot_success_dialog
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
@@ -357,12 +357,9 @@ class WallpapersPage(Gtk.Box):
             def show_success():
                 # Verify file one last time
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                    msg = f"Screenshot saved successfully!\n\nLocation: {output_path}"
-                    if fallback_used:
-                        msg = f"Warning: Could not create standard folder.\nSaved to FALLBACK: {output_path}"
                     self.log_manager.add_info(f"Screenshot complete: {output_path}", "GUI")
                     reset_ui()
-                    show_error_dialog(self.window, "Screenshot Successful", msg)
+                    show_screenshot_success_dialog(self.window, output_path)
                 else:
                     # Rare race condition or save failed
                     verify_after_kill()
