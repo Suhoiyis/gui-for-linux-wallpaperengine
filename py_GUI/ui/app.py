@@ -57,6 +57,10 @@ class WallpaperApp(Adw.Application):
                 self.cli_actions.append("refresh")
             elif arg == "--apply-last":
                 self.cli_actions.append("apply-last")
+            elif arg == "--stop":
+                self.cli_actions.append("stop")
+            elif arg == "--random":
+                self.cli_actions.append("random")
             elif arg == "--quit":
                 self.cli_actions.append("quit")
         
@@ -182,7 +186,15 @@ class WallpaperApp(Adw.Application):
             elif action == "toggle": self.toggle_window()
             elif action == "refresh": self.refresh_from_cli()
             elif action == "apply-last": self.apply_last_from_cli()
+            elif action == "stop": self.stop_wallpaper()
+            elif action == "random": self.random_wallpaper()
             elif action == "quit": self.quit_app()
+
+    def stop_wallpaper(self):
+        self.controller.stop()
+    
+    def random_wallpaper(self):
+        self.wallpapers_page.on_feeling_lucky(None)
 
     def quit_app(self):
         self.controller.stop()

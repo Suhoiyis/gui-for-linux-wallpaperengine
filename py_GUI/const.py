@@ -2,12 +2,14 @@ import os
 
 # Application constants
 APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.6.5'
+VERSION = '0.7.0'
 
 # Configuration Paths
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 WORKSHOP_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/431960")
+ICON_PATH = os.path.join(PROJECT_ROOT, "gui_tray.png")
 
 DEFAULT_CONFIG = {
     "fps": 30,

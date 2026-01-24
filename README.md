@@ -11,6 +11,7 @@
 
 ## 🆕 最近更新 (2026-01-24)
 
+- **系统托盘图标**：基于 `libayatana-appindicator` 实现，完美支持 Wayland (Niri/Sway/Hyprland) + Waybar 环境。
 - **代码重构**：将单文件脚本拆分为模块化包结构 (`py_GUI/`)，分离逻辑与界面。
 - **项目结构优化**：更名项目包为 `py_GUI`，新增启动脚本 `run_gui.py`。
 - **性能优化**：改进了图片资源的加载与缓存机制。
@@ -18,6 +19,7 @@
 ## ✅ 当前功能
 
 ### 核心功能
+- ✅ **系统托盘**：常驻托盘图标，支持显示/隐藏、停止播放、随机切换壁纸、退出程序
 - ✅ **壁纸浏览**：从 Steam Workshop 自动扫描壁纸库
 - ✅ **双视图模式**：Grid（网格）与 List（列表）视图切换
 - ✅ **侧边栏详情**：显示壁纸大图、标题、类型、标签、描述
@@ -96,17 +98,10 @@
 ## ❌ 尚缺功能
 
 ### 优先级 P1（核心缺失）
-- ❌ **系统托盘图标**：
-  - 目标：在屏幕右上/下角显示托盘图标，可点击显示/隐藏、右键菜单刷新/应用/退出
-  - 当前状态：尝试过 pystray 库，但 Wayland/niri 上不兼容（D-Bus 后端无法工作）
-  - 方案评估：StatusNotifierItem 在某些 Wayland 桌面环境上不可靠
-  - **暂时保留 CLI 控制作为替代方案**（`--show/--hide/--toggle/--quit` 等）
-
-### 优先级 P2（功能缺失）
 - ⚠️ **多显示器独立壁纸**：当前仅支持单一屏幕，不支持同时为不同显示器设置不同壁纸（此功能需后端支持）
 - ❌ **原始 JSON 编辑**：无原始配置编辑界面
 
-### 优先级 P3（增强功能）
+### 优先级 P2（功能缺失）
 - ⚠️ **自启动集成**：无 systemd 单元、桌面文件、AUR 打包
 - ❌ **动态壁纸预览**：GIF 预览仅显示首帧（性能考虑暂未实现动画）
 
@@ -137,6 +132,8 @@ python3 run_gui.py --minimized
 | `--toggle` | 切换显示/隐藏状态 | `python3 run_gui.py --toggle` |
 | `--refresh` | 重新扫描壁纸库 | `python3 run_gui.py --refresh` |
 | `--apply-last` | 应用上次保存的壁纸 | `python3 run_gui.py --apply-last` |
+| `--stop` | 停止当前播放 | `python3 run_gui.py --stop` |
+| `--random` | 随机切换壁纸 | `python3 run_gui.py --random` |
 | `--quit` | 完全退出应用与进程 | `python3 run_gui.py --quit` |
 
 ### Niri 配置示例
@@ -165,17 +162,20 @@ python3 run_gui.py --hide
 
 - **语言**：Python 3.10+
 - **UI 框架**：PyGObject (GTK4) + Libadwaita
+- **系统托盘**：libayatana-appindicator (GTK3)
 - **后端**：linux-wallpaperengine（C++ 实现）
 - **依赖**：
   ```bash
-  python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
+  python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libayatana-appindicator
   ```
 
 ## 🚀 快速开始
 
 ```bash
 # 安装依赖
-sudo apt-get install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
+sudo apt-get install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libayatana-appindicator
+# Arch Linux:
+# sudo pacman -S python-gobject gtk4 libadwaita libayatana-appindicator
 
 # 运行
 python3 run_gui.py
