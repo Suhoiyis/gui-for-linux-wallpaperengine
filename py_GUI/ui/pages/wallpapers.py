@@ -276,7 +276,7 @@ class WallpapersPage(Gtk.Box):
         context = Gtk.GestureClick.new()
         context.set_button(Gdk.BUTTON_SECONDARY)
         context.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        context.connect("pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id))
+        context.connect("pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id, x, y))
         btn.add_controller(context)
 
         overlay = Gtk.Overlay()
@@ -329,7 +329,7 @@ class WallpapersPage(Gtk.Box):
         context = Gtk.GestureClick.new()
         context.set_button(Gdk.BUTTON_SECONDARY)
         context.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        context.connect("pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id))
+        context.connect("pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id, x, y))
         btn.add_controller(context)
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
@@ -400,7 +400,7 @@ class WallpapersPage(Gtk.Box):
             self.select_wallpaper(folder_id)
             self.apply_wallpaper(folder_id)
 
-    def on_context_menu(self, widget, folder_id):
+    def on_context_menu(self, widget, folder_id, x, y):
         menu = Gtk.PopoverMenu()
         
         # Actions are handled by the main window application actions
@@ -412,7 +412,14 @@ class WallpapersPage(Gtk.Box):
 
         menu.set_menu_model(menu_model)
         menu.set_parent(widget)
-        menu.set_pointing_to(Gdk.Rectangle())
+        
+        rect = Gdk.Rectangle()
+        rect.x = int(x)
+        rect.y = int(y)
+        rect.width = 1
+        rect.height = 1
+        menu.set_pointing_to(rect)
+        
         menu.popup()
 
     def delete_wallpaper(self, wp_id: str):
