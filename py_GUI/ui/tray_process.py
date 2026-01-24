@@ -88,13 +88,13 @@ class TrayProcess:
         running = False
         try:
             # Check if linux-wallpaperengine is running
-            # Using pgrep -f to match command line, ignoring self (python scripts usually don't match unless named so)
-            # We exclude 'grep' and our own process implicitly by pgrep behavior usually, 
-            # but to be safe we look for the specific backend binary name pattern if possible.
-            # Simple 'linux-wallpaperengine' should be unique enough for this context.
-            subprocess.check_call(["pgrep", "-f", "linux-wallpaperengine"], stdout=subprocess.DEVNULL)
-            running = True
-        except subprocess.CalledProcessError:
+            # Filter out python processes to avoid matching this script or the main GUI
+            # shell=True required for pipes
+            cmd = "pgrep -f linux-wallpaperengine | grep -v python"
+            ret = subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
+            running = (ret == 0)
+        except Exception as e:
+            # print(f"Poll error: {e}")
             running = False
             
         current_label = self.toggle_item.get_label()
@@ -108,11 +108,15 @@ class TrayProcess:
 
     def _on_toggle(self, widget):
         label = widget.get_label()
+        # print(f"Toggle clicked. Label: '{label}'")
         if label == "停止播放":
             self._cmd("--stop")
-            # We don't update label immediately, let the poller verify it stopped
+            # Optimistically update label immediately for better UX
+            # The poller will correct it later if it failed
+            self.toggle_item.set_label("应用上次壁纸")
         else:
             self._cmd("--apply-last")
+            self.toggle_item.set_label("停止播放")
 
     def _cmd(self, arg):
         # Call the main app via CLI
