@@ -64,17 +64,27 @@ class WallpaperController:
         self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
 
         try:
+            # Fix potential deadlock by redirecting stdout/stderr to a log file instead of PIPE
+            from py_GUI.const import CONFIG_DIR
+            log_path = os.path.join(CONFIG_DIR, "engine_last.log")
+            self.engine_log = open(log_path, "w")
+
             self.current_proc = subprocess.Popen(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stdout=self.engine_log,
+                stderr=self.engine_log
             )
 
             import time
             time.sleep(0.5)
             if self.current_proc.poll() is not None:
-                stdout, stderr = self.current_proc.communicate()
-                error_msg = f"Process exited!\nSTDOUT: {stdout.decode()}\nSTDERR: {stderr.decode()}"
+                # Process exited immediately
+                # Read log file to get error
+                self.engine_log.close() # Flush and close handle
+                with open(log_path, "r") as f:
+                    output = f.read()
+                
+                error_msg = f"Process exited immediately!\nOutput:\n{output}"
                 self.log_manager.add_error(error_msg, "Engine")
                 return
 
@@ -99,6 +109,13 @@ class WallpaperController:
         if self.current_proc:
             self.current_proc.terminate()
             self.current_proc = None
+            
+            # Close log file handle if open
+            if hasattr(self, 'engine_log') and self.engine_log and not self.engine_log.closed:
+                try:
+                    self.engine_log.close()
+                except:
+                    pass
         subprocess.run(
             ["pkill", "-f", "linux-wallpaperengine"],
             stdout=subprocess.DEVNULL,
