@@ -14,7 +14,7 @@ from py_GUI.core.integrations import AppIntegrator
 class SettingsPage(Gtk.Box):
     def __init__(self, config: ConfigManager, screen_manager: ScreenManager, 
                  log_manager: LogManager, controller: WallpaperController,
-                 wp_manager: WallpaperManager):
+                 wp_manager: WallpaperManager, on_cycle_changed=None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         
         self.config = config
@@ -23,6 +23,7 @@ class SettingsPage(Gtk.Box):
         self.controller = controller
         self.wp_manager = wp_manager
         self.integrator = AppIntegrator()
+        self.on_cycle_settings_changed = on_cycle_changed
         
         self.add_css_class("settings-container")
         self.build_ui()
@@ -216,6 +217,30 @@ class SettingsPage(Gtk.Box):
         if curr_clamp in clamp_opts:
             self.clamp_dd.set_selected(clamp_opts.index(curr_clamp))
         r.append(self.clamp_dd)
+
+        # Automation
+        t = Gtk.Label(label="Automation")
+        t.add_css_class("settings-section-title")
+        t.set_halign(Gtk.Align.START)
+        t.set_margin_top(10)
+        box.append(t)
+
+        # Wallpaper Cycling
+        r = self.create_row("Enable Wallpaper Cycling", "Automatically change wallpapers periodically.")
+        box.append(r)
+        self.cycle_sw = Gtk.Switch()
+        self.cycle_sw.set_active(self.config.get("cycleEnabled", False))
+        self.cycle_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.cycle_sw)
+
+        # Interval
+        r = self.create_row("Cycle Interval (Minutes)", "Time between wallpaper changes.")
+        box.append(r)
+        self.cycle_spin = Gtk.SpinButton()
+        self.cycle_spin.set_range(1, 1440) # 1 min to 24 hours
+        self.cycle_spin.set_increments(5, 30)
+        self.cycle_spin.set_value(self.config.get("cycleInterval", 15))
+        r.append(self.cycle_spin)
 
     def build_audio(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
@@ -556,6 +581,9 @@ class SettingsPage(Gtk.Box):
         new_values["screenshotDelay"] = int(self.screenshot_delay_spin.get_value())
         new_values["screenshotRes"] = self.screenshot_res_entry.get_text().strip() or "3840x2160"
         new_values["preferXvfb"] = self.xvfb_sw.get_active()
+        
+        new_values["cycleEnabled"] = self.cycle_sw.get_active()
+        new_values["cycleInterval"] = int(self.cycle_spin.get_value())
 
         screens = self.screen_manager.get_screens()
         idx = self.screen_dd.get_selected()
@@ -593,6 +621,13 @@ class SettingsPage(Gtk.Box):
             self.controller.restart_wallpapers()
         else:
             self.log_manager.add_info("Settings saved (No restart needed)", "GUI")
+            
+        # 5. Cycle Timer Update
+        CYCLE_KEYS = {"cycleEnabled", "cycleInterval"}
+        if any(k in CYCLE_KEYS for k in changed_keys):
+             if self.on_cycle_settings_changed:
+                 self.log_manager.add_info("Cycling settings changed, updating timer...", "GUI")
+                 self.on_cycle_settings_changed()
             
         # UI Feedback
         orig_label = btn.get_label()

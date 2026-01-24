@@ -37,6 +37,7 @@ class WallpaperApp(Adw.Application):
         self.cli_actions = []
         self.initialized = False
         self._is_first_activation = True
+        self.cycle_timer_id = None
         
         self.tray = TrayIcon(self)
 
@@ -117,7 +118,8 @@ class WallpaperApp(Adw.Application):
 
         self.settings_page = SettingsPage(
             self.config, self.screen_manager, self.log_manager, 
-            self.controller, self.wp_manager
+            self.controller, self.wp_manager,
+            on_cycle_changed=self.setup_cycle_timer
         )
         self.stack.add_named(self.settings_page, "settings")
 
@@ -139,6 +141,7 @@ class WallpaperApp(Adw.Application):
         self.start_hidden = False
         
         self.initialized = True
+        self.setup_cycle_timer()
         self.tray.start()
         self.consume_cli_actions()
 
@@ -224,8 +227,30 @@ class WallpaperApp(Adw.Application):
         
         if new_monitors:
             self.config.set("active_monitors", new_monitors)
-            self.controller._restart_process()
+            self.controller.restart_wallpapers()
             self.wallpapers_page.update_active_wallpaper_label()
+
+    def on_cycle_trigger(self):
+        self.log_manager.add_info("Cycling wallpaper...", "App")
+        self.random_wallpaper()
+        return True # Keep running
+
+    def setup_cycle_timer(self):
+        if self.cycle_timer_id:
+            GLib.source_remove(self.cycle_timer_id)
+            self.cycle_timer_id = None
+            
+        if self.config.get("cycleEnabled", False):
+            interval_mins = self.config.get("cycleInterval", 15)
+            # Minimum 1 minute safety
+            interval_mins = max(1, interval_mins)
+            self.cycle_timer_id = GLib.timeout_add_seconds(
+                interval_mins * 60, 
+                self.on_cycle_trigger
+            )
+            self.log_manager.add_info(f"Wallpaper cycling enabled (every {interval_mins} mins)", "App")
+        else:
+            self.log_manager.add_info("Wallpaper cycling disabled", "App")
 
     def quit_app(self):
         self.controller.stop()

@@ -30,6 +30,8 @@ DEFAULT_CONFIG = {
     "screenshotRes": "3840x2160",
     "preferXvfb": True,
     "active_monitors": {},
+    "cycleEnabled": False,
+    "cycleInterval": 15,
 }
 
 # CSS Styling
