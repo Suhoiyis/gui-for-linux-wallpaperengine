@@ -5,7 +5,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
 gi.require_version('Gio', '2.0')
-from gi.repository import Gtk, Gdk, Gio, Pango
+from gi.repository import Gtk, Gdk, Gio, Pango, GLib
 
 from py_GUI.ui.components.sidebar import Sidebar
 from py_GUI.ui.components.dialogs import show_delete_dialog, show_error_dialog
@@ -409,26 +409,65 @@ class WallpapersPage(Gtk.Box):
             self.apply_wallpaper(folder_id)
 
     def on_context_menu(self, widget, folder_id, x, y):
-        menu = Gtk.PopoverMenu()
+        # Create a custom Popover with manual buttons to allow full styling control (e.g. Red delete button)
+        popover = Gtk.Popover()
+        popover.set_parent(widget)
+        popover.set_has_arrow(False)
         
-        # Actions are handled by the main window application actions
-        menu_model = Gio.Menu()
-        menu_model.append_item(Gio.MenuItem.new("Apply Wallpaper", f"win.apply::{folder_id}"))
-        menu_model.append_item(Gio.MenuItem.new("Stop Wallpaper", "win.stop"))
-        menu_model.append_item(Gio.MenuItem.new("Open Folder", f"win.open_folder::{folder_id}"))
-        menu_model.append_item(Gio.MenuItem.new("Delete Wallpaper", f"win.delete::{folder_id}"))
-
-        menu.set_menu_model(menu_model)
-        menu.set_parent(widget)
-        
+        # Position at click coordinates
         rect = Gdk.Rectangle()
         rect.x = int(x)
         rect.y = int(y)
         rect.width = 1
         rect.height = 1
-        menu.set_pointing_to(rect)
+        popover.set_pointing_to(rect)
+
+        # Menu Container
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(6)
+        box.set_margin_end(6)
+        popover.set_child(box)
+
+        def create_menu_item(label, action_name, target_value=None, is_danger=False):
+            btn = Gtk.Button()
+            btn.set_has_frame(False) # Flat button
+            
+            # Left aligned label
+            lbl = Gtk.Label(label=label)
+            lbl.set_halign(Gtk.Align.START)
+            btn.set_child(lbl)
+            
+            # Action
+            btn.set_action_name(action_name)
+            if target_value:
+                btn.set_action_target_value(GLib.Variant.new_string(target_value))
+            
+            # Styling
+            # Ensure it spans full width
+            btn.set_halign(Gtk.Align.FILL)
+            
+            if is_danger:
+                btn.add_css_class("destructive-action") # Makes it red in Libadwaita
+            
+            # Close popover when clicked
+            btn.connect("clicked", lambda *_: popover.popdown())
+            
+            return btn
+
+        # Menu Items
+        box.append(create_menu_item("Apply Wallpaper", "win.apply", folder_id))
+        box.append(create_menu_item("Stop Wallpaper", "win.stop"))
+        box.append(create_menu_item("Open Folder", "win.open_folder", folder_id))
         
-        menu.popup()
+        # Separator
+        box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+        
+        # Danger Item
+        box.append(create_menu_item("Delete Wallpaper", "win.delete", folder_id, is_danger=True))
+        
+        popover.popup()
 
     def delete_wallpaper(self, wp_id: str):
         show_delete_dialog(self.window, wp_id, lambda: self._perform_delete(wp_id))
