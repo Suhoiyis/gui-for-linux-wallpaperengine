@@ -120,20 +120,25 @@ class WallpaperController:
             self.log_manager.add_error(f"Failed to apply wallpaper: {e}", "Controller")
 
     def take_screenshot(self, wp_id: str, output_path: str):
-        """Take a screenshot of a specific wallpaper"""
-        delay = self.config.get("screenshotDelay", 10)
+        """Take a high-resolution screenshot of a specific wallpaper"""
+        delay = self.config.get("screenshotDelay", 20)
+        res = self.config.get("screenshotRes", "3840x2160")
+        
         cmd = [
             "linux-wallpaperengine",
-            str(wp_id),
             "--screenshot", output_path,
-            "--screenshot-delay", str(delay)
+            "--screenshot-delay", str(delay),
+            "--window", f"0x0x{res}",
+            "--silent",
+            "-f", "60",  # Speed up internal processing
+            str(wp_id)
         ]
         
-        self.log_manager.add_info(f"Starting screenshot for {wp_id} (delay: {delay} frames)", "Controller")
-        self.log_manager.add_debug(f"Executing screenshot: {' '.join(cmd)}", "Controller")
+        self.log_manager.add_info(f"Starting screenshot for {wp_id} at {res} (delay: {delay} frames)", "Controller")
+        self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
         
-        # Run asynchronously
-        return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Run asynchronously with a new session so we can kill the whole group (including CEF zygotes)
+        return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
     def stop(self):
         """Stop wallpaper"""

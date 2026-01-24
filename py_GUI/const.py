@@ -26,7 +26,8 @@ DEFAULT_CONFIG = {
     "lastWallpaper": None,
     "lastScreen": None,
     "wallpaperProperties": {},
-    "screenshotDelay": 10,
+    "screenshotDelay": 20,
+    "screenshotRes": "3840x2160",
 }
 
 # CSS Styling

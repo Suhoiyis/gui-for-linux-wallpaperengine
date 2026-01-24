@@ -164,11 +164,11 @@ class SettingsPage(Gtk.Box):
         # Scaling
         r = self.create_row("Scaling Mode", "How the wallpaper fits.")
         box.append(r)
-        self.scaling_dd = Gtk.DropDown.new_from_strings(["default", "stretch", "fit", "fill"])
-        curr = self.config.get("scaling", "default")
-        opts = ["default", "stretch", "fit", "fill"]
-        if curr in opts:
-            self.scaling_dd.set_selected(opts.index(curr))
+        scaling_opts = ["default", "stretch", "fit", "fill"]
+        self.scaling_dd = Gtk.DropDown.new_from_strings(scaling_opts)
+        curr = str(self.config.get("scaling", "default"))
+        if curr in scaling_opts:
+            self.scaling_dd.set_selected(scaling_opts.index(curr))
         r.append(self.scaling_dd)
 
         # Pause
@@ -292,18 +292,27 @@ class SettingsPage(Gtk.Box):
         
         self.screen_dd = Gtk.DropDown.new_from_strings(screens)
         self.screen_dd.set_hexpand(True)
-        if curr_screen in screens:
-            self.screen_dd.set_selected(screens.index(curr_screen))
+        if curr_screen and curr_screen in screens:
+            self.screen_dd.set_selected(screens.index(str(curr_screen)))
         r.append(self.screen_dd)
 
         # Screenshot Delay
-        r = self.create_row("Screenshot Delay", "Wait time (frames) before capturing.")
+        r = self.create_row("Screenshot Delay", "Frames to wait before capture (use higher for web wallpapers).")
         box.append(r)
         self.screenshot_delay_spin = Gtk.SpinButton()
         self.screenshot_delay_spin.set_range(1, 600)
         self.screenshot_delay_spin.set_increments(5, 50)
-        self.screenshot_delay_spin.set_value(self.config.get("screenshotDelay", 10))
+        self.screenshot_delay_spin.set_value(self.config.get("screenshotDelay", 20))
         r.append(self.screenshot_delay_spin)
+
+        # Screenshot Resolution
+        r = self.create_row("Screenshot Resolution", "Target resolution (e.g. 1920x1080, 3840x2160).")
+        box.append(r)
+        self.screenshot_res_entry = Gtk.Entry()
+        self.screenshot_res_entry.set_text(self.config.get("screenshotRes", "3840x2160"))
+        self.screenshot_res_entry.set_hexpand(False)
+        self.screenshot_res_entry.set_width_chars(15)
+        r.append(self.screenshot_res_entry)
 
         btn = Gtk.Button(label="⟳ Refresh Screens")
         btn.add_css_class("action-btn")
@@ -462,6 +471,7 @@ class SettingsPage(Gtk.Box):
             self.config.set("workshopPath", path)
 
         self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
+        self.config.set("screenshotRes", self.screenshot_res_entry.get_text().strip() or "3840x2160")
 
         screens = self.screen_manager.get_screens()
         idx = self.screen_dd.get_selected()
@@ -491,7 +501,7 @@ class SettingsPage(Gtk.Box):
 
     def on_refresh_screens(self, btn):
         screens = self.screen_manager.refresh()
-        curr = self.config.get("lastScreen", "eDP-1")
+        curr = str(self.config.get("lastScreen", "eDP-1"))
         if curr not in screens: screens.append(curr)
         self.screen_dd.set_model(Gtk.StringList.new(screens))
         if curr in screens:

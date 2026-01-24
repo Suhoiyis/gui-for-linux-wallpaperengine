@@ -1,5 +1,7 @@
 import random
 import os
+import signal
+import time
 from typing import Dict, Optional
 import gi
 gi.require_version('Gtk', '4.0')
@@ -224,13 +226,11 @@ class WallpapersPage(Gtk.Box):
         self.apply_wallpaper(wp_id)
 
     def on_screenshot_clicked(self):
-        # 1. Determine which wallpaper to screenshot
         target_id = self.active_wp or self.selected_wp
         if not target_id:
             show_error_dialog(self.window, "Screenshot Error", "No wallpaper is currently active or selected.")
             return
 
-        # 2. Prepare directory
         base_dir = os.path.expanduser("~/Pictures/wallpaperengine")
         save_dir = base_dir
         fallback_used = False
@@ -243,39 +243,53 @@ class WallpapersPage(Gtk.Box):
                 fallback_used = True
                 self.log_manager.add_error(f"Failed to create {base_dir}: {e}. Falling back to /tmp", "GUI")
 
-        # 3. Generate filename
-        import time
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         filename = f"Screenshot_{target_id}_{timestamp}.png"
         output_path = os.path.join(save_dir, filename)
 
-        # 4. Execute screenshot
         try:
             self.log_manager.add_info(f"Taking screenshot to {output_path}...", "GUI")
             proc = self.controller.take_screenshot(target_id, output_path)
             
-            # Watch for completion
-            def check_completion():
+            # Calculate wait time: (frames / 60) + 3.0s buffer for heavy 4K loading
+            delay_val = self.config.get("screenshotDelay", 20)
+            delay_frames = int(delay_val) if delay_val is not None else 20
+            wait_time_ms = int((delay_frames / 60.0) * 1000) + 3000 
+            
+            def finalize_screenshot():
                 if proc.poll() is None:
-                    return True # Keep checking
+                    self.log_manager.add_debug(f"Terminating screenshot process {proc.pid}", "GUI")
+                    try:
+                        # Send SIGINT to the whole process group
+                        os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+                    except Exception as e:
+                        self.log_manager.add_debug(f"SIGINT failed: {e}, using terminate()", "GUI")
+                        proc.terminate()
                 
-                # Done
-                if proc.returncode == 0:
-                    msg = f"Screenshot saved successfully!\nLocation: {output_path}"
-                    if fallback_used:
-                        msg = f"Warning: Could not create standard folder.\nScreenshot saved to FALLBACK location: {output_path}"
-                    
-                    self.log_manager.add_info(f"Screenshot finished: {output_path}", "GUI")
-                    show_error_dialog(self.window, "Screenshot Successful", msg) # Re-use error dialog as a notification
-                else:
-                    show_error_dialog(self.window, "Screenshot Failed", "The engine failed to capture the screenshot. Check logs.")
-                
+                # Wait 1s for file to be finalized on disk before checking
+                GLib.timeout_add(1000, check_result)
                 return False
 
-            GLib.timeout_add(500, check_completion)
+            def check_result():
+                # Final check if window is STILL open (rare)
+                if proc.poll() is None:
+                    proc.kill() # Force kill
+
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
+                    msg = f"Screenshot saved successfully!\n\nLocation: {output_path}"
+                    if fallback_used:
+                        msg = f"Warning: Could not create standard folder.\nSaved to FALLBACK: {output_path}"
+                    self.log_manager.add_info(f"Screenshot complete: {output_path}", "GUI")
+                    show_error_dialog(self.window, "Screenshot Successful", msg)
+                else:
+                    show_error_dialog(self.window, "Screenshot Failed", "No image was generated. The process was closed but didn't save. Try increasing delay.")
+                return False
+
+            # Start the countdown to kill the window
+            GLib.timeout_add(wait_time_ms, finalize_screenshot)
 
         except Exception as e:
-            show_error_dialog(self.window, "Screenshot Error", f"Failed to start screenshot process: {e}")
+            show_error_dialog(self.window, "Screenshot Error", f"Failed to start process: {e}")
 
     def refresh_wallpaper_grid(self):
         if self.view_mode == "grid":
