@@ -134,6 +134,8 @@ class SettingsPage(Gtk.Box):
         d = Gtk.Label(label=desc)
         d.add_css_class("setting-desc")
         d.set_halign(Gtk.Align.START)
+        d.set_wrap(True)
+        d.set_max_width_chars(50)
         info.append(d)
         
         return row
@@ -319,7 +321,7 @@ class SettingsPage(Gtk.Box):
         has_xvfb = shutil.which("xvfb-run") is not None
         
         status_label = "✅ Xvfb Installed (Silent Mode)" if has_xvfb else "⚠️ Xvfb Not Found (Window Mode)"
-        status_desc = "Silent mode uses a virtual framebuffer to capture screenshots without popup windows."
+        status_desc = "Silent capture using virtual framebuffer."
         
         r = self.create_row("Capture Backend", status_desc)
         box.append(r)
