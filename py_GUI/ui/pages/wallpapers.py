@@ -251,42 +251,87 @@ class WallpapersPage(Gtk.Box):
             self.log_manager.add_info(f"Taking screenshot to {output_path}...", "GUI")
             proc = self.controller.take_screenshot(target_id, output_path)
             
-            # Calculate wait time: (frames / 60) + 3.0s buffer for heavy 4K loading
+            start_time = time.time()
+            
+            # Calculate max wait time (timeout)
             delay_val = self.config.get("screenshotDelay", 20)
             delay_frames = int(delay_val) if delay_val is not None else 20
-            wait_time_ms = int((delay_frames / 60.0) * 1000) + 3000 
+            # Allow 1.0s overhead + render time + 2.0s buffer
+            kill_threshold_s = (delay_frames / 60.0) + 3.0
             
-            def finalize_screenshot():
-                if proc.poll() is None:
-                    self.log_manager.add_debug(f"Terminating screenshot process {proc.pid}", "GUI")
-                    try:
-                        # Send SIGINT to the whole process group
-                        os.killpg(os.getpgid(proc.pid), signal.SIGINT)
-                    except Exception as e:
-                        self.log_manager.add_debug(f"SIGINT failed: {e}, using terminate()", "GUI")
-                        proc.terminate()
+            last_size = -1
+            stable_ticks = 0
+            
+            def check_capture_status():
+                nonlocal last_size, stable_ticks
+                elapsed = time.time() - start_time
                 
-                # Wait 1s for file to be finalized on disk before checking
-                GLib.timeout_add(1000, check_result)
-                return False
+                # 1. Check if process is already dead (crashed or finished)
+                if proc.poll() is not None:
+                    # Process exited on its own. Check file.
+                    if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                        show_success()
+                    else:
+                        show_error_dialog(self.window, "Screenshot Failed", "Process exited but no file was created.")
+                    return False
 
-            def check_result():
-                # Final check if window is STILL open (rare)
-                if proc.poll() is None:
-                    proc.kill() # Force kill
+                # 2. Check if file exists and is stable
+                if os.path.exists(output_path):
+                    try:
+                        curr_size = os.path.getsize(output_path)
+                        if curr_size > 0:
+                            if curr_size == last_size:
+                                stable_ticks += 1
+                            else:
+                                stable_ticks = 0
+                            last_size = curr_size
+                            
+                            # Stable for ~200ms -> Kill it
+                            if stable_ticks >= 2:
+                                kill_process()
+                                # Wait a tiny bit for cleanup then show success
+                                GLib.timeout_add(200, show_success)
+                                return False
+                    except OSError:
+                        pass # File might be locked or busy
 
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
+                # 3. Timeout -> Force Kill (Trigger save-on-exit)
+                if elapsed > kill_threshold_s:
+                    kill_process()
+                    # Give it 1s to flush on exit
+                    GLib.timeout_add(1000, verify_after_kill)
+                    return False
+                
+                return True # Continue polling
+
+            def kill_process():
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+                except:
+                    proc.terminate()
+
+            def show_success():
+                # Verify file one last time
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     msg = f"Screenshot saved successfully!\n\nLocation: {output_path}"
                     if fallback_used:
                         msg = f"Warning: Could not create standard folder.\nSaved to FALLBACK: {output_path}"
                     self.log_manager.add_info(f"Screenshot complete: {output_path}", "GUI")
                     show_error_dialog(self.window, "Screenshot Successful", msg)
                 else:
-                    show_error_dialog(self.window, "Screenshot Failed", "No image was generated. The process was closed but didn't save. Try increasing delay.")
+                    # Rare race condition or save failed
+                    verify_after_kill()
                 return False
 
-            # Start the countdown to kill the window
-            GLib.timeout_add(wait_time_ms, finalize_screenshot)
+            def verify_after_kill():
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    show_success()
+                else:
+                    show_error_dialog(self.window, "Screenshot Timeout", "Capture timed out. Try increasing the delay in Settings.")
+                return False
+
+            # Start polling every 100ms
+            GLib.timeout_add(100, check_capture_status)
 
         except Exception as e:
             show_error_dialog(self.window, "Screenshot Error", f"Failed to start process: {e}")
