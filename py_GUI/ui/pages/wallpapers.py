@@ -258,12 +258,15 @@ class WallpapersPage(Gtk.Box):
             delay_frames = int(delay_val) if delay_val is not None else 20
             
             # Xvfb software rendering is slow.
-            is_xvfb = getattr(self.controller, 'has_xvfb', False)
-            fps_target = 2.0 if is_xvfb else 60.0
-            buffer_s = 10.0 if is_xvfb else 3.0
+            import shutil
+            is_xvfb = shutil.which("xvfb-run") is not None
+            
+            # Massive timeout for Xvfb software rendering at 4K
+            fps_target = 1.0 if is_xvfb else 60.0 
+            buffer_s = 20.0 if is_xvfb else 3.0
             
             kill_threshold_s = (delay_frames / fps_target) + buffer_s
-            self.log_manager.add_debug(f"Screenshot timeout set to {kill_threshold_s:.1f}s (Xvfb={is_xvfb})", "GUI")
+            self.log_manager.add_info(f"Screenshot timeout: {kill_threshold_s:.1f}s (Xvfb={is_xvfb})", "GUI")
             
             last_size = -1
             stable_ticks = 0
@@ -272,13 +275,26 @@ class WallpapersPage(Gtk.Box):
                 nonlocal last_size, stable_ticks
                 elapsed = time.time() - start_time
                 
+                # Debug logging every 1s
+                if int(elapsed * 10) % 10 == 0:
+                    fsize = os.path.getsize(output_path) if os.path.exists(output_path) else -1
+                    self.log_manager.add_debug(f"Capture status: T={elapsed:.1f}s, File={fsize} bytes", "GUI")
+
                 # 1. Check if process is already dead (crashed or finished)
                 if proc.poll() is not None:
                     # Process exited on its own. Check file.
                     if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                         show_success()
                     else:
-                        show_error_dialog(self.window, "Screenshot Failed", "Process exited but no file was created.")
+                        # Read error log
+                        err_msg = "Unknown error"
+                        try:
+                            with open("/tmp/wallpaper_screenshot_error.log", "r") as f:
+                                err_msg = f.read().strip()
+                        except: pass
+                        
+                        self.log_manager.add_error(f"Screenshot process crashed: {err_msg}", "GUI")
+                        show_error_dialog(self.window, "Screenshot Failed", f"The engine crashed or exited early.\n\nBackend Error:\n{err_msg[-500:]}") # Show last 500 chars
                     return False
 
                 # 2. Check if file exists and is stable

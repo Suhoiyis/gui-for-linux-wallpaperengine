@@ -13,9 +13,8 @@ class WallpaperController:
         self.log_manager = log_manager
         self.current_proc: Optional[subprocess.Popen] = None
         
-        # Check for xvfb-run
-        self.has_xvfb = shutil.which("xvfb-run") is not None
-        if self.has_xvfb:
+        # Log Xvfb status on startup
+        if shutil.which("xvfb-run"):
             self.log_manager.add_info("Xvfb detected: Silent screenshots enabled", "Controller")
         else:
             self.log_manager.add_info("Xvfb not found: Screenshots will spawn a window", "Controller")
@@ -132,6 +131,10 @@ class WallpaperController:
         delay = self.config.get("screenshotDelay", 20)
         res = self.config.get("screenshotRes", "3840x2160")
         
+        # Check for xvfb-run dynamically
+        xvfb_path = shutil.which("xvfb-run")
+        has_xvfb = xvfb_path is not None
+        
         # Base command for the engine
         engine_cmd = [
             "linux-wallpaperengine",
@@ -142,23 +145,39 @@ class WallpaperController:
             str(wp_id)
         ]
 
-        if self.has_xvfb:
+        if has_xvfb:
             # Wrap in xvfb-run
-            # -a: Auto server number
-            # -s: Screen configuration matching our target resolution
-            xvfb_args = ["-a", "-s", f"-screen 0 {res}x24"]
-            cmd = ["xvfb-run"] + xvfb_args + engine_cmd
+            # Important: The server args must be a single string for -s
+            xvfb_args = ["-a", "-s", f"-screen 0 {res}x24 +extension GLX"]
+            
+            # Combine commands
+            # Even in Xvfb, we MUST force the engine to create a window of the target resolution
+            # Otherwise it might default to 640x480 or 800x600
+            cmd = [xvfb_path] + xvfb_args + engine_cmd + ["--window", f"0x0x{res}"]
             mode_msg = f"Silent (Xvfb) at {res}"
         else:
             # Fallback: Force window size
             cmd = engine_cmd + ["--window", f"0x0x{res}"]
-            mode_msg = f"Windowed at {res}"
+            mode_msg = f"Windowed at {res} (Xvfb not found)"
         
-        self.log_manager.add_info(f"Starting screenshot for {wp_id}: {mode_msg}", "Controller")
-        self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
+        self.log_manager.add_info(f"Starting screenshot: {mode_msg}", "Controller")
+        self.log_manager.add_info(f"Raw command: {cmd}", "Controller")
+        
+        # Prepare environment: Force X11/Xvfb usage by stripping Wayland vars
+        env = os.environ.copy()
+        if has_xvfb:
+            # Aggressively strip Wayland indicators
+            env.pop("WAYLAND_DISPLAY", None)
+            env["XDG_SESSION_TYPE"] = "x11"
+            env["SDL_VIDEODRIVER"] = "x11"
+            env["GDK_BACKEND"] = "x11"
+            # Ensure software rendering fallback if hardware GL fails in Xvfb
+            env["LIBGL_ALWAYS_SOFTWARE"] = "1" 
         
         # Run asynchronously with a new session so we can kill the whole group
-        return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        # Redirect stderr to a temp file for debugging crashes
+        err_log = open("/tmp/wallpaper_screenshot_error.log", "w")
+        return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=err_log, start_new_session=True, env=env)
 
     def stop(self):
         """Stop wallpaper"""
