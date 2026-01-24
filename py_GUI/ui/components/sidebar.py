@@ -10,6 +10,7 @@ from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
+from py_GUI.utils import markdown_to_pango
 
 class Sidebar(Gtk.Box):
     def __init__(self, wp_manager: WallpaperManager, prop_manager: PropertiesManager, 
@@ -58,6 +59,7 @@ class Sidebar(Gtk.Box):
         # Title
         self.lbl_title = Gtk.Label(label="Select a Wallpaper")
         self.lbl_title.add_css_class("sidebar-title")
+        self.lbl_title.set_use_markup(True)
         self.lbl_title.set_halign(Gtk.Align.START)
         self.lbl_title.set_wrap(True)
         self.lbl_title.set_max_width_chars(25)
@@ -164,7 +166,7 @@ class Sidebar(Gtk.Box):
         self.preview_image.set_paintable(texture)
 
         # Update Info
-        self.lbl_title.set_label(wp['title'])
+        self.lbl_title.set_markup(markdown_to_pango(wp['title']))
         self.lbl_folder.set_label(f"Folder: {wp['id']}")
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         self.lbl_desc.set_label(wp.get('description') or 'No description.')

@@ -14,6 +14,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.logger import LogManager
+from py_GUI.utils import markdown_to_pango
 
 class WallpapersPage(Gtk.Box):
     def __init__(self, window: Gtk.Window, config: ConfigManager, 
@@ -166,6 +167,7 @@ class WallpapersPage(Gtk.Box):
 
         self.active_wp_label = Gtk.Label(label="-")
         self.active_wp_label.add_css_class("status-value")
+        self.active_wp_label.set_use_markup(True)
         self.active_wp_label.set_ellipsize(Pango.EllipsizeMode.END)
         self.active_wp_label.set_halign(Gtk.Align.START)
         status_box.append(self.active_wp_label)
@@ -301,7 +303,9 @@ class WallpapersPage(Gtk.Box):
         name_box.set_halign(Gtk.Align.CENTER)
         name_box.set_valign(Gtk.Align.END)
         name_box.set_margin_bottom(10)
-        lbl = Gtk.Label(label=wp['title'])
+        lbl = Gtk.Label()
+        lbl.set_use_markup(True)
+        lbl.set_markup(markdown_to_pango(wp['title']))
         lbl.add_css_class("wallpaper-name")
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         lbl.set_max_width_chars(15)
@@ -347,7 +351,9 @@ class WallpapersPage(Gtk.Box):
         info.set_hexpand(True)
         hbox.append(info)
 
-        t = Gtk.Label(label=wp['title'])
+        t = Gtk.Label()
+        t.set_use_markup(True)
+        t.set_markup(markdown_to_pango(wp['title']))
         t.add_css_class("list-title")
         t.set_halign(Gtk.Align.START)
         t.set_ellipsize(Pango.EllipsizeMode.END)
@@ -393,7 +399,7 @@ class WallpapersPage(Gtk.Box):
         self.active_wp = wp_id
         wp = self.wp_manager._wallpapers.get(wp_id)
         if wp:
-            self.active_wp_label.set_label(wp['title'])
+            self.active_wp_label.set_markup(markdown_to_pango(wp['title']))
 
     def on_item_activated(self, folder_id: str, n_press: int):
         if n_press == 2:
