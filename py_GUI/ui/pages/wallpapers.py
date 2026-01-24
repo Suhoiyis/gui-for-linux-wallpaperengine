@@ -267,6 +267,7 @@ class WallpapersPage(Gtk.Box):
         btn.add_css_class("wallpaper-card")
         btn.set_size_request(170, 170)
         btn.set_has_frame(False)
+        btn.set_tooltip_markup(markdown_to_pango(wp['title']))
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
         gesture = Gtk.GestureClick.new()
@@ -322,6 +323,7 @@ class WallpapersPage(Gtk.Box):
         btn = Gtk.Button()
         btn.add_css_class("list-item")
         btn.set_has_frame(False)
+        btn.set_tooltip_markup(markdown_to_pango(wp['title']))
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
         gesture = Gtk.GestureClick.new()
