@@ -11,6 +11,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.screen import ScreenManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
+from py_GUI.utils import markdown_to_pango
 
 from py_GUI.ui.components.navbar import NavBar
 from py_GUI.ui.pages.wallpapers import WallpapersPage
@@ -147,7 +148,7 @@ class WallpaperApp(Adw.Application):
             self.wallpapers_page.active_wp = wp_id
             wp = self.wp_manager._wallpapers.get(wp_id)
             if wp:
-                self.wallpapers_page.active_wp_label.set_label(wp['title'])
+                self.wallpapers_page.active_wp_label.set_markup(markdown_to_pango(wp['title']))
         return False
 
     def on_window_close(self, win):
