@@ -187,6 +187,32 @@ class SettingsPage(Gtk.Box):
         self.mouse_sw.set_valign(Gtk.Align.CENTER)
         r.append(self.mouse_sw)
 
+        # Parallax
+        r = self.create_row("Disable Parallax", "Disable background movement with mouse.")
+        box.append(r)
+        self.parallax_sw = Gtk.Switch()
+        self.parallax_sw.set_active(self.config.get("disableParallax", False))
+        self.parallax_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.parallax_sw)
+
+        # Particles
+        r = self.create_row("Disable Particles", "Turn off fire, rain, and other particles.")
+        box.append(r)
+        self.particles_sw = Gtk.Switch()
+        self.particles_sw.set_active(self.config.get("disableParticles", False))
+        self.particles_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.particles_sw)
+
+        # Clamping
+        r = self.create_row("Clamping Mode", "Texture wrap mode at edges.")
+        box.append(r)
+        clamp_opts = ["clamp", "border", "repeat"]
+        self.clamp_dd = Gtk.DropDown.new_from_strings(clamp_opts)
+        curr_clamp = self.config.get("clamping", "clamp")
+        if curr_clamp in clamp_opts:
+            self.clamp_dd.set_selected(clamp_opts.index(curr_clamp))
+        r.append(self.clamp_dd)
+
     def build_audio(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         box.set_margin_top(60)
@@ -216,6 +242,22 @@ class SettingsPage(Gtk.Box):
         self.vol_spin.set_increments(5, 10)
         self.vol_spin.set_value(self.config.get("volume", 50))
         r.append(self.vol_spin)
+
+        # No Auto Mute
+        r = self.create_row("Disable Auto Mute", "Prevent automatic muting when other apps play sound.")
+        box.append(r)
+        self.noautomute_sw = Gtk.Switch()
+        self.noautomute_sw.set_active(self.config.get("noautomute", False))
+        self.noautomute_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.noautomute_sw)
+
+        # No Audio Processing
+        r = self.create_row("Disable Audio Processing", "Disable sound spectrum analysis (saves CPU).")
+        box.append(r)
+        self.noaudioproc_sw = Gtk.Switch()
+        self.noaudioproc_sw.set_active(self.config.get("noAudioProcessing", False))
+        self.noaudioproc_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.noaudioproc_sw)
 
     def build_advanced(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
@@ -395,8 +437,16 @@ class SettingsPage(Gtk.Box):
         self.config.set("scaling", opts[self.scaling_dd.get_selected()])
         self.config.set("noFullscreenPause", self.pause_sw.get_active())
         self.config.set("disableMouse", self.mouse_sw.get_active())
+        self.config.set("disableParallax", self.parallax_sw.get_active())
+        self.config.set("disableParticles", self.particles_sw.get_active())
+        
+        clamp_opts = ["clamp", "border", "repeat"]
+        self.config.set("clamping", clamp_opts[self.clamp_dd.get_selected()])
+
         self.config.set("silence", self.silence_sw.get_active())
         self.config.set("volume", int(self.vol_spin.get_value()))
+        self.config.set("noautomute", self.noautomute_sw.get_active())
+        self.config.set("noAudioProcessing", self.noaudioproc_sw.get_active())
         
         path = self.path_entry.get_text().strip()
         if path:

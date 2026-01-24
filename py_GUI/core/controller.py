@@ -45,6 +45,22 @@ class WallpaperController:
         if self.config.get("disableMouse", False):
             cmd.append("--disable-mouse")
 
+        if self.config.get("noautomute", False):
+            cmd.append("--noautomute")
+
+        if self.config.get("noAudioProcessing", False):
+            cmd.append("--no-audio-processing")
+
+        if self.config.get("disableParallax", False):
+            cmd.append("--disable-parallax")
+
+        if self.config.get("disableParticles", False):
+            cmd.append("--disable-particles")
+
+        clamp = self.config.get("clamping", "clamp")
+        if clamp != "clamp":
+            cmd.extend(["--clamp", clamp])
+
         # User properties
         is_silent = self.config.get("silence", True)
         audio_props = {'musicvolume', 'music', 'bellvolume', 'sound', 'soundsettings', 'volume'}

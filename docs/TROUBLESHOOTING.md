@@ -21,7 +21,18 @@
   1. **环境缺失**：参考上文的 `GLX display` 错误，渲染上下文异常导致后端无法通过 `ExecuteJavaScript` 与网页通信。
   2. **初始化时机**：部分壁纸将属性监听器注册在 `DOMContentLoaded` 事件中，而后端注入属性的时机过早，导致指令在网页准备好之前就已丢失。
   3. **SSL 报错**：日志中若出现 `handshake failed ... net_error -101`，说明网页依赖的外部资源（如 CDN 脚本）加载失败，可能阻塞了属性监听器的初始化。
-- **结论**：这是后端（C++ 移植版）在 Linux 环境下的架构缺陷，目前在 Wayland 下基本无法通过正常手段解决。
+## 3. 设置项环境限制
+
+### `Disable Auto Mute` 无效
+- **现象**：开启该功能后，其他应用播放声音时壁纸依然静音，或者该功能完全不起作用。
+- **原因**：在 Wayland 环境下，受限于 PipeWire/Portal 的安全机制，后端进程可能无法检测到全局音频流的状态。
+
+### `Disable Particles` 视觉无变化
+- **原因**：如果壁纸本身由于 `GLX display` 错误已经无法渲染粒子系统，则此开关不会产生额外的视觉差异。
+- **建议**：仅在粒子系统能正常显示的 X11 环境或兼容性较好的壁纸上进行测试。
+
+### `Clamping Mode` 的作用
+- 用于解决非标准分辨率下的边缘拉伸问题。若壁纸显示正常，建议保持 `clamp` 默认值。
 
 ### `GLFW error 65548: Wayland: The platform does not support setting the window position`
 - **现象**：日志中出现此错误。
