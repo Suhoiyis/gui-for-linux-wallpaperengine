@@ -1,5 +1,6 @@
 import subprocess
 import os
+import shutil
 from typing import Optional
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.properties import PropertiesManager
@@ -11,6 +12,13 @@ class WallpaperController:
         self.prop_manager = prop_manager
         self.log_manager = log_manager
         self.current_proc: Optional[subprocess.Popen] = None
+        
+        # Check for xvfb-run
+        self.has_xvfb = shutil.which("xvfb-run") is not None
+        if self.has_xvfb:
+            self.log_manager.add_info("Xvfb detected: Silent screenshots enabled", "Controller")
+        else:
+            self.log_manager.add_info("Xvfb not found: Screenshots will spawn a window", "Controller")
 
     def apply(self, wp_id: str, screen: Optional[str] = None):
         """Apply wallpaper"""
@@ -124,20 +132,32 @@ class WallpaperController:
         delay = self.config.get("screenshotDelay", 20)
         res = self.config.get("screenshotRes", "3840x2160")
         
-        cmd = [
+        # Base command for the engine
+        engine_cmd = [
             "linux-wallpaperengine",
             "--screenshot", output_path,
             "--screenshot-delay", str(delay),
-            "--window", f"0x0x{res}",
             "--silent",
-            "-f", "60",  # Speed up internal processing
+            "-f", "60",
             str(wp_id)
         ]
+
+        if self.has_xvfb:
+            # Wrap in xvfb-run
+            # -a: Auto server number
+            # -s: Screen configuration matching our target resolution
+            xvfb_args = ["-a", "-s", f"-screen 0 {res}x24"]
+            cmd = ["xvfb-run"] + xvfb_args + engine_cmd
+            mode_msg = f"Silent (Xvfb) at {res}"
+        else:
+            # Fallback: Force window size
+            cmd = engine_cmd + ["--window", f"0x0x{res}"]
+            mode_msg = f"Windowed at {res}"
         
-        self.log_manager.add_info(f"Starting screenshot for {wp_id} at {res} (delay: {delay} frames)", "Controller")
+        self.log_manager.add_info(f"Starting screenshot for {wp_id}: {mode_msg}", "Controller")
         self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
         
-        # Run asynchronously with a new session so we can kill the whole group (including CEF zygotes)
+        # Run asynchronously with a new session so we can kill the whole group
         return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
     def stop(self):

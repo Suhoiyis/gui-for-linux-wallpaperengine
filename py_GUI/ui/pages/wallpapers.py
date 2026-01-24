@@ -256,8 +256,14 @@ class WallpapersPage(Gtk.Box):
             # Calculate max wait time (timeout)
             delay_val = self.config.get("screenshotDelay", 20)
             delay_frames = int(delay_val) if delay_val is not None else 20
-            # Allow 1.0s overhead + render time + 2.0s buffer
-            kill_threshold_s = (delay_frames / 60.0) + 3.0
+            
+            # Xvfb software rendering is slow.
+            is_xvfb = getattr(self.controller, 'has_xvfb', False)
+            fps_target = 2.0 if is_xvfb else 60.0
+            buffer_s = 10.0 if is_xvfb else 3.0
+            
+            kill_threshold_s = (delay_frames / fps_target) + buffer_s
+            self.log_manager.add_debug(f"Screenshot timeout set to {kill_threshold_s:.1f}s (Xvfb={is_xvfb})", "GUI")
             
             last_size = -1
             stable_ticks = 0
