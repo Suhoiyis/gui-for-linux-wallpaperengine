@@ -12,6 +12,7 @@ class TrayProcess:
     def __init__(self, icon_path):
         self.icon_path = icon_path
         self.run_gui_path = self._find_run_gui()
+        self.is_running = False  # Track state locally
         
         # Create Indicator
         self.indicator = AyatanaAppIndicator3.Indicator.new(
@@ -46,7 +47,7 @@ class TrayProcess:
         return os.path.join(base, 'run_gui.py')
     
     def _build_menu(self):
-        menu = Gtk.Menu()
+        self.menu = Gtk.Menu()
         
         # Show Window (First item, bold)
         item_show = Gtk.MenuItem()
@@ -54,7 +55,7 @@ class TrayProcess:
         label.set_use_markup(True)
         item_show.add(label)
         item_show.connect("activate", lambda _: self._cmd("--show"))
-        menu.append(item_show)
+        self.menu.append(item_show)
         
         # Set as secondary activate target (Middle click)
         try:
@@ -62,61 +63,58 @@ class TrayProcess:
         except:
             pass
             
-        menu.append(Gtk.SeparatorMenuItem())
+        self.menu.append(Gtk.SeparatorMenuItem())
         
-        # Toggle Wallpaper (Dynamic Label)
-        self.toggle_item = Gtk.MenuItem(label="应用上次壁纸")
-        self.toggle_item.connect("activate", self._on_toggle)
-        menu.append(self.toggle_item)
+        # Play/Stop Toggle Button
+        item_toggle = Gtk.MenuItem(label="播放/停止")
+        item_toggle.connect("activate", self._on_toggle)
+        self.menu.append(item_toggle)
         
         # Random Wallpaper
         item_random = Gtk.MenuItem(label="随机切换壁纸")
         item_random.connect("activate", lambda _: self._cmd("--random"))
-        menu.append(item_random)
+        self.menu.append(item_random)
         
-        menu.append(Gtk.SeparatorMenuItem())
+        self.menu.append(Gtk.SeparatorMenuItem())
         
         # Quit
         item_quit = Gtk.MenuItem(label="退出程序")
         item_quit.connect("activate", lambda _: self._cmd("--quit"))
-        menu.append(item_quit)
+        self.menu.append(item_quit)
         
-        menu.show_all()
-        return menu
+        self.menu.show_all()
+        return self.menu
     
     def _poll_state(self):
         running = False
         try:
             # Check if linux-wallpaperengine is running
-            # Filter out python processes to avoid matching this script or the main GUI
-            # shell=True required for pipes
-            cmd = "pgrep -f linux-wallpaperengine | grep -v python"
-            ret = subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
-            running = (ret == 0)
+            # Check /proc manually to avoid shell pipe issues
+            pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+            for pid in pids:
+                try:
+                    with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as f:
+                        cmdline = f.read().decode('utf-8', errors='ignore').replace('\0', ' ')
+                        if 'linux-wallpaperengine' in cmdline and 'python' not in cmdline and 'grep' not in cmdline:
+                            running = True
+                            break
+                except (IOError, OSError):
+                    continue
         except Exception as e:
-            # print(f"Poll error: {e}")
+            print(f"Poll error: {e}")
             running = False
             
-        current_label = self.toggle_item.get_label()
-        if running:
-            if current_label != "停止播放":
-                self.toggle_item.set_label("停止播放")
-        else:
-            if current_label != "应用上次壁纸":
-                self.toggle_item.set_label("应用上次壁纸")
+        self.is_running = running
         return True # Keep calling
 
     def _on_toggle(self, widget):
-        label = widget.get_label()
-        # print(f"Toggle clicked. Label: '{label}'")
-        if label == "停止播放":
+        print(f"Toggle clicked. Current detected state is running={self.is_running}")
+        if self.is_running:
+            print("Action: Stopping")
             self._cmd("--stop")
-            # Optimistically update label immediately for better UX
-            # The poller will correct it later if it failed
-            self.toggle_item.set_label("应用上次壁纸")
         else:
+            print("Action: Applying Last")
             self._cmd("--apply-last")
-            self.toggle_item.set_label("停止播放")
 
     def _cmd(self, arg):
         # Call the main app via CLI
