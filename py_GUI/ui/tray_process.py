@@ -2,7 +2,7 @@
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AyatanaAppIndicator3', '0.1')
-from gi.repository import Gtk, AyatanaAppIndicator3
+from gi.repository import Gtk, AyatanaAppIndicator3, GLib
 import subprocess
 import signal
 import sys
@@ -21,14 +21,22 @@ class TrayProcess:
         )
         
         # Set custom icon if available
-        if os.path.exists(self.icon_path):
-            self.indicator.set_icon_full(self.icon_path, "Wallpaper Engine")
+        if self.icon_path:
+            abs_path = os.path.abspath(self.icon_path)
+            if os.path.exists(abs_path):
+                # print(f"Loading icon from: {abs_path}")
+                self.indicator.set_icon_full(abs_path, "Wallpaper Engine")
+            else:
+                print(f"Icon not found at: {abs_path}")
         
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self._build_menu())
         
         # Handle SIGTERM to exit cleanly
         signal.signal(signal.SIGTERM, lambda *_: Gtk.main_quit())
+        
+        # Start state poller (check every 2 seconds)
+        GLib.timeout_add_seconds(2, self._poll_state)
     
     def _find_run_gui(self):
         # Locate run_gui.py relative to this file
@@ -49,7 +57,6 @@ class TrayProcess:
         menu.append(item_show)
         
         # Set as secondary activate target (Middle click)
-        # Note: Left click usually opens menu, but this item is at the top.
         try:
             self.indicator.set_secondary_activate_target(item_show)
         except:
@@ -57,10 +64,10 @@ class TrayProcess:
             
         menu.append(Gtk.SeparatorMenuItem())
         
-        # Stop Wallpaper
-        item_stop = Gtk.MenuItem(label="停止播放")
-        item_stop.connect("activate", lambda _: self._cmd("--stop"))
-        menu.append(item_stop)
+        # Toggle Wallpaper (Dynamic Label)
+        self.toggle_item = Gtk.MenuItem(label="应用上次壁纸")
+        self.toggle_item.connect("activate", self._on_toggle)
+        menu.append(self.toggle_item)
         
         # Random Wallpaper
         item_random = Gtk.MenuItem(label="随机切换壁纸")
@@ -77,6 +84,36 @@ class TrayProcess:
         menu.show_all()
         return menu
     
+    def _poll_state(self):
+        running = False
+        try:
+            # Check if linux-wallpaperengine is running
+            # Using pgrep -f to match command line, ignoring self (python scripts usually don't match unless named so)
+            # We exclude 'grep' and our own process implicitly by pgrep behavior usually, 
+            # but to be safe we look for the specific backend binary name pattern if possible.
+            # Simple 'linux-wallpaperengine' should be unique enough for this context.
+            subprocess.check_call(["pgrep", "-f", "linux-wallpaperengine"], stdout=subprocess.DEVNULL)
+            running = True
+        except subprocess.CalledProcessError:
+            running = False
+            
+        current_label = self.toggle_item.get_label()
+        if running:
+            if current_label != "停止播放":
+                self.toggle_item.set_label("停止播放")
+        else:
+            if current_label != "应用上次壁纸":
+                self.toggle_item.set_label("应用上次壁纸")
+        return True # Keep calling
+
+    def _on_toggle(self, widget):
+        label = widget.get_label()
+        if label == "停止播放":
+            self._cmd("--stop")
+            # We don't update label immediately, let the poller verify it stopped
+        else:
+            self._cmd("--apply-last")
+
     def _cmd(self, arg):
         # Call the main app via CLI
         subprocess.Popen(['python3', self.run_gui_path, arg])
