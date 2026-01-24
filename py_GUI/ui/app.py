@@ -89,6 +89,9 @@ class WallpaperApp(Adw.Application):
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)
 
+        # Setup Actions
+        self.setup_actions()
+
         # Main Layout
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.win.set_content(main_box)
@@ -200,6 +203,46 @@ class WallpaperApp(Adw.Application):
         self.controller.stop()
         self.tray.stop()
         self.quit()
+
+    def setup_actions(self):
+        # Apply Wallpaper Action
+        action_apply = Gio.SimpleAction.new("apply", GLib.VariantType.new("s"))
+        action_apply.connect("activate", self.on_action_apply)
+        self.win.add_action(action_apply)
+
+        # Stop Wallpaper Action
+        action_stop = Gio.SimpleAction.new("stop", None)
+        action_stop.connect("activate", self.on_action_stop)
+        self.win.add_action(action_stop)
+
+        # Delete Wallpaper Action
+        action_delete = Gio.SimpleAction.new("delete", GLib.VariantType.new("s"))
+        action_delete.connect("activate", self.on_action_delete)
+        self.win.add_action(action_delete)
+        
+        # Open Folder Action
+        action_open_folder = Gio.SimpleAction.new("open_folder", GLib.VariantType.new("s"))
+        action_open_folder.connect("activate", self.on_action_open_folder)
+        self.win.add_action(action_open_folder)
+
+    def on_action_apply(self, action, param):
+        wp_id = param.get_string()
+        if wp_id:
+            self.wallpapers_page.select_wallpaper(wp_id)
+            self.wallpapers_page.apply_wallpaper(wp_id)
+
+    def on_action_stop(self, action, param):
+        self.stop_wallpaper()
+
+    def on_action_delete(self, action, param):
+        wp_id = param.get_string()
+        if wp_id:
+            self.wallpapers_page.delete_wallpaper(wp_id)
+            
+    def on_action_open_folder(self, action, param):
+        wp_id = param.get_string()
+        if wp_id:
+            self.wallpapers_page.open_wallpaper_folder(wp_id)
 
 def main():
     app = WallpaperApp()

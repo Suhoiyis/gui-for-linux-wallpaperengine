@@ -85,6 +85,9 @@ class WallpaperManager:
             return False
 
         try:
+            # Get preview path before deletion for cache clearing
+            preview_path = self._wallpapers[folder_id].get('preview', '')
+
             # Delete folder and contents
             shutil.rmtree(folder_path)
 
@@ -92,12 +95,13 @@ class WallpaperManager:
             del self._wallpapers[folder_id]
 
             # Clear from cache
-            cache_keys_to_remove = [k for k in self._texture_cache.keys() if k.startswith(self._wallpapers.get(folder_id, {}).get('preview', ''))]
-            for key in cache_keys_to_remove:
-                del self._texture_cache[key]
-
+            if preview_path:
+                cache_keys_to_remove = [k for k in self._texture_cache.keys() if k.startswith(preview_path)]
+                for key in cache_keys_to_remove:
+                    del self._texture_cache[key]
+            
+            gc.collect()
             return True
         except Exception as e:
             print(f"[ERROR] Failed to delete wallpaper {folder_id}: {e}")
             return False
-        gc.collect()

@@ -1,4 +1,5 @@
 import random
+import os
 from typing import Dict, Optional
 import gi
 gi.require_version('Gtk', '4.0')
@@ -402,18 +403,35 @@ class WallpapersPage(Gtk.Box):
     def on_context_menu(self, widget, folder_id):
         menu = Gtk.PopoverMenu()
         
-        # Actions need to be registered on the window usually for Gio.Menu
-        # But here we can use a simpler approach or reuse window actions if registered.
-        # Since I split files, `self.window` (AppWindow) should handle actions.
-        # For simplicity, I'll use a hack or just rely on the App having these actions.
-        # Let's assume the App registers "win.apply", "win.stop", "win.delete".
-        
+        # Actions are handled by the main window application actions
         menu_model = Gio.Menu()
         menu_model.append_item(Gio.MenuItem.new("Apply Wallpaper", f"win.apply::{folder_id}"))
         menu_model.append_item(Gio.MenuItem.new("Stop Wallpaper", "win.stop"))
+        menu_model.append_item(Gio.MenuItem.new("Open Folder", f"win.open_folder::{folder_id}"))
         menu_model.append_item(Gio.MenuItem.new("Delete Wallpaper", f"win.delete::{folder_id}"))
 
         menu.set_menu_model(menu_model)
         menu.set_parent(widget)
         menu.set_pointing_to(Gdk.Rectangle())
         menu.popup()
+
+    def delete_wallpaper(self, wp_id: str):
+        show_delete_dialog(self.window, wp_id, lambda: self._perform_delete(wp_id))
+
+    def _perform_delete(self, wp_id: str):
+        if self.wp_manager.delete_wallpaper(wp_id):
+            if self.active_wp == wp_id:
+                self.on_stop_clicked()
+            self.refresh_wallpaper_grid()
+        else:
+            show_error_dialog(self.window, "Error", "Failed to delete wallpaper")
+            
+    def open_wallpaper_folder(self, wp_id: str):
+        import subprocess
+        wp = self.wp_manager._wallpapers.get(wp_id)
+        if wp:
+            folder_path = os.path.dirname(wp['preview'])
+            try:
+                subprocess.Popen(['xdg-open', folder_path])
+            except Exception as e:
+                self.log_manager.add_error(f"Failed to open folder: {e}", "GUI")
