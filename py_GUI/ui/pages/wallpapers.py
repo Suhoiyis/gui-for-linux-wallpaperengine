@@ -428,10 +428,39 @@ class WallpapersPage(Gtk.Box):
             
     def open_wallpaper_folder(self, wp_id: str):
         import subprocess
+        import shutil
+        
         wp = self.wp_manager._wallpapers.get(wp_id)
         if wp:
             folder_path = os.path.dirname(wp['preview'])
-            try:
-                subprocess.Popen(['xdg-open', folder_path])
-            except Exception as e:
-                self.log_manager.add_error(f"Failed to open folder: {e}", "GUI")
+            
+            # List of file managers to try in order of preference
+            file_managers = [
+                "nautilus",   # GNOME
+                "dolphin",    # KDE
+                "thunar",     # XFCE
+                "nemo",       # Cinnamon
+                "pcmanfm",    # LXDE
+                "pcmanfm-qt", # LXQt
+                "caja",       # MATE
+                "index",      # Maui
+                "files"       # Elementary
+            ]
+            
+            # Try to find an installed file manager
+            opened = False
+            for fm in file_managers:
+                if shutil.which(fm):
+                    try:
+                        subprocess.Popen([fm, folder_path])
+                        opened = True
+                        break
+                    except:
+                        continue
+            
+            # Fallback to xdg-open if no specific FM found or failed
+            if not opened:
+                try:
+                    subprocess.Popen(['xdg-open', folder_path])
+                except Exception as e:
+                    self.log_manager.add_error(f"Failed to open folder: {e}", "GUI")
