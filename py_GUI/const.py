@@ -243,9 +243,20 @@ window {
 .tag-chip {
     background: rgba(255,255,255,0.1);
     border-radius: 15px;
-    padding: 4px 12px;
+    padding: 4px 6px;
     font-size: 0.85em;
     margin: 2px;
+}
+
+.folder-chip {
+    background: rgba(0, 123, 255, 0.15);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-weight: 800;
+    color: #3b82f6;
+    font-size: 0.85em;
+    margin: 5px 20px;
 }
 
 .sidebar-btn {

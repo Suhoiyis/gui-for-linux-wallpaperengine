@@ -10,7 +10,7 @@ from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
-from py_GUI.utils import markdown_to_pango
+from py_GUI.utils import markdown_to_pango, bbcode_to_pango
 
 class Sidebar(Gtk.Box):
     def __init__(self, wp_manager: WallpaperManager, prop_manager: PropertiesManager, 
@@ -67,9 +67,16 @@ class Sidebar(Gtk.Box):
 
         # Subtitle (Folder)
         self.lbl_folder = Gtk.Label(label="")
-        self.lbl_folder.add_css_class("sidebar-subtitle")
+        self.lbl_folder.add_css_class("folder-chip")
         self.lbl_folder.set_halign(Gtk.Align.START)
+        self.lbl_folder.set_tooltip_text("Click to copy ID")
+        self.lbl_folder.set_cursor_from_name("pointer")
         content.append(self.lbl_folder)
+
+        # Folder click to copy
+        folder_click = Gtk.GestureClick.new()
+        folder_click.connect("released", self.on_folder_clicked)
+        self.lbl_folder.add_controller(folder_click)
 
         # Type
         type_header = Gtk.Label(label="Type")
@@ -111,7 +118,9 @@ class Sidebar(Gtk.Box):
         self.lbl_desc = Gtk.Label(label="No description.")
         self.lbl_desc.add_css_class("sidebar-desc")
         self.lbl_desc.set_halign(Gtk.Align.START)
+        self.lbl_desc.set_xalign(0)
         self.lbl_desc.set_wrap(True)
+        self.lbl_desc.set_use_markup(True)
         self.lbl_desc.set_max_width_chars(30)
         self.lbl_desc.set_selectable(True)
         content.append(self.lbl_desc)
@@ -173,7 +182,10 @@ class Sidebar(Gtk.Box):
         self.lbl_title.set_markup(markdown_to_pango(wp['title']))
         self.lbl_folder.set_label(f"Folder: {wp['id']}")
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
-        self.lbl_desc.set_label(wp.get('description') or 'No description.')
+        
+        # Parse description BBCode
+        desc = wp.get('description', '')
+        self.lbl_desc.set_markup(bbcode_to_pango(desc) or 'No description.')
 
         # Update Tags
         while True:
@@ -382,3 +394,18 @@ class Sidebar(Gtk.Box):
         if self.selected_wp:
             url = f"steam://url/CommunityFilePage/{self.selected_wp}"
             webbrowser.open(url)
+
+    def on_folder_clicked(self, gesture, n_press, x, y):
+        if self.selected_wp:
+            clipboard = Gdk.Display.get_default().get_clipboard()
+            clipboard.set(self.selected_wp)
+            self.log_manager.add_info(f"Copied ID to clipboard: {self.selected_wp}", "GUI")
+            
+            # Temporary green tooltip feedback
+            self.lbl_folder.set_tooltip_markup("<span foreground='#22c55e' weight='bold'>Copied!</span>")
+            
+            def reset_tooltip():
+                self.lbl_folder.set_tooltip_text("Click to copy ID")
+                return False
+                
+            GLib.timeout_add(2000, reset_tooltip)
