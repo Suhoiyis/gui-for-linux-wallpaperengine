@@ -126,9 +126,10 @@ class WallpaperController:
         except Exception as e:
             self.log_manager.add_error(f"Failed to apply wallpaper: {e}", "Controller")
 
-    def take_screenshot(self, wp_id: str, output_path: str):
+    def take_screenshot(self, wp_id: str, output_path: str, delay: Optional[int] = None):
         """Take a high-resolution screenshot of a specific wallpaper"""
-        delay = self.config.get("screenshotDelay", 20)
+        if delay is None:
+            delay = self.config.get("screenshotDelay", 20)
         res = self.config.get("screenshotRes", "3840x2160")
         
         # Check for xvfb-run dynamically

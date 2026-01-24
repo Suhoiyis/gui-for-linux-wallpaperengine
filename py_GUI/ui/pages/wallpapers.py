@@ -258,15 +258,26 @@ class WallpapersPage(Gtk.Box):
         output_path = os.path.join(save_dir, filename)
 
         try:
+            # Smart Delay Logic
+            wp = self.wp_manager._wallpapers.get(target_id)
+            wp_type = wp.get('type', 'Unknown').lower() if wp else 'unknown'
+            
+            user_delay = self.config.get("screenshotDelay", 20)
+            user_delay = int(user_delay) if user_delay is not None else 20
+            
+            if wp_type == 'video':
+                delay_frames = 5
+                self.log_manager.add_info("Smart Delay: Video wallpaper detected, using fast capture (5 frames)", "GUI")
+            else:
+                delay_frames = user_delay
+                # Web wallpapers might need more time, user setting is respected
+            
             self.log_manager.add_info(f"Taking screenshot to {output_path}...", "GUI")
-            proc = self.controller.take_screenshot(target_id, output_path)
+            proc = self.controller.take_screenshot(target_id, output_path, delay=delay_frames)
             
             start_time = time.time()
             
             # Calculate max wait time (timeout)
-            delay_val = self.config.get("screenshotDelay", 20)
-            delay_frames = int(delay_val) if delay_val is not None else 20
-
             # Xvfb software rendering is slow.
             import shutil
             is_xvfb = shutil.which("xvfb-run") is not None
