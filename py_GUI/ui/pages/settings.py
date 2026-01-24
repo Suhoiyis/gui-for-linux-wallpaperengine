@@ -529,31 +529,49 @@ class SettingsPage(Gtk.Box):
         GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
 
     def on_save(self, btn):
-        self.config.set("fps", int(self.fps_spin.get_value()))
+        # 1. Collect new values
+        new_values = {}
+        new_values["fps"] = int(self.fps_spin.get_value())
+        
         opts = ["default", "stretch", "fit", "fill"]
-        self.config.set("scaling", opts[self.scaling_dd.get_selected()])
-        self.config.set("noFullscreenPause", self.pause_sw.get_active())
-        self.config.set("disableMouse", self.mouse_sw.get_active())
-        self.config.set("disableParallax", self.parallax_sw.get_active())
-        self.config.set("disableParticles", self.particles_sw.get_active())
+        new_values["scaling"] = opts[self.scaling_dd.get_selected()]
+        
+        new_values["noFullscreenPause"] = self.pause_sw.get_active()
+        new_values["disableMouse"] = self.mouse_sw.get_active()
+        new_values["disableParallax"] = self.parallax_sw.get_active()
+        new_values["disableParticles"] = self.particles_sw.get_active()
         
         clamp_opts = ["clamp", "border", "repeat"]
-        self.config.set("clamping", clamp_opts[self.clamp_dd.get_selected()])
+        new_values["clamping"] = clamp_opts[self.clamp_dd.get_selected()]
 
-        self.config.set("silence", self.silence_sw.get_active())
-        self.config.set("volume", int(self.vol_spin.get_value()))
-        self.config.set("noautomute", self.noautomute_sw.get_active())
-        self.config.set("noAudioProcessing", self.noaudioproc_sw.get_active())
+        new_values["silence"] = self.silence_sw.get_active()
+        new_values["volume"] = int(self.vol_spin.get_value())
+        new_values["noautomute"] = self.noautomute_sw.get_active()
+        new_values["noAudioProcessing"] = self.noaudioproc_sw.get_active()
         
         path = self.path_entry.get_text().strip()
         if path:
-            self.config.set("workshopPath", path)
+            new_values["workshopPath"] = path
 
-        self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
-        self.config.set("screenshotRes", self.screenshot_res_entry.get_text().strip() or "3840x2160")
-        self.config.set("preferXvfb", self.xvfb_sw.get_active())
+        new_values["screenshotDelay"] = int(self.screenshot_delay_spin.get_value())
+        new_values["screenshotRes"] = self.screenshot_res_entry.get_text().strip() or "3840x2160"
+        new_values["preferXvfb"] = self.xvfb_sw.get_active()
 
-        # Apply Autostart
+        screens = self.screen_manager.get_screens()
+        idx = self.screen_dd.get_selected()
+        if idx >= 0 and idx < len(screens):
+            new_values["lastScreen"] = screens[idx]
+        else:
+            new_values["lastScreen"] = "eDP-1"
+            
+        # 2. Detect changes
+        changed_keys = []
+        for k, v in new_values.items():
+            if self.config.get(k) != v:
+                self.config.set(k, v)
+                changed_keys.append(k)
+
+        # 3. Handle Autostart
         try:
             enabled = self.autostart_sw.get_active()
             hidden = self.start_hidden_sw.get_active()
@@ -561,20 +579,30 @@ class SettingsPage(Gtk.Box):
         except Exception as e:
             self.log_manager.add_error(f"Failed to set autostart: {e}", "GUI")
 
-        screens = self.screen_manager.get_screens()
-        idx = self.screen_dd.get_selected()
-        if idx >= 0 and idx < len(screens):
-            self.config.set("lastScreen", screens[idx])
-        else:
-            self.config.set("lastScreen", "eDP-1")
-            
-        self.log_manager.add_info("Settings saved", "GUI")
+        # 4. Smart Restart
+        RESTART_KEYS = {
+            "fps", "scaling", "noFullscreenPause", "disableMouse", 
+            "disableParallax", "disableParticles", "clamping",
+            "silence", "volume", "noautomute", "noAudioProcessing"
+        }
         
-        # Check if we need to re-apply current wallpaper
-        last_wp = self.config.get("lastWallpaper")
-        if last_wp:
-            self.log_manager.add_info(f"Re-applying wallpaper {last_wp}", "GUI")
-            self.controller.apply(last_wp)
+        should_restart = any(k in RESTART_KEYS for k in changed_keys)
+        
+        if should_restart:
+            self.log_manager.add_info("Rendering settings changed, restarting wallpapers...", "GUI")
+            self.controller.restart_wallpapers()
+        else:
+            self.log_manager.add_info("Settings saved (No restart needed)", "GUI")
+            
+        # UI Feedback
+        orig_label = btn.get_label()
+        btn.set_label("Saved! ✓")
+        
+        def restore_btn():
+            btn.set_label(orig_label)
+            return False
+            
+        GLib.timeout_add(2000, restore_btn)
 
     def on_reload(self, btn):
         self.wp_manager.clear_cache()

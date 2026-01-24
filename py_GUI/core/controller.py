@@ -39,7 +39,7 @@ class WallpaperController:
         self.config.set("lastScreen", screen)
 
         self.log_manager.add_info(f"Applying configuration: {active_monitors}", "Controller")
-        self._restart_process()
+        self.restart_wallpapers()
 
     def stop_screen(self, screen: str):
         """Stop wallpaper on a specific screen"""
@@ -52,9 +52,9 @@ class WallpaperController:
             if not active_monitors:
                 self.stop()
             else:
-                self._restart_process()
+                self.restart_wallpapers()
 
-    def _restart_process(self):
+    def restart_wallpapers(self):
         """Restart the engine with current active_monitors configuration"""
         self.stop()
         
