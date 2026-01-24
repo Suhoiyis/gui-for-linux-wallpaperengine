@@ -9,6 +9,7 @@ from py_GUI.core.screen import ScreenManager
 from py_GUI.core.logger import LogManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.wallpaper import WallpaperManager
+from py_GUI.core.integrations import AppIntegrator
 
 class SettingsPage(Gtk.Box):
     def __init__(self, config: ConfigManager, screen_manager: ScreenManager, 
@@ -21,6 +22,7 @@ class SettingsPage(Gtk.Box):
         self.log_manager = log_manager
         self.controller = controller
         self.wp_manager = wp_manager
+        self.integrator = AppIntegrator()
         
         self.add_css_class("settings-container")
         self.build_ui()
@@ -298,6 +300,52 @@ class SettingsPage(Gtk.Box):
             self.screen_dd.set_selected(screens.index(str(curr_screen)))
         r.append(self.screen_dd)
 
+        btn = Gtk.Button(label="⟳ Refresh Screens")
+        btn.add_css_class("action-btn")
+        btn.add_css_class("secondary")
+        btn.connect("clicked", self.on_refresh_screens)
+        box.append(btn)
+
+        # System Integration
+        t = Gtk.Label(label="System Integration")
+        t.add_css_class("settings-section-title")
+        t.set_halign(Gtk.Align.START)
+        t.set_margin_top(10)
+        box.append(t)
+
+        # Desktop Entry
+        r = self.create_row("Desktop Shortcut", "Create app icon in system menu.")
+        box.append(r)
+        self.btn_create_desktop = Gtk.Button(label="Create")
+        self.btn_create_desktop.set_valign(Gtk.Align.CENTER)
+        self.btn_create_desktop.connect("clicked", self.on_create_desktop_entry)
+        r.append(self.btn_create_desktop)
+
+        # Autostart
+        r = self.create_row("Run on Startup", "Launch automatically on login.")
+        box.append(r)
+        self.autostart_sw = Gtk.Switch()
+        self.autostart_sw.set_active(self.integrator.is_autostart_enabled())
+        self.autostart_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.autostart_sw)
+
+        # Start Hidden
+        r = self.create_row("Start Hidden", "Start in tray without showing window.")
+        box.append(r)
+        self.start_hidden_sw = Gtk.Switch()
+        # Default to True if creating new, or check existing? 
+        # Integrator doesn't easily check 'hidden' flag in existing file without parsing.
+        # Let's default to True as it's the desired behavior for autostart.
+        self.start_hidden_sw.set_active(True)
+        self.start_hidden_sw.set_valign(Gtk.Align.CENTER)
+        r.append(self.start_hidden_sw)
+
+        t_ss = Gtk.Label(label="Screenshot")
+        t_ss.add_css_class("settings-section-title")
+        t_ss.set_halign(Gtk.Align.START)
+        t_ss.set_margin_top(10)
+        box.append(t_ss)
+
         # Screenshot Delay
         r = self.create_row("Screenshot Delay", "Frames to wait before capture (use higher for web wallpapers).")
         box.append(r)
@@ -505,6 +553,14 @@ class SettingsPage(Gtk.Box):
         self.config.set("screenshotRes", self.screenshot_res_entry.get_text().strip() or "3840x2160")
         self.config.set("preferXvfb", self.xvfb_sw.get_active())
 
+        # Apply Autostart
+        try:
+            enabled = self.autostart_sw.get_active()
+            hidden = self.start_hidden_sw.get_active()
+            self.integrator.set_autostart(enabled, hidden=hidden)
+        except Exception as e:
+            self.log_manager.add_error(f"Failed to set autostart: {e}", "GUI")
+
         screens = self.screen_manager.get_screens()
         idx = self.screen_dd.get_selected()
         if idx >= 0 and idx < len(screens):
@@ -538,3 +594,14 @@ class SettingsPage(Gtk.Box):
         self.screen_dd.set_model(Gtk.StringList.new(screens))
         if curr in screens:
             self.screen_dd.set_selected(screens.index(curr))
+
+    def on_create_desktop_entry(self, btn):
+        try:
+            path = self.integrator.create_menu_shortcut()
+            self.log_manager.add_info(f"Desktop entry created at: {path}", "GUI")
+            
+            orig = btn.get_label()
+            btn.set_label("Created!")
+            GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
+        except Exception as e:
+            self.log_manager.add_error(f"Failed to create desktop entry: {e}", "GUI")
