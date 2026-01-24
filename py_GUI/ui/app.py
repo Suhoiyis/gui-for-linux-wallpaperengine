@@ -191,7 +191,7 @@ class WallpaperApp(Adw.Application):
             elif action == "quit": self.quit_app()
 
     def stop_wallpaper(self):
-        self.controller.stop()
+        self.wallpapers_page.on_stop_clicked()
     
     def random_wallpaper(self):
         self.wallpapers_page.on_feeling_lucky(None)
