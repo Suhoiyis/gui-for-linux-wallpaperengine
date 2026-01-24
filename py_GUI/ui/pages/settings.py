@@ -296,6 +296,15 @@ class SettingsPage(Gtk.Box):
             self.screen_dd.set_selected(screens.index(curr_screen))
         r.append(self.screen_dd)
 
+        # Screenshot Delay
+        r = self.create_row("Screenshot Delay", "Wait time (frames) before capturing.")
+        box.append(r)
+        self.screenshot_delay_spin = Gtk.SpinButton()
+        self.screenshot_delay_spin.set_range(1, 600)
+        self.screenshot_delay_spin.set_increments(5, 50)
+        self.screenshot_delay_spin.set_value(self.config.get("screenshotDelay", 10))
+        r.append(self.screenshot_delay_spin)
+
         btn = Gtk.Button(label="⟳ Refresh Screens")
         btn.add_css_class("action-btn")
         btn.add_css_class("secondary")
@@ -451,6 +460,8 @@ class SettingsPage(Gtk.Box):
         path = self.path_entry.get_text().strip()
         if path:
             self.config.set("workshopPath", path)
+
+        self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
 
         screens = self.screen_manager.get_screens()
         idx = self.screen_dd.get_selected()

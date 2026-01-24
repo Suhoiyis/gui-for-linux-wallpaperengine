@@ -134,6 +134,12 @@ class WallpapersPage(Gtk.Box):
         lucky_btn.connect("clicked", self.on_feeling_lucky)
         actions_box.append(lucky_btn)
 
+        screenshot_btn = Gtk.Button(label="📸")
+        screenshot_btn.add_css_class("mode-btn")
+        screenshot_btn.set_tooltip_text("Take Screenshot of current wallpaper")
+        screenshot_btn.connect("clicked", lambda _: self.on_screenshot_clicked())
+        actions_box.append(screenshot_btn)
+
         # View Toggle
         view_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         view_box.set_margin_start(10)
@@ -216,6 +222,60 @@ class WallpapersPage(Gtk.Box):
         wp_id = random.choice(list(self.wp_manager._wallpapers.keys()))
         self.select_wallpaper(wp_id)
         self.apply_wallpaper(wp_id)
+
+    def on_screenshot_clicked(self):
+        # 1. Determine which wallpaper to screenshot
+        target_id = self.active_wp or self.selected_wp
+        if not target_id:
+            show_error_dialog(self.window, "Screenshot Error", "No wallpaper is currently active or selected.")
+            return
+
+        # 2. Prepare directory
+        base_dir = os.path.expanduser("~/Pictures/wallpaperengine")
+        save_dir = base_dir
+        fallback_used = False
+
+        if not os.path.exists(save_dir):
+            try:
+                os.makedirs(save_dir, exist_ok=True)
+            except Exception as e:
+                save_dir = "/tmp"
+                fallback_used = True
+                self.log_manager.add_error(f"Failed to create {base_dir}: {e}. Falling back to /tmp", "GUI")
+
+        # 3. Generate filename
+        import time
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        filename = f"Screenshot_{target_id}_{timestamp}.png"
+        output_path = os.path.join(save_dir, filename)
+
+        # 4. Execute screenshot
+        try:
+            self.log_manager.add_info(f"Taking screenshot to {output_path}...", "GUI")
+            proc = self.controller.take_screenshot(target_id, output_path)
+            
+            # Watch for completion
+            def check_completion():
+                if proc.poll() is None:
+                    return True # Keep checking
+                
+                # Done
+                if proc.returncode == 0:
+                    msg = f"Screenshot saved successfully!\nLocation: {output_path}"
+                    if fallback_used:
+                        msg = f"Warning: Could not create standard folder.\nScreenshot saved to FALLBACK location: {output_path}"
+                    
+                    self.log_manager.add_info(f"Screenshot finished: {output_path}", "GUI")
+                    show_error_dialog(self.window, "Screenshot Successful", msg) # Re-use error dialog as a notification
+                else:
+                    show_error_dialog(self.window, "Screenshot Failed", "The engine failed to capture the screenshot. Check logs.")
+                
+                return False
+
+            GLib.timeout_add(500, check_completion)
+
+        except Exception as e:
+            show_error_dialog(self.window, "Screenshot Error", f"Failed to start screenshot process: {e}")
 
     def refresh_wallpaper_grid(self):
         if self.view_mode == "grid":

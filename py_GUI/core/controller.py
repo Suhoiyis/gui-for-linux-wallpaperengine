@@ -119,6 +119,22 @@ class WallpaperController:
         except Exception as e:
             self.log_manager.add_error(f"Failed to apply wallpaper: {e}", "Controller")
 
+    def take_screenshot(self, wp_id: str, output_path: str):
+        """Take a screenshot of a specific wallpaper"""
+        delay = self.config.get("screenshotDelay", 10)
+        cmd = [
+            "linux-wallpaperengine",
+            str(wp_id),
+            "--screenshot", output_path,
+            "--screenshot-delay", str(delay)
+        ]
+        
+        self.log_manager.add_info(f"Starting screenshot for {wp_id} (delay: {delay} frames)", "Controller")
+        self.log_manager.add_debug(f"Executing screenshot: {' '.join(cmd)}", "Controller")
+        
+        # Run asynchronously
+        return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def stop(self):
         """Stop wallpaper"""
         self.log_manager.add_info("Stopping wallpaper", "Controller")
