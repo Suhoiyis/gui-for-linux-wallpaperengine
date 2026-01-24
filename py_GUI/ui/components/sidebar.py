@@ -117,24 +117,24 @@ class Sidebar(Gtk.Box):
         content.append(self.lbl_desc)
 
         # Properties
-        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        sep.set_margin_top(20)
-        content.append(sep)
+        # sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        # sep.set_margin_top(20)
+        # content.append(sep)
 
-        props_header = Gtk.Label(label="Properties")
-        props_header.add_css_class("sidebar-section")
-        props_header.set_margin_top(15)
-        props_header.set_halign(Gtk.Align.START)
-        content.append(props_header)
+        # props_header = Gtk.Label(label="Properties")
+        # props_header.add_css_class("sidebar-section")
+        # props_header.set_margin_top(15)
+        # props_header.set_halign(Gtk.Align.START)
+        # content.append(props_header)
 
-        self.props_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.props_box.set_margin_start(15)
-        self.props_box.set_margin_end(15)
-        self.props_box.set_hexpand(False)
-        content.append(self.props_box)
+        # self.props_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        # self.props_box.set_margin_start(15)
+        # self.props_box.set_margin_end(15)
+        # self.props_box.set_hexpand(False)
+        # content.append(self.props_box)
 
-        self.props_loading_lbl = Gtk.Label(label="Loading properties...")
-        self.props_loading_lbl.add_css_class("text-muted")
+        # self.props_loading_lbl = Gtk.Label(label="Loading properties...")
+        # self.props_loading_lbl.add_css_class("text-muted")
         # Initially not added
 
         # Bottom Buttons
@@ -194,8 +194,8 @@ class Sidebar(Gtk.Box):
                 chip.add_css_class("tag-chip")
                 self.tags_flow.append(chip)
 
-        # Load properties
-        self.load_properties(wp_id)
+        # Load properties (Commented out as backend support is limited)
+        # self.load_properties(wp_id)
 
     def clear(self):
         self.selected_wp = None
@@ -212,147 +212,157 @@ class Sidebar(Gtk.Box):
             self.tags_flow.remove(child)
 
         # Clear properties
-        while True:
-            child = self.props_box.get_first_child()
-            if child is None: break
-            self.props_box.remove(child)
+        # while True:
+        #     child = self.props_box.get_first_child()
+        #     if child is None: break
+        #     self.props_box.remove(child)
 
-    def load_properties(self, wp_id: str):
-        # Clear existing
-        while True:
-            child = self.props_box.get_first_child()
-            if child is None: break
-            self.props_box.remove(child)
+    # def load_properties(self, wp_id: str):
+    #     # Clear existing
+    #     while True:
+    #         child = self.props_box.get_first_child()
+    #         if child is None: break
+    #         self.props_box.remove(child)
 
-        self.props_box.append(self.props_loading_lbl)
+    #     self.props_box.append(self.props_loading_lbl)
 
-        def load_async():
-            properties = self.prop_manager.get_properties(wp_id)
-            GLib.idle_add(lambda: self.display_properties(properties))
+    #     def load_async():
+    #         properties = self.prop_manager.get_properties(wp_id)
+    #         GLib.idle_add(lambda: self.display_properties(properties))
 
-        threading.Thread(target=load_async, daemon=True).start()
+    #     threading.Thread(target=load_async, daemon=True).start()
 
-    def display_properties(self, properties: List[Dict]):
-        if self.props_loading_lbl.get_parent():
-            self.props_box.remove(self.props_loading_lbl)
+    # def display_properties(self, properties: List[Dict]):
+    #     if self.props_loading_lbl.get_parent():
+    #         self.props_box.remove(self.props_loading_lbl)
 
-        if not properties:
-            no_props = Gtk.Label(label="No properties available.")
-            no_props.add_css_class("text-muted")
-            self.props_box.append(no_props)
-            return
+    #     if not properties:
+    #         no_props = Gtk.Label(label="No properties available.")
+    #         no_props.add_css_class("text-muted")
+    #         self.props_box.append(no_props)
+    #         return
 
-        for prop in properties:
-            widget = self.create_property_widget(prop)
-            self.props_box.append(widget)
+    #     for prop in properties:
+    #         widget = self.create_property_widget(prop)
+    #         self.props_box.append(widget)
 
-    def create_property_widget(self, prop: Dict) -> Gtk.Widget:
-        container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        container.set_margin_top(8)
-        container.set_hexpand(False)
+    # def create_property_widget(self, prop: Dict) -> Gtk.Widget:
+    #     container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+    #     container.set_margin_top(8)
+    #     container.set_hexpand(False)
 
-        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        title_box.set_hexpand(False)
-        container.append(title_box)
+    #     title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    #     title_box.set_hexpand(False)
+    #     container.append(title_box)
 
-        title_label = Gtk.Label(label=prop.get('text', prop['name']))
-        title_label.set_halign(Gtk.Align.START)
-        title_label.add_css_class("setting-label")
-        title_box.append(title_label)
+    #     title_label = Gtk.Label(label=prop.get('text', prop['name']))
+    #     title_label.set_halign(Gtk.Align.START)
+    #     title_label.add_css_class("setting-label")
+    #     title_box.append(title_label)
 
-        prop_type = prop['type']
-        prop_name = prop['name']
-        
-        user_value = self.prop_manager.get_user_property(self.selected_wp, prop_name)
-        current_value = user_value if user_value is not None else prop['value']
+    #     prop_type = prop['type']
+    #     prop_name = prop['name']
+    #     
+    #     if not self.selected_wp: return
+    #     user_value = self.prop_manager.get_user_property(self.selected_wp, prop_name)
+    #     current_value = user_value if user_value is not None else prop['value']
 
-        if prop_type == 'boolean':
-            switch = Gtk.Switch()
-            switch.set_active(bool(current_value))
-            switch.set_valign(Gtk.Align.CENTER)
-            switch.set_halign(Gtk.Align.START)
-            switch.set_hexpand(False)
-            switch.connect('state-set', lambda s, v: self.on_property_changed(prop_name, v, 'boolean'))
-            container.append(switch)
+    #     if prop_type == 'boolean':
+    #         switch = Gtk.Switch()
+    #         switch.set_active(bool(current_value))
+    #         switch.set_valign(Gtk.Align.CENTER)
+    #         switch.set_halign(Gtk.Align.START)
+    #         switch.set_hexpand(False)
+    #         switch.connect('state-set', lambda s, v: self.on_property_changed(prop_name, v, 'boolean'))
+    #         container.append(switch)
 
-        elif prop_type == 'slider':
-            slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, prop['min'], prop['max'], prop['step'])
-            slider.set_value(float(current_value))
-            slider.set_hexpand(False)
-            slider.set_size_request(280, -1)
-            slider.connect('value-changed', lambda s: self.on_property_changed(prop_name, s.get_value(), 'slider'))
-            container.append(slider)
-            
-            val_lbl = Gtk.Label(label=f"{current_value}")
-            val_lbl.add_css_class("text-muted")
-            val_lbl.set_halign(Gtk.Align.START)
-            container.append(val_lbl)
+    #     elif prop_type == 'slider':
+    #         slider = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, prop['min'], prop['max'], prop['step'])
+    #         slider.set_value(float(current_value or 0))
+    #         slider.set_hexpand(False)
+    #         slider.set_size_request(280, -1)
+    #         
+    #         val_lbl = Gtk.Label(label=f"{float(current_value or 0):.2f}")
+    #         val_lbl.add_css_class("text-muted")
+    #         val_lbl.set_halign(Gtk.Align.START)
+    #         
+    #         def on_slider_changed(s):
+    #             val = s.get_value()
+    #             val_lbl.set_label(f"{val:.2f}")
+    #             self.on_property_changed(prop_name, val, 'slider')
+    #             
+    #         slider.connect('value-changed', on_slider_changed)
+    #         container.append(slider)
+    #         container.append(val_lbl)
 
-        elif prop_type == 'color':
-            color = Gtk.ColorButton()
-            color.set_hexpand(False)
-            if isinstance(current_value, (tuple, list)) and len(current_value) >= 3:
-                gdk_color = Gdk.RGBA()
-                gdk_color.parse(f"rgb({int(current_value[0]*255)}, {int(current_value[1]*255)}, {int(current_value[2]*255)})")
-                color.set_rgba(gdk_color)
-            color.connect('color-set', lambda w: self.on_color_property_changed(prop_name, w.get_rgba(), 'color'))
-            container.append(color)
+    #     elif prop_type == 'color':
+    #         color = Gtk.ColorButton()
+    #         color.set_hexpand(False)
+    #         if isinstance(current_value, (tuple, list)) and len(current_value) >= 3:
+    #             gdk_color = Gdk.RGBA()
+    #             gdk_color.parse(f"rgb({int(current_value[0]*255)}, {int(current_value[1]*255)}, {int(current_value[2]*255)})")
+    #             color.set_rgba(gdk_color)
+    #         color.connect('color-set', lambda w: self.on_color_property_changed(prop_name, w.get_rgba(), 'color'))
+    #         container.append(color)
 
-        elif prop_type == 'combo':
-            if prop['options']:
-                opt_strs = [opt['label'] for opt in prop['options']]
-                dd = Gtk.DropDown.new_from_strings(opt_strs)
-                dd.set_hexpand(False)
-                dd.set_size_request(280, -1)
-                
-                idx = 0
-                for i, opt in enumerate(prop['options']):
-                    if str(opt['value']) == str(current_value):
-                        idx = i
-                        break
-                dd.set_selected(idx)
-                dd.connect('notify::selected', lambda w, p: self.on_combo_property_changed(prop_name, prop['options'], w.get_selected(), 'combo'))
-                container.append(dd)
-            else:
-                lbl = Gtk.Label(label="No options")
-                lbl.add_css_class("text-muted")
-                container.append(lbl)
+    #     elif prop_type == 'combo':
+    #         if prop['options']:
+    #             opt_strs = [opt['label'] for opt in prop['options']]
+    #             dd = Gtk.DropDown.new_from_strings(opt_strs)
+    #             dd.set_hexpand(False)
+    #             dd.set_size_request(280, -1)
+    #             
+    #             idx = 0
+    #             for i, opt in enumerate(prop['options']):
+    #                 if str(opt['value']) == str(current_value):
+    #                     idx = i
+    #                     break
+    #             dd.set_selected(idx)
+    #             dd.connect('notify::selected', lambda w, p: self.on_combo_property_changed(prop_name, prop['options'], w.get_selected(), 'combo'))
+    #             container.append(dd)
+    #         else:
+    #             lbl = Gtk.Label(label="No options")
+    #             lbl.add_css_class("text-muted")
+    #             container.append(lbl)
 
-        return container
+    #     return container
 
-    def on_property_changed(self, prop_name: str, value, prop_type: str):
-        if prop_type == 'boolean':
-            self.prop_manager.set_user_property(self.selected_wp, prop_name, bool(value))
-        elif prop_type == 'slider':
-            self.prop_manager.set_user_property(self.selected_wp, prop_name, float(value))
-        
-        self.check_reapply()
+    # def on_property_changed(self, prop_name: str, value, prop_type: str):
+    #     if not self.selected_wp: return
+    #     if prop_type == 'boolean':
+    #         self.prop_manager.set_user_property(self.selected_wp, prop_name, bool(value))
+    #     elif prop_type == 'slider':
+    #         self.prop_manager.set_user_property(self.selected_wp, prop_name, float(value))
+    #     
+    #     self.check_reapply()
 
-    def on_color_property_changed(self, prop_name: str, color: Gdk.RGBA, prop_type: str):
-        r, g, b = color.red, color.green, color.blue
-        self.prop_manager.set_user_property(self.selected_wp, prop_name, (r, g, b))
-        self.check_reapply()
+    # def on_color_property_changed(self, prop_name: str, color: Gdk.RGBA, prop_type: str):
+    #     if not self.selected_wp: return
+    #     r, g, b = color.red, color.green, color.blue
+    #     self.prop_manager.set_user_property(self.selected_wp, prop_name, (r, g, b))
+    #     self.check_reapply()
 
-    def on_combo_property_changed(self, prop_name: str, options: List[Dict], idx: int, prop_type: str):
-        if idx < len(options):
-            self.prop_manager.set_user_property(self.selected_wp, prop_name, options[idx]['value'])
-            self.check_reapply()
+    # def on_combo_property_changed(self, prop_name: str, options: List[Dict], idx: int, prop_type: str):
+    #     if not self.selected_wp: return
+    #     if idx < len(options):
+    #         self.prop_manager.set_user_property(self.selected_wp, prop_name, options[idx]['value'])
+    #         self.check_reapply()
 
-    def check_reapply(self):
-        # We need to know if this wallpaper is currently active.
-        # Ideally the parent or app tells us, or we query the config/controller.
-        # But controller logic is: "apply(id)".
-        # For now, let's assume we re-apply if it matches lastWallpaper in config?
-        # Or better: The Sidebar doesn't know about "active" state easily. 
-        # But `wallpaper_gui.py` checked `self.active_wp == self.selected_wp`.
-        # I'll rely on a callback or simple check.
-        # Actually, let's just trigger an event or call controller if it IS the current one.
-        # Since I don't have `active_wp` passed in, I'll check config.
-        
-        last_wp = self.prop_manager._config.get("lastWallpaper")
-        if self.selected_wp == last_wp:
-            self.log_manager.add_debug(f"Property changed for active wallpaper {self.selected_wp}, reapplying...", "Sidebar")
-            self.controller.apply(self.selected_wp)
+    # def check_reapply(self):
+    #     # We need to know if this wallpaper is currently active.
+    #     # Ideally the parent or app tells us, or we query the config/controller.
+    #     # But controller logic is: "apply(id)".
+    #     # For now, let's assume we re-apply if it matches lastWallpaper in config?
+    #     # Or better: The Sidebar doesn't know about "active" state easily. 
+    #     # But `wallpaper_gui.py` checked `self.active_wp == self.selected_wp`.
+    #     # I'll rely on a callback or simple check.
+    #     # Actually, let's just trigger an event or call controller if it IS the current one.
+    #     # Since I don't have `active_wp` passed in, I'll check config.
+    #     
+    #     last_wp = self.prop_manager._config.get("lastWallpaper")
+    #     if self.selected_wp == last_wp:
+    #         self.log_manager.add_debug(f"Property changed for active wallpaper {self.selected_wp}, reapplying...", "Sidebar")
+    #         self.controller.apply(self.selected_wp)
 
     def on_apply_clicked(self, btn):
         if self.selected_wp:
