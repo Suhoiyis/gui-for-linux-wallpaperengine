@@ -9,6 +9,12 @@
 - **易用性**：提供直观的壁纸浏览、选择与应用界面
 - **功能完整性**：逐步对标社区 GUI 的功能
 
+## 🆕 最近更新 (2026-01-24)
+
+- **代码重构**：将单文件脚本拆分为模块化包结构 (`py_GUI/`)，分离逻辑与界面。
+- **项目结构优化**：更名项目包为 `py_GUI`，新增启动脚本 `run_gui.py`。
+- **性能优化**：改进了图片资源的加载与缓存机制。
+
 ## ✅ 当前功能
 
 ### 核心功能
@@ -110,14 +116,14 @@
 
 **前台启动（带 GUI）**：
 ```bash
-python3 wallpaper_gui.py
+python3 run_gui.py
 ```
 
 **后台启动（无 GUI，仅保活进程）**：
 ```bash
-python3 wallpaper_gui.py --hidden
+python3 run_gui.py --hidden
 # 或
-python3 wallpaper_gui.py --minimized
+python3 run_gui.py --minimized
 ```
 
 ### 命令行动作
@@ -126,12 +132,12 @@ python3 wallpaper_gui.py --minimized
 
 | 命令 | 效果 | 示例 |
 |------|------|------|
-| `--show` | 显示窗口（若已运行） | `python3 wallpaper_gui.py --show` |
-| `--hide` | 隐藏窗口（进程保持） | `python3 wallpaper_gui.py --hide` |
-| `--toggle` | 切换显示/隐藏状态 | `python3 wallpaper_gui.py --toggle` |
-| `--refresh` | 重新扫描壁纸库 | `python3 wallpaper_gui.py --refresh` |
-| `--apply-last` | 应用上次保存的壁纸 | `python3 wallpaper_gui.py --apply-last` |
-| `--quit` | 完全退出应用与进程 | `python3 wallpaper_gui.py --quit` |
+| `--show` | 显示窗口（若已运行） | `python3 run_gui.py --show` |
+| `--hide` | 隐藏窗口（进程保持） | `python3 run_gui.py --hide` |
+| `--toggle` | 切换显示/隐藏状态 | `python3 run_gui.py --toggle` |
+| `--refresh` | 重新扫描壁纸库 | `python3 run_gui.py --refresh` |
+| `--apply-last` | 应用上次保存的壁纸 | `python3 run_gui.py --apply-last` |
+| `--quit` | 完全退出应用与进程 | `python3 run_gui.py --quit` |
 
 ### Niri 配置示例
 
@@ -139,20 +145,20 @@ python3 wallpaper_gui.py --minimized
 
 ```kdl
 // 后台启动壁纸引擎 GUI（带自动应用上次壁纸）
-exec python3 /home/yua/suw/wallpaper_gui.py --hidden
+exec python3 /path/to/run_gui.py --hidden
 ```
 
 在 niri 运行中，可用快捷键或脚本调用：
 
 ```bash
 # 显示 GUI 以选择壁纸
-python3 wallpaper_gui.py --show
+python3 run_gui.py --show
 
 # 快速应用上次壁纸
-python3 wallpaper_gui.py --apply-last
+python3 run_gui.py --apply-last
 
 # 隐藏回后台
-python3 wallpaper_gui.py --hide
+python3 run_gui.py --hide
 ```
 
 ## 🛠️ 技术栈
@@ -172,7 +178,7 @@ python3 wallpaper_gui.py --hide
 sudo apt-get install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
 
 # 运行
-python3 wallpaper_gui.py
+python3 run_gui.py
 ```
 
 ## 📝 配置文件
@@ -212,5 +218,5 @@ MIT License
 
 ---
 
-**最后更新**：2026-01-23
-**版本**：v0.6.5-beta（新增日志复制功能，修复 GTK4 兼容性）
+**最后更新**：2026-01-24
+**版本**：v0.7.0 (模块化重构版)

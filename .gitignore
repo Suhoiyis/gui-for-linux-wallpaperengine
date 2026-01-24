@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# External Repositories (References)
+wallpaper_C++/
+wallpaper_go/
+linux-wallpaperengine-gui/
+
+# Backup/Temp files
+*.bak
+prompt.md
+development-log-*.md
+wallpaperengine's-README.md
+
+# IDEs
+.vscode/
+.idea/
