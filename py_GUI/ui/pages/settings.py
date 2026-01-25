@@ -646,6 +646,25 @@ class SettingsPage(Gtk.Box):
                 self.config.set(k, v)
                 changed_keys.append(k)
 
+        # 2.5 Verify paths immediately after save
+        if "workshopPath" in changed_keys:
+            self.wp_manager.workshop_path = new_values["workshopPath"]
+            self.wp_manager.scan()
+            count = len(self.wp_manager._wallpapers)
+            if self.wp_manager.last_scan_error:
+                self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}")
+            else:
+                self.show_toast(f"✅ Found {count} wallpapers")
+        
+        if "assetsPath" in changed_keys and new_values.get("assetsPath"):
+            assets_path = new_values["assetsPath"]
+            materials_dir = os.path.join(assets_path, "materials")
+            shaders_dir = os.path.join(assets_path, "shaders")
+            if os.path.isdir(materials_dir) and os.path.isdir(shaders_dir):
+                self.show_toast(f"✅ Assets directory verified")
+            else:
+                self.show_toast(f"⚠️ Assets directory may be incomplete (missing materials/ or shaders/)")
+
         # 3. Handle Autostart
         try:
             enabled = self.autostart_sw.get_active()
