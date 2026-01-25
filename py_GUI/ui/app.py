@@ -106,7 +106,7 @@ class WallpaperApp(Adw.Application):
         self.stack.set_vexpand(True)
 
         # Navbar
-        self.navbar = NavBar(self.stack)
+        self.navbar = NavBar(self.stack, on_home_enter=self.on_home_enter)
         main_box.append(self.navbar)
         main_box.append(self.stack)
 
@@ -156,6 +156,8 @@ class WallpaperApp(Adw.Application):
             # Re-launch wallpapers using saved mapping
             self.controller.restart_wallpapers()
             GLib.timeout_add(300, self.wallpapers_page.update_active_wallpaper_label)
+            # Do not override user selection; only select current if none
+            GLib.timeout_add(350, lambda: self.wallpapers_page.show_current_wallpaper_in_sidebar(False))
         else:
             # Legacy fallback: apply last single wallpaper
             last_wp = self.config.get("lastWallpaper")
@@ -209,6 +211,15 @@ class WallpaperApp(Adw.Application):
                 self.hide_window()
             else:
                 self.show_window()
+
+    def on_home_enter(self):
+        # When Home page becomes visible, ensure sidebar shows current wallpaper
+        try:
+            self.wallpapers_page.update_active_wallpaper_label()
+            # Do not override user selection when entering Home; only if none
+            self.wallpapers_page.show_current_wallpaper_in_sidebar(False)
+        except Exception:
+            pass
 
     def refresh_from_cli(self):
         self.wallpapers_page.on_reload_wallpapers(None)

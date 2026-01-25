@@ -3,9 +3,10 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
 class NavBar(Gtk.Box):
-    def __init__(self, stack: Gtk.Stack):
+    def __init__(self, stack: Gtk.Stack, on_home_enter=None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         self.stack = stack
+        self.on_home_enter = on_home_enter
         self.set_halign(Gtk.Align.CENTER)
         self.add_css_class("nav-bar")
         self.build_ui()
@@ -33,6 +34,12 @@ class NavBar(Gtk.Box):
         if btn.get_active():
             self.btn_settings.set_active(False)
             self.stack.set_visible_child_name("wallpapers")
+            # Notify caller that Home is visible
+            try:
+                if callable(self.on_home_enter):
+                    self.on_home_enter()
+            except Exception:
+                pass
 
     def on_settings_toggled(self, btn):
         if btn.get_active():

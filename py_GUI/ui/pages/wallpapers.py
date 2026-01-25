@@ -203,6 +203,16 @@ class WallpapersPage(Gtk.Box):
         self.active_wp_label.set_use_markup(True)
         self.active_wp_label.set_ellipsize(Pango.EllipsizeMode.END)
         self.active_wp_label.set_halign(Gtk.Align.START)
+        # Make it clickable to focus current wallpaper in sidebar
+        try:
+            self.active_wp_label.set_tooltip_text("Show current wallpaper details")
+            self.active_wp_label.set_cursor_from_name("pointer")
+        except Exception:
+            pass
+        click = Gtk.GestureClick.new()
+        click.set_button(Gdk.BUTTON_PRIMARY)
+        click.connect("released", lambda *_: self.on_currently_using_clicked())
+        self.active_wp_label.add_controller(click)
         status_box.append(self.active_wp_label)
 
         parent.append(status_box)
@@ -224,6 +234,27 @@ class WallpapersPage(Gtk.Box):
             self.active_wp_label.set_markup(markdown_to_pango(title))
         else:
             self.active_wp_label.set_label("None")
+
+    def show_current_wallpaper_in_sidebar(self, force: bool = False):
+        # Only auto-select if user hasn't selected another wallpaper, unless forced
+        if not force and self.selected_wp is not None:
+            return False
+        active_monitors = self.config.get("active_monitors", {})
+        current_wp_id = active_monitors.get(self.selected_screen)
+        if current_wp_id:
+            # Highlight and show details
+            self.select_wallpaper(current_wp_id)
+            # Sidebar updates inside select_wallpaper
+            return True
+        return False
+
+    def on_currently_using_clicked(self):
+        # Jump sidebar to the currently running wallpaper on selected screen
+        if not self.show_current_wallpaper_in_sidebar(force=True):
+            # If none, but we have lastWallpaper, show that
+            last_wp = self.config.get("lastWallpaper")
+            if last_wp:
+                self.select_wallpaper(last_wp)
 
     def on_view_grid(self, btn):
         if btn.get_active():
