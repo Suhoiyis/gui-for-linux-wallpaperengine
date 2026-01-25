@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Callable
 import os
 import gi
 gi.require_version('Gtk', '4.0')
@@ -15,7 +15,8 @@ from py_GUI.core.integrations import AppIntegrator
 class SettingsPage(Gtk.Box):
     def __init__(self, config: ConfigManager, screen_manager: ScreenManager, 
                  log_manager: LogManager, controller: WallpaperController,
-                 wp_manager: WallpaperManager, on_cycle_changed=None):
+                 wp_manager: WallpaperManager, on_cycle_changed=None,
+                 show_toast: Callable[[str], None] = None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         
         self.config = config
@@ -25,6 +26,7 @@ class SettingsPage(Gtk.Box):
         self.wp_manager = wp_manager
         self.integrator = AppIntegrator()
         self.on_cycle_settings_changed = on_cycle_changed
+        self.show_toast = show_toast or (lambda msg: None)
         
         self.add_css_class("settings-container")
         self.build_ui()
@@ -610,6 +612,7 @@ class SettingsPage(Gtk.Box):
                 new_values["workshopPath"] = path
             else:
                 self.log_manager.add_error(f"Workshop path does not exist: {path}", "GUI")
+                self.show_toast(f"⚠️ Workshop path does not exist: {path}")
 
         assets_path = self.assets_entry.get_text().strip()
         if assets_path:
@@ -617,6 +620,7 @@ class SettingsPage(Gtk.Box):
                 new_values["assetsPath"] = assets_path
             else:
                 self.log_manager.add_error(f"Assets path does not exist: {assets_path}", "GUI")
+                self.show_toast(f"⚠️ Assets path does not exist: {assets_path}")
                 new_values["assetsPath"] = None
         else:
             new_values["assetsPath"] = None

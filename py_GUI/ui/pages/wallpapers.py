@@ -2,7 +2,7 @@ import random
 import os
 import signal
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, Callable
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
@@ -24,7 +24,7 @@ class WallpapersPage(Gtk.Box):
     def __init__(self, window: Gtk.Window, config: ConfigManager, 
                  wp_manager: WallpaperManager, prop_manager: PropertiesManager,
                  controller: WallpaperController, log_manager: LogManager,
-                 screen_manager: ScreenManager):
+                 screen_manager: ScreenManager, show_toast: Callable[[str], None] = None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         
         self.window = window
@@ -34,6 +34,7 @@ class WallpapersPage(Gtk.Box):
         self.controller = controller
         self.log_manager = log_manager
         self.screen_manager = screen_manager
+        self.show_toast = show_toast or (lambda msg: None)
 
         self.view_mode = "grid"
         self.search_query = ""
@@ -251,13 +252,14 @@ class WallpapersPage(Gtk.Box):
 
     def on_reload_wallpapers(self, btn):
         self.wp_manager.clear_cache()
-        # Note: If path changed in settings, manager should be updated.
-        # But we don't have direct access to settings page state here.
-        # We assume manager is updated or we re-read config?
-        # The main app orchestrates this usually. 
-        # But for now, just scan.
         self.wp_manager.workshop_path = self.config.get("workshopPath", self.wp_manager.workshop_path)
         self.wp_manager.scan()
+        
+        if self.wp_manager.last_scan_error:
+            self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}")
+        elif self.wp_manager.scan_errors:
+            self.show_toast(f"⚠️ {len(self.wp_manager.scan_errors)} wallpaper(s) failed to load")
+        
         self.refresh_wallpaper_grid()
 
     def on_feeling_lucky(self, btn):

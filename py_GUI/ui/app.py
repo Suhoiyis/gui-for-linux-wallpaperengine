@@ -94,9 +94,11 @@ class WallpaperApp(Adw.Application):
         # Setup Actions
         self.setup_actions()
 
-        # Main Layout
+        self.toast_overlay = Adw.ToastOverlay()
+        self.win.set_content(self.toast_overlay)
+        
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.win.set_content(main_box)
+        self.toast_overlay.set_child(main_box)
 
         # Stack
         self.stack = Gtk.Stack()
@@ -112,20 +114,26 @@ class WallpaperApp(Adw.Application):
         self.wallpapers_page = WallpapersPage(
             self.win, self.config, self.wp_manager, 
             self.prop_manager, self.controller, self.log_manager,
-            self.screen_manager
+            self.screen_manager, self.show_toast
         )
         self.stack.add_named(self.wallpapers_page, "wallpapers")
 
         self.settings_page = SettingsPage(
             self.config, self.screen_manager, self.log_manager, 
             self.controller, self.wp_manager,
-            on_cycle_changed=self.setup_cycle_timer
+            on_cycle_changed=self.setup_cycle_timer,
+            show_toast=self.show_toast
         )
         self.stack.add_named(self.settings_page, "settings")
+
+        self.controller.set_toast_callback(self.show_toast)
 
         # Initial Load
         self.wp_manager.scan()
         self.wallpapers_page.refresh_wallpaper_grid()
+        
+        if self.wp_manager.last_scan_error:
+            GLib.timeout_add(500, lambda: self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}") or False)
 
         # Restore Last Wallpaper State (UI only)
         last_wp = self.config.get("lastWallpaper")
@@ -163,6 +171,12 @@ class WallpaperApp(Adw.Application):
         if self.win:
             self.win.set_visible(True)
             self.win.present()
+
+    def show_toast(self, message: str, timeout: int = 3):
+        if hasattr(self, 'toast_overlay'):
+            toast = Adw.Toast.new(message)
+            toast.set_timeout(timeout)
+            self.toast_overlay.add_toast(toast)
 
     def hide_window(self):
         if self.win:

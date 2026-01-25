@@ -1,7 +1,7 @@
 import subprocess
 import os
 import shutil
-from typing import Optional
+from typing import Optional, Callable
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.logger import LogManager
@@ -16,12 +16,15 @@ class WallpaperController:
         self.log_manager = log_manager
         self.screen_manager = screen_manager
         self.current_proc: Optional[subprocess.Popen] = None
+        self.show_toast: Callable[[str], None] = lambda msg: None
         
-        # Log Xvfb status on startup
         if shutil.which("xvfb-run"):
             self.log_manager.add_info("Xvfb detected: Silent screenshots enabled", "Controller")
         else:
             self.log_manager.add_info("Xvfb not found: Screenshots will spawn a window", "Controller")
+
+    def set_toast_callback(self, callback: Callable[[str], None]):
+        self.show_toast = callback
 
     def apply(self, wp_id: str, screen: Optional[str] = None):
         """Apply wallpaper (Multi-monitor support)"""
@@ -149,18 +152,17 @@ class WallpaperController:
             import time
             time.sleep(0.5)
             if self.current_proc.poll() is not None:
-                # Process exited immediately
-                self.engine_log.close() # Flush and close handle
+                self.engine_log.close()
                 with open(log_path, "r") as f:
                     output = f.read()
                 
                 error_msg = f"Process exited immediately!\nOutput:\n{output}"
                 self.log_manager.add_error(error_msg, "Engine")
+                self.show_toast("❌ Wallpaper engine failed to start - check logs")
                 return
 
             self.log_manager.add_info("Engine started successfully", "Controller")
 
-            # Niri color sync script support
             colors_script = os.path.expanduser("~/niri/scripts/sync_colors.sh")
             if os.path.exists(colors_script):
                 try:
@@ -170,6 +172,7 @@ class WallpaperController:
 
         except Exception as e:
             self.log_manager.add_error(f"Failed to start engine: {e}", "Controller")
+            self.show_toast(f"❌ Failed to start engine: {e}")
 
     def take_screenshot(self, wp_id: str, output_path: str, delay: Optional[int] = None):
         """Take a high-resolution screenshot of a specific wallpaper"""

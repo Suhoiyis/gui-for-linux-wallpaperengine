@@ -2,7 +2,7 @@ import os
 import json
 import gc
 import shutil
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, List
 import gi
 
 gi.require_version('Gdk', '4.0')
@@ -15,15 +15,34 @@ class WallpaperManager:
         self.workshop_path = workshop_path
         self._wallpapers: Dict[str, Dict] = {}
         self._texture_cache: Dict[str, Gdk.Texture] = {}
-        self._cache_max_size = 80  # Limit cache size
+        self._cache_max_size = 80
+        self.last_scan_error: Optional[str] = None
+        self.scan_errors: List[str] = []
 
     def scan(self) -> Dict[str, Dict]:
-        """Scan workshop directory for wallpapers"""
         self._wallpapers.clear()
+        self.last_scan_error = None
+        self.scan_errors = []
+        
         if not os.path.exists(self.workshop_path):
+            self.last_scan_error = f"Workshop directory not found: {self.workshop_path}"
+            return self._wallpapers
+        
+        if not os.path.isdir(self.workshop_path):
+            self.last_scan_error = f"Workshop path is not a directory: {self.workshop_path}"
             return self._wallpapers
 
-        for folder in sorted(os.listdir(self.workshop_path)):
+        entries = []
+        try:
+            entries = sorted(os.listdir(self.workshop_path))
+        except PermissionError:
+            self.last_scan_error = f"Permission denied: {self.workshop_path}"
+            return self._wallpapers
+        except OSError as e:
+            self.last_scan_error = f"Cannot read directory: {e}"
+            return self._wallpapers
+
+        for folder in entries:
             json_path = os.path.join(self.workshop_path, folder, "project.json")
             if os.path.exists(json_path):
                 try:
@@ -41,8 +60,14 @@ class WallpaperManager:
                             "contentrating": data.get("contentrating", ""),
                             "version": data.get("version", ""),
                         }
-                except:
-                    pass
+                except json.JSONDecodeError as e:
+                    self.scan_errors.append(f"Invalid JSON in {folder}: {e}")
+                except Exception as e:
+                    self.scan_errors.append(f"Error reading {folder}: {e}")
+        
+        if not self._wallpapers and not self.last_scan_error:
+            self.last_scan_error = f"No wallpapers found in: {self.workshop_path}"
+        
         return self._wallpapers
 
     def get_texture(self, path: str, size: int = 170) -> Optional[Gdk.Texture]:
