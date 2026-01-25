@@ -135,12 +135,33 @@ class WallpaperApp(Adw.Application):
         if self.wp_manager.last_scan_error:
             GLib.timeout_add(500, lambda: self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}") or False)
 
-        # Restore Last Wallpaper State (UI only)
-        last_wp = self.config.get("lastWallpaper")
-        if last_wp:
-            self.wallpapers_page.select_wallpaper(last_wp)
-            # Auto Apply
-            GLib.timeout_add(500, lambda: self.auto_apply(last_wp))
+        # Restore last session wallpapers
+        active_monitors = self.config.get("active_monitors", {})
+        screens = self.screen_manager.get_screens()
+
+        # Ensure lastScreen always points to a connected screen (fallback to first/primary)
+        last_screen = self.config.get("lastScreen")
+        if not last_screen or last_screen not in screens:
+            last_screen = screens[0] if screens else "eDP-1"
+            self.config.set("lastScreen", last_screen)
+
+        if active_monitors:
+            # Fill in missing lastWallpaper for CLI/apply-last correctness
+            if not self.config.get("lastWallpaper"):
+                if last_screen in active_monitors:
+                    self.config.set("lastWallpaper", active_monitors[last_screen])
+                elif active_monitors:
+                    self.config.set("lastWallpaper", next(iter(active_monitors.values())))
+
+            # Re-launch wallpapers using saved mapping
+            self.controller.restart_wallpapers()
+            GLib.timeout_add(300, self.wallpapers_page.update_active_wallpaper_label)
+        else:
+            # Legacy fallback: apply last single wallpaper
+            last_wp = self.config.get("lastWallpaper")
+            if last_wp:
+                self.wallpapers_page.select_wallpaper(last_wp)
+                GLib.timeout_add(500, lambda: self.auto_apply(last_wp))
 
         if self.start_hidden:
             self.win.set_visible(False)
@@ -241,6 +262,14 @@ class WallpaperApp(Adw.Application):
         
         if new_monitors:
             self.config.set("active_monitors", new_monitors)
+            # Update lastScreen/lastWallpaper for proper restore & tray apply-last
+            primary_screen = self.config.get("lastScreen")
+            if primary_screen not in new_monitors:
+                primary_screen = next(iter(new_monitors.keys()))
+                self.config.set("lastScreen", primary_screen)
+
+            self.config.set("lastWallpaper", new_monitors.get(primary_screen))
+
             self.controller.restart_wallpapers()
             self.wallpapers_page.update_active_wallpaper_label()
 
