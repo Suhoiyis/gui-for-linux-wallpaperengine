@@ -9,6 +9,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 WORKSHOP_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/431960")
+ASSETS_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/common/wallpaper_engine/assets")
 ICON_PATH = os.path.join(PROJECT_ROOT, "gui_tray.png")
 
 DEFAULT_CONFIG = {
@@ -32,6 +33,7 @@ DEFAULT_CONFIG = {
     "active_monitors": {},
     "cycleEnabled": False,
     "cycleInterval": 15,
+    "assetsPath": None,  # Custom assets directory (None = auto-detect)
 }
 
 # CSS Styling

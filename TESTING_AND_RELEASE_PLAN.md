@@ -251,41 +251,60 @@ jobs:
 
 ### 3. 性能监控工具
 
-#### 3.1 内置性能监控
+#### 3.1 后端限制说明
+
+**关键约束**: 壁纸渲染在 C++ 后端 `linux-wallpaperengine` 中执行，Python GUI 仅作为控制器。
+
+**能够监控的**:
+| 指标 | 方式 | 精度 |
+|------|------|------|
+| 后端进程 CPU 占用 | psutil | 进程级 |
+| 后端进程内存使用 | psutil | 进程级 |
+| 壁纸启动时间 | 时间戳差值 | 粗粒度（命令到进程启动）|
+| 进程存活状态 | poll() | 实时 |
+| 启动失败率 | 日志统计 | 精确 |
+
+**无法监控的（后端不提供API）**:
+| 指标 | 原因 |
+|------|------|
+| 真实 FPS | 需要后端暴露渲染帧率 |
+| 渲染性能细节 | OpenGL/渲染管线内部 |
+| 壁纸加载各阶段耗时 | 后端未提供分阶段信息 |
+| GPU 使用率 | 需要后端或系统级接口 |
+
+#### 3.2 可实现的简化版监控
+
 **实现位置**: `py_GUI/core/performance.py`
 
-**监控指标**:
-- 内存使用率 (WallpaperEngine 进程)
-- CPU 占用率
-- 壁纸加载时间
-- FPS 实时监控
-- 错误率统计
-
-**实现方案**:
 ```python
-class PerformanceMonitor:
+import psutil
+import time
+
+class RealisticPerformanceMonitor:
     def __init__(self):
-        self.start_time = time.time()
-        self.metrics = {}
-    
-    def track_wallpaper_loading(self, wp_id):
-        """追踪壁纸加载性能"""
+        self.backend_process = None
+        
+    def track_wallpaper_start_time(self, wp_id):
         start = time.time()
-        # 加载壁纸...
-        load_time = time.time() - start
-        self.metrics[f'load_time_{wp_id}'] = load_time
+        # 启动后端进程...
+        return time.time() - start
     
-    def monitor_memory_usage(self):
-        """监控内存使用"""
-        # 使用 psutil 获取进程内存信息
-        pass
-    
-    def generate_report(self):
-        """生成性能报告"""
-        return self.metrics
+    def get_backend_metrics(self):
+        if self.backend_process and self.backend_process.poll() is None:
+            try:
+                proc = psutil.Process(self.backend_process.pid)
+                return {
+                    'memory_mb': proc.memory_info().rss / 1024 / 1024,
+                    'cpu_percent': proc.cpu_percent(),
+                    'status': proc.status(),
+                    'runtime': time.time() - proc.create_time()
+                }
+            except:
+                return None
+        return None
 ```
 
-#### 3.2 性能基准测试
+#### 3.3 性能基准测试
 - 建立 Performance Regression 测试
 - 不同壁纸类型的性能基准
 - 长时间运行性能衰减监控

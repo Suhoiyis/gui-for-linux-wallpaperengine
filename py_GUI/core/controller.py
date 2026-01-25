@@ -115,6 +115,10 @@ class WallpaperController:
         if clamp != "clamp":
             cmd.extend(["--clamp", clamp])
 
+        assets_path = self.config.get("assetsPath")
+        if assets_path:
+            cmd.extend(["--assets-dir", assets_path])
+
         # Properties (Apply for all active wallpapers)
         audio_props = {'musicvolume', 'music', 'bellvolume', 'sound', 'soundsettings', 'volume'}
         is_silent = self.config.get("silence", True)
@@ -187,6 +191,10 @@ class WallpaperController:
             "-f", "60",
             str(wp_id)
         ]
+
+        assets_path = self.config.get("assetsPath")
+        if assets_path:
+            engine_cmd.extend(["--assets-dir", assets_path])
 
         if has_xvfb:
             # Wrap in xvfb-run

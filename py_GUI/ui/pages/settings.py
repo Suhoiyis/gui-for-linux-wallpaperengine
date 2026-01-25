@@ -1,9 +1,10 @@
 from typing import Dict
+import os
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, GLib, Gdk
 
-from py_GUI.const import WORKSHOP_PATH
+from py_GUI.const import WORKSHOP_PATH, ASSETS_PATH
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.screen import ScreenManager
 from py_GUI.core.logger import LogManager
@@ -302,13 +303,42 @@ class SettingsPage(Gtk.Box):
         box.append(t)
 
         # Path
-        r = self.create_row("Workshop Directory", "Path to Workshop content.")
+        r = self.create_row("Workshop Directory", "Path to Steam Workshop content (431960).")
         r.set_orientation(Gtk.Orientation.VERTICAL)
         box.append(r)
+        
+        workshop_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.path_entry = Gtk.Entry()
         self.path_entry.set_text(self.config.get("workshopPath", WORKSHOP_PATH))
         self.path_entry.set_hexpand(True)
-        r.append(self.path_entry)
+        workshop_box.append(self.path_entry)
+        
+        browse_workshop_btn = Gtk.Button(label="Browse")
+        browse_workshop_btn.add_css_class("action-btn")
+        browse_workshop_btn.add_css_class("secondary")
+        browse_workshop_btn.connect("clicked", self.on_browse_workshop)
+        workshop_box.append(browse_workshop_btn)
+        r.append(workshop_box)
+
+        # Assets Directory
+        r = self.create_row("Assets Directory", "Wallpaper Engine assets folder (leave empty for auto-detect).")
+        r.set_orientation(Gtk.Orientation.VERTICAL)
+        box.append(r)
+        
+        assets_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.assets_entry = Gtk.Entry()
+        assets_path = self.config.get("assetsPath", None)
+        self.assets_entry.set_text(assets_path if assets_path else "")
+        self.assets_entry.set_placeholder_text("Auto-detect from Steam installation")
+        self.assets_entry.set_hexpand(True)
+        assets_box.append(self.assets_entry)
+        
+        browse_assets_btn = Gtk.Button(label="Browse")
+        browse_assets_btn.add_css_class("action-btn")
+        browse_assets_btn.add_css_class("secondary")
+        browse_assets_btn.connect("clicked", self.on_browse_assets)
+        assets_box.append(browse_assets_btn)
+        r.append(assets_box)
 
         # Screen
         r = self.create_row("Screen Root", "Select a monitor.")
@@ -576,7 +606,20 @@ class SettingsPage(Gtk.Box):
         
         path = self.path_entry.get_text().strip()
         if path:
-            new_values["workshopPath"] = path
+            if os.path.isdir(path):
+                new_values["workshopPath"] = path
+            else:
+                self.log_manager.add_error(f"Workshop path does not exist: {path}", "GUI")
+
+        assets_path = self.assets_entry.get_text().strip()
+        if assets_path:
+            if os.path.isdir(assets_path):
+                new_values["assetsPath"] = assets_path
+            else:
+                self.log_manager.add_error(f"Assets path does not exist: {assets_path}", "GUI")
+                new_values["assetsPath"] = None
+        else:
+            new_values["assetsPath"] = None
 
         new_values["screenshotDelay"] = int(self.screenshot_delay_spin.get_value())
         new_values["screenshotRes"] = self.screenshot_res_entry.get_text().strip() or "3840x2160"
@@ -611,7 +654,8 @@ class SettingsPage(Gtk.Box):
         RESTART_KEYS = {
             "fps", "scaling", "noFullscreenPause", "disableMouse", 
             "disableParallax", "disableParticles", "clamping",
-            "silence", "volume", "noautomute", "noAudioProcessing"
+            "silence", "volume", "noautomute", "noAudioProcessing",
+            "assetsPath"
         }
         
         should_restart = any(k in RESTART_KEYS for k in changed_keys)
@@ -668,3 +712,31 @@ class SettingsPage(Gtk.Box):
             GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
         except Exception as e:
             self.log_manager.add_error(f"Failed to create desktop entry: {e}", "GUI")
+
+    def on_browse_workshop(self, btn):
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Select Workshop Directory")
+        dialog.select_folder(self.get_root(), None, self._on_workshop_folder_selected)
+
+    def _on_workshop_folder_selected(self, dialog, result):
+        try:
+            folder = dialog.select_folder_finish(result)
+            if folder:
+                path = folder.get_path()
+                self.path_entry.set_text(path)
+        except GLib.Error:
+            pass
+
+    def on_browse_assets(self, btn):
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Select Assets Directory")
+        dialog.select_folder(self.get_root(), None, self._on_assets_folder_selected)
+
+    def _on_assets_folder_selected(self, dialog, result):
+        try:
+            folder = dialog.select_folder_finish(result)
+            if folder:
+                path = folder.get_path()
+                self.assets_entry.set_text(path)
+        except GLib.Error:
+            pass
