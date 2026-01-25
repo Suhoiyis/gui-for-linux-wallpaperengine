@@ -1,8 +1,57 @@
-# 🐛 常见后端日志与故障排查
+# 🐛 常见错误与故障排查
 
-本文档记录了 `linux-wallpaperengine` 后端常见的日志错误及其含义，帮助高级用户判断问题根源。
+本文档记录了 GUI 和 `linux-wallpaperengine` 后端的常见错误及其含义。
 
-## 1. Wayland / OpenGL 相关
+## 1. GUI 用户提示
+
+### ⚠️ Toast 通知
+GUI 现在使用 Toast 通知提供即时错误反馈，无需查看日志即可了解问题：
+
+#### Workshop/Assets 路径相关
+- **`⚠️ Workshop path does not exist: /path/to/dir`**
+  - **原因**：设置的 Workshop 目录不存在或无访问权限
+  - **解决**：检查路径是否正确，或使用 Browse 按钮选择正确的 `431960` 文件夹
+
+- **`⚠️ Assets path does not exist: /path/to/assets`**
+  - **原因**：设置的 Assets 目录不存在或无访问权限
+  - **解决**：检查路径是否正确，或使用 Browse 按钮选择 `wallpaper_engine/assets` 文件夹
+
+#### 壁纸扫描相关
+- **`⚠️ Workshop directory not found: /path/to/workshop`**
+  - **原因**：Workshop 目录路径错误或未安装 Steam
+  - **解决**：在设置中选择正确的 Steam Workshop 路径
+
+- **`⚠️ No wallpapers found in: /path/to/workshop`**
+  - **原因**：目录存在但为空，或没有有效的壁纸文件夹
+  - **解决**：确保已通过 Steam 下载壁纸，或检查是否选择了正确的 Workshop 路径
+
+- **`⚠️ X wallpaper(s) failed to load`**
+  - **原因**：部分壁纸的 `project.json` 文件损坏或格式错误
+  - **解决**：在 Steam 中重新订阅或验证这些壁纸的完整性
+
+#### 后端启动相关
+- **`❌ Wallpaper engine failed to start - check logs`**
+  - **原因**：后端 `linux-wallpaperengine` 启动失败
+  - **解决**：检查设置 > 日志页面，查看详细错误信息
+
+- **`❌ Failed to start engine: [error message]`**
+  - **原因**：后端进程启动时遇到致命错误
+  - **解决**：根据具体错误信息进行排查
+
+### 查看详细日志
+当 Toast 通知提到"check logs"时：
+
+1. **打开日志页面**：设置 → 日志
+2. **检查最新错误**：寻找红色 `ERROR` 条目
+3. **常见日志错误**：
+   - `Cannot find a valid assets folder` → Assets 路径配置错误
+   - `Failed to initialize GLEW` → OpenGL/GLX 环境问题
+   - `Permission denied` → 文件权限不足
+   - `Process exited immediately` → 后端启动失败，检查详细输出
+
+---
+
+## 3. 后端日志分析
 
 ### 截图速度较慢 (5-10秒)
 - **现象**：点击截图后，需要等待数秒才能弹出成功提示。
@@ -35,7 +84,7 @@
   1. **环境缺失**：参考上文的 `GLX display` 错误，渲染上下文异常导致后端无法通过 `ExecuteJavaScript` 与网页通信。
   2. **初始化时机**：部分壁纸将属性监听器注册在 `DOMContentLoaded` 事件中，而后端注入属性的时机过早，导致指令在网页准备好之前就已丢失。
   3. **SSL 报错**：日志中若出现 `handshake failed ... net_error -101`，说明网页依赖的外部资源（如 CDN 脚本）加载失败，可能阻塞了属性监听器的初始化。
-## 3. 设置项环境限制
+## 5. 设置项环境限制
 
 ### `Disable Auto Mute` 无效
 - **现象**：开启该功能后，其他应用播放声音时壁纸依然静音，或者该功能完全不起作用。
@@ -57,7 +106,9 @@
 - **原因**：GLFW 试图在 Wayland 下强制设置窗口坐标，但 Wayland 协议禁止客户端自定位置（由混成器管理）。
 - **影响**：通常无害，但在某些情况下可能暗示窗口未能正确全屏或获取输入焦点。
 
-## 2. 资源加载相关
+---
+
+## 4. 资源加载相关
 
 ### `Particle '...' max particles: ...` 但屏幕无显示
 - **现象**：日志显示粒子系统已加载（如 `Particle 'Getsuga Tenshou Mouse Trail'...`），纹理也找到了，但屏幕上什么都没有。

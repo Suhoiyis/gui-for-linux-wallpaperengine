@@ -78,6 +78,7 @@ python3 run_gui.py --quit
 ```json
 {
   "workshopPath": "/home/user/.steam/steam/steamapps/workshop/content/431960",
+  "assetsPath": "/home/user/.steam/steam/steamapps/common/wallpaper_engine/assets",
   "fps": 30,
   "volume": 50,
   "scaling": "default",
@@ -118,6 +119,7 @@ python3 run_gui.py --quit
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `workshopPath` | string | 自动检测 | Steam Workshop 壁纸目录路径 |
+| `assetsPath` | string | null | Wallpaper Engine assets 文件夹路径（null = 自动检测） |
 | `fps` | int | 30 | 帧率限制（1-144） |
 | `volume` | int | 50 | 音量（0-100） |
 | `scaling` | string | "default" | 缩放模式：`default`/`stretch`/`fit`/`fill` |
@@ -191,6 +193,7 @@ GUI 配置会转换为 `linux-wallpaperengine` 的命令行参数：
 | `disableParticles: true` | `--disable-particles` | 禁用粒子 |
 | `disableAutoMute: true` | `--no-auto-mute` | 禁用自动静音 |
 | `disableAudioProcessing: true` | `--no-audio-processing` | 禁用音频处理 |
+| `assetsPath: "/path/to/assets"` | `--assets-dir /path/to/assets` | 自定义资源目录 |
 
 ### 完整命令示例
 
