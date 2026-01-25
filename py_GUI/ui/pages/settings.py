@@ -71,15 +71,14 @@ class SettingsPage(Gtk.Box):
             nav_box.append(btn)
             self.nav_btns[section_id] = btn
 
-        # Content Area
-        content_scroll = Gtk.ScrolledWindow()
-        content_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        content_scroll.set_hexpand(True)
-        self.append(content_scroll)
-
+        # Content Area - Stack directly without shared ScrolledWindow
+        # Each tab manages its own scrolling to avoid showing scrollbar on short content
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        content_scroll.set_child(self.stack)
+        self.stack.set_hexpand(True)
+        self.stack.set_vexpand(True)
+        self.stack.set_vhomogeneous(False)  # Allow different heights per page
+        self.append(self.stack)
 
         # Build sub-pages
         self.build_general()
@@ -123,6 +122,7 @@ class SettingsPage(Gtk.Box):
                 if sid != section_id:
                     b.set_active(False)
             self.stack.set_visible_child_name(section_id)
+            # No dynamic scroll policy needed
 
     def create_row(self, label, desc):
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
@@ -147,12 +147,17 @@ class SettingsPage(Gtk.Box):
         return row
 
     def build_general(self):
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+        self.stack.add_named(scroll, "general")
+
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         box.set_margin_top(60)
         box.set_margin_bottom(60)
         box.set_margin_start(40)
         box.set_margin_end(40)
-        self.stack.add_named(box, "general")
+        scroll.set_child(box)
 
         # Titles
         t = Gtk.Label(label="General")
@@ -246,12 +251,17 @@ class SettingsPage(Gtk.Box):
         r.append(self.cycle_spin)
 
     def build_audio(self):
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+        self.stack.add_named(scroll, "audio")
+
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         box.set_margin_top(60)
         box.set_margin_bottom(60)
         box.set_margin_start(40)
         box.set_margin_end(40)
-        self.stack.add_named(box, "audio")
+        scroll.set_child(box)
 
         t = Gtk.Label(label="Audio")
         t.add_css_class("settings-section-title")
@@ -292,12 +302,17 @@ class SettingsPage(Gtk.Box):
         r.append(self.noaudioproc_sw)
 
     def build_advanced(self):
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+        self.stack.add_named(scroll, "advanced")
+
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         box.set_margin_top(60)
         box.set_margin_bottom(60)
         box.set_margin_start(40)
         box.set_margin_end(40)
-        self.stack.add_named(box, "advanced")
+        scroll.set_child(box)
 
         t = Gtk.Label(label="Advanced")
         t.add_css_class("settings-section-title")
@@ -473,7 +488,7 @@ class SettingsPage(Gtk.Box):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scroll.set_vexpand(True)
-        scroll.set_size_request(-1, 500)
+        # Avoid forcing a minimum height that could push the window beyond physical size
         box.append(scroll)
 
         self.log_view = Gtk.TextView()
