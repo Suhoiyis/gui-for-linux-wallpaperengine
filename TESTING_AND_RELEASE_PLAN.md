@@ -604,6 +604,20 @@ class PlaylistManager:
 #### 6.排序方式
 **描述**：允许壁纸列表里不同的排序方式，如：文件大小，名称，载入顺序，订阅日期，最后更新时间等
 
+#### 7.多显示器指令优化
+看到YouTube上有人这样写
+```bash
+linux-wallpaperengine --silent --screen-root DP-1 11111111 &
+sleep 1
+
+linux-wallpaperengine --silent --screen-root HDMI-A-1 2222222&
+sleep
+
+linux-wallpaperengine --silent --screen-root DP-2 333333 &
+sleep 1
+```
+似乎可以优化一下现在的多显示器使用逻辑
+
 ---
 
 ## 📅 实施时间表
