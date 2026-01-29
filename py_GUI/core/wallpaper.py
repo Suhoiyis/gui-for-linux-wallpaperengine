@@ -2,13 +2,14 @@ import os
 import json
 import gc
 import shutil
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, List
 import gi
 
 gi.require_version('Gdk', '4.0')
 from gi.repository import Gdk, GdkPixbuf
 
 from py_GUI.const import WORKSHOP_PATH
+from py_GUI.utils import get_folder_size
 
 class WallpaperManager:
     def __init__(self, workshop_path: str = WORKSHOP_PATH):
@@ -49,16 +50,18 @@ class WallpaperManager:
                     with open(json_path, 'r') as f:
                         data = json.load(f)
                         preview_file = data.get("preview", "preview.jpg")
+                        folder_path = os.path.join(self.workshop_path, folder)
                         self._wallpapers[folder] = {
                             "id": folder,
                             "title": data.get("title", "Unknown"),
-                            "preview": os.path.join(self.workshop_path, folder, preview_file),
+                            "preview": os.path.join(folder_path, preview_file),
                             "description": data.get("description", ""),
                             "type": data.get("type", "Scene"),
                             "tags": data.get("tags", []),
                             "file": data.get("file", ""),
                             "contentrating": data.get("contentrating", ""),
                             "version": data.get("version", ""),
+                            "size": get_folder_size(folder_path),
                         }
                 except json.JSONDecodeError as e:
                     self.scan_errors.append(f"Invalid JSON in {folder}: {e}")

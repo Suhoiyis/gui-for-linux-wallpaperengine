@@ -269,7 +269,18 @@ window {
     font-weight: 800;
     color: #3b82f6;
     font-size: 0.85em;
-    margin: 5px 20px;
+    margin: 5px 0 5px 20px;
+}
+
+.size-chip {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-weight: 600;
+    color: #22c55e;
+    font-size: 0.85em;
+    margin: 5px 20px 5px 0;
 }
 
 .sidebar-btn {

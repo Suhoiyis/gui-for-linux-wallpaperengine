@@ -1,5 +1,38 @@
+import os
 import re
 from gi.repository import GLib
+
+
+def format_size(size_bytes: int) -> str:
+    """
+    Format bytes to human-readable size (KB, MB, GB).
+    """
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+
+
+def get_folder_size(folder_path: str) -> int:
+    """
+    Calculate total size of a folder in bytes.
+    """
+    total_size = 0
+    try:
+        for dirpath, dirnames, filenames in os.walk(folder_path):
+            for filename in filenames:
+                filepath = os.path.join(dirpath, filename)
+                try:
+                    total_size += os.path.getsize(filepath)
+                except (OSError, FileNotFoundError):
+                    pass
+    except (OSError, PermissionError):
+        pass
+    return total_size
 
 def markdown_to_pango(text: str) -> str:
     """

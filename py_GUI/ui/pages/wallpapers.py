@@ -38,6 +38,8 @@ class WallpapersPage(Gtk.Box):
 
         self.view_mode = "grid"
         self.search_query = ""
+        self.sort_mode: str = self.config.get("sortMode", "title") or "title"
+        self.sort_reverse: bool = bool(self.config.get("sortReverse", False))
         self.selected_wp: Optional[str] = None
         self.active_wp: Optional[str] = None # Tracks running wallpaper
         
@@ -133,7 +135,30 @@ class WallpapersPage(Gtk.Box):
         self.search_entry.connect('activate', self.on_search_activate)
         search_box.append(self.search_entry)
 
-        # Spacer
+        sort_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.toolbar.append(sort_box)
+
+        sort_lbl = Gtk.Label(label="⇅")
+        sort_lbl.add_css_class("status-label")
+        sort_box.append(sort_lbl)
+
+        sort_options = ["Title", "Size ↓", "Size ↑", "Type", "ID"]
+        self.sort_dd = Gtk.DropDown.new_from_strings(sort_options)
+
+        initial_idx = 0
+        if self.sort_mode == "size" and self.sort_reverse:
+            initial_idx = 1
+        elif self.sort_mode == "size":
+            initial_idx = 2
+        elif self.sort_mode == "type":
+            initial_idx = 3
+        elif self.sort_mode == "id":
+            initial_idx = 4
+        self.sort_dd.set_selected(initial_idx)
+
+        self.sort_dd.connect("notify::selected", self.on_sort_changed)
+        sort_box.append(self.sort_dd)
+
         spacer = Gtk.Box()
         spacer.set_hexpand(True)
         self.toolbar.append(spacer)
@@ -274,6 +299,15 @@ class WallpapersPage(Gtk.Box):
 
     def on_search_activate(self, entry):
         self.search_query = entry.get_text().lower().strip()
+        self.refresh_wallpaper_grid()
+
+    def on_sort_changed(self, dd, pspec):
+        idx = dd.get_selected()
+        sort_map = {0: ("title", False), 1: ("size", True), 2: ("size", False),
+                    3: ("type", False), 4: ("id", False)}
+        self.sort_mode, self.sort_reverse = sort_map.get(idx, ("title", False))
+        self.config.set("sortMode", self.sort_mode)
+        self.config.set("sortReverse", self.sort_reverse)
         self.refresh_wallpaper_grid()
 
     def on_stop_clicked(self):
@@ -467,17 +501,27 @@ class WallpapersPage(Gtk.Box):
 
     def filter_wallpapers(self) -> Dict[str, Dict]:
         if not self.search_query:
-            return self.wp_manager._wallpapers
-        
-        filtered = {}
-        for wp_id, wp in self.wp_manager._wallpapers.items():
-            title = wp.get('title', '').lower()
-            desc = wp.get('description', '').lower()
-            tags = ' '.join(str(t).lower() for t in wp.get('tags', []))
-            if (self.search_query in title or self.search_query in desc or 
-                self.search_query in tags or self.search_query in wp_id.lower()):
-                filtered[wp_id] = wp
-        return filtered
+            result = dict(self.wp_manager._wallpapers)
+        else:
+            result = {}
+            for wp_id, wp in self.wp_manager._wallpapers.items():
+                title = wp.get('title', '').lower()
+                desc = wp.get('description', '').lower()
+                tags = ' '.join(str(t).lower() for t in wp.get('tags', []))
+                if (self.search_query in title or self.search_query in desc or 
+                    self.search_query in tags or self.search_query in wp_id.lower()):
+                    result[wp_id] = wp
+
+        if self.sort_mode == "title":
+            sorted_items = sorted(result.items(), key=lambda x: x[1].get('title', '').lower(), reverse=self.sort_reverse)
+        elif self.sort_mode == "size":
+            sorted_items = sorted(result.items(), key=lambda x: x[1].get('size', 0), reverse=self.sort_reverse)
+        elif self.sort_mode == "type":
+            sorted_items = sorted(result.items(), key=lambda x: x[1].get('type', '').lower(), reverse=self.sort_reverse)
+        else:
+            sorted_items = sorted(result.items(), key=lambda x: x[0], reverse=self.sort_reverse)
+
+        return dict(sorted_items)
 
     def populate_grid(self):
         while True:

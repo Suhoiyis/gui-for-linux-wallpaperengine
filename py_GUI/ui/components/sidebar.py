@@ -10,7 +10,7 @@ from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
-from py_GUI.utils import markdown_to_pango, bbcode_to_pango
+from py_GUI.utils import markdown_to_pango, bbcode_to_pango, format_size
 
 class Sidebar(Gtk.Box):
     def __init__(self, wp_manager: WallpaperManager, prop_manager: PropertiesManager, 
@@ -65,13 +65,20 @@ class Sidebar(Gtk.Box):
         self.lbl_title.set_max_width_chars(25)
         content.append(self.lbl_title)
 
-        # Subtitle (Folder)
+        # Subtitle (Folder + Size)
+        folder_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        folder_row.set_halign(Gtk.Align.START)
+        content.append(folder_row)
+
         self.lbl_folder = Gtk.Label(label="")
         self.lbl_folder.add_css_class("folder-chip")
-        self.lbl_folder.set_halign(Gtk.Align.START)
         self.lbl_folder.set_tooltip_text("Click to copy ID")
         self.lbl_folder.set_cursor_from_name("pointer")
-        content.append(self.lbl_folder)
+        folder_row.append(self.lbl_folder)
+
+        self.lbl_size = Gtk.Label(label="")
+        self.lbl_size.add_css_class("size-chip")
+        folder_row.append(self.lbl_size)
 
         # Folder click to copy
         folder_click = Gtk.GestureClick.new()
@@ -181,6 +188,7 @@ class Sidebar(Gtk.Box):
         # Update Info
         self.lbl_title.set_markup(markdown_to_pango(wp['title']))
         self.lbl_folder.set_label(f"Folder: {wp['id']}")
+        self.lbl_size.set_label(format_size(wp.get('size', 0)))
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         
         # Parse description BBCode
@@ -214,6 +222,7 @@ class Sidebar(Gtk.Box):
         self.preview_image.set_paintable(None)
         self.lbl_title.set_label("Select a Wallpaper")
         self.lbl_folder.set_label("")
+        self.lbl_size.set_label("")
         self.lbl_type.set_label("-")
         self.lbl_desc.set_label("No description.")
         
