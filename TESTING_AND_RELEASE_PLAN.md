@@ -621,19 +621,30 @@ class PlaylistManager:
 - 排序选项自动保存到配置文件
 - 注：订阅日期和更新时间因数据不可靠未实现
 
-#### 7.多显示器指令优化
-看到YouTube上有人这样写
+#### 7.多显示器指令优化 ❌ **不采用**
+**描述**：YouTube 上有人使用多进程 + sleep 方式启动多显示器壁纸
+
+**YouTube 方案**:
 ```bash
 linux-wallpaperengine --silent --screen-root DP-1 11111111 &
 sleep 1
-
-linux-wallpaperengine --silent --screen-root HDMI-A-1 2222222&
-sleep
-
-linux-wallpaperengine --silent --screen-root DP-2 333333 &
+linux-wallpaperengine --silent --screen-root HDMI-A-1 2222222 &
 sleep 1
+linux-wallpaperengine --silent --screen-root DP-2 333333 &
 ```
-似乎可以优化一下现在的多显示器使用逻辑
+
+**当前方案**（单进程多参数）:
+```bash
+linux-wallpaperengine --screen-root DP-1 --bg 11111111 --screen-root HDMI-A-1 --bg 2222222 [全局参数]
+```
+
+**决定不采用的原因**:
+1. **内存开销过大**：多进程方案 3 显示器 = 3 进程 = 600MB-1.2GB，单进程仅需 200-400MB
+2. **当前方案是官方支持的用法**：linux-wallpaperengine 本身设计了 `--screen-root X --bg Y` 的单进程多屏语法
+3. **YouTube 方案是 workaround**：可能是早期版本不支持单进程多屏时的变通办法
+4. **进程管理复杂**：停止/随机切换时需要同步管理多个 PID
+
+**结论**：维持现状，除非遇到启动竞争导致的黑屏问题再考虑
 
 #### 8.托盘功能随机 ✅ **已修复 (v0.8.2)**
 **描述**：gui窗口关闭时，使用托盘右键功能"随机切换壁纸"似乎会唤出gui窗口，这个逻辑似乎与正常用户逻辑不符

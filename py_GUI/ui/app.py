@@ -95,7 +95,7 @@ class WallpaperApp(Adw.Application):
         self.setup_actions()
 
         self.toast_overlay = Adw.ToastOverlay()
-        self.win.set_content(self.toast_overlay)
+        self.win.set_child(self.toast_overlay)
         
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.toast_overlay.set_child(main_box)
