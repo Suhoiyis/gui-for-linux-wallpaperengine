@@ -218,17 +218,27 @@ class WallpapersPage(Gtk.Box):
         status_box.set_margin_top(10)
         status_box.set_margin_bottom(10)
 
+        title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        title_row.set_halign(Gtk.Align.START)
+
         title = Gtk.Label(label="CURRENTLY USING")
         title.add_css_class("status-label")
         title.set_halign(Gtk.Align.START)
-        status_box.append(title)
+        title_row.append(title)
+
+        self.copy_cmd_btn = Gtk.Button(label="📋")
+        self.copy_cmd_btn.add_css_class("flat")
+        self.copy_cmd_btn.set_tooltip_text("Copy command")
+        self.copy_cmd_btn.connect("clicked", self.on_copy_command_clicked)
+        title_row.append(self.copy_cmd_btn)
+
+        status_box.append(title_row)
 
         self.active_wp_label = Gtk.Label(label="-")
         self.active_wp_label.add_css_class("status-value")
         self.active_wp_label.set_use_markup(True)
         self.active_wp_label.set_ellipsize(Pango.EllipsizeMode.END)
         self.active_wp_label.set_halign(Gtk.Align.START)
-        # Make it clickable to focus current wallpaper in sidebar
         try:
             self.active_wp_label.set_tooltip_text("Show current wallpaper details")
             self.active_wp_label.set_cursor_from_name("pointer")
@@ -259,6 +269,17 @@ class WallpapersPage(Gtk.Box):
             self.active_wp_label.set_markup(markdown_to_pango(title))
         else:
             self.active_wp_label.set_label("None")
+        
+        cmd = self.controller.get_current_command()
+        if cmd:
+            escaped_cmd = GLib.markup_escape_text(cmd)
+            self.copy_cmd_btn.set_tooltip_markup(
+                f"<b><i>Click to copy:</i></b>\n<tt>{escaped_cmd}</tt>"
+            )
+            self.copy_cmd_btn.set_sensitive(True)
+        else:
+            self.copy_cmd_btn.set_tooltip_text("No command running")
+            self.copy_cmd_btn.set_sensitive(False)
 
     def show_current_wallpaper_in_sidebar(self, force: bool = False):
         # Only auto-select if user hasn't selected another wallpaper, unless forced
@@ -274,12 +295,20 @@ class WallpapersPage(Gtk.Box):
         return False
 
     def on_currently_using_clicked(self):
-        # Jump sidebar to the currently running wallpaper on selected screen
         if not self.show_current_wallpaper_in_sidebar(force=True):
-            # If none, but we have lastWallpaper, show that
             last_wp = self.config.get("lastWallpaper")
             if last_wp:
                 self.select_wallpaper(last_wp)
+
+    def on_copy_command_clicked(self, btn):
+        cmd = self.controller.get_current_command()
+        if not cmd:
+            self.show_toast("No command to copy")
+            return
+        
+        clipboard = Gdk.Display.get_default().get_clipboard()
+        clipboard.set(cmd)
+        self.show_toast("📋 Command copied to clipboard")
 
     def on_view_grid(self, btn):
         if btn.get_active():

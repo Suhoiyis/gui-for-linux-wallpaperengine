@@ -1,7 +1,7 @@
 import subprocess
 import os
 import shutil
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.logger import LogManager
@@ -17,6 +17,7 @@ class WallpaperController:
         self.screen_manager = screen_manager
         self.current_proc: Optional[subprocess.Popen] = None
         self.show_toast: Callable[[str], None] = lambda msg: None
+        self._last_command: List[str] = []
         
         if shutil.which("xvfb-run"):
             self.log_manager.add_info("Xvfb detected: Silent screenshots enabled", "Controller")
@@ -135,6 +136,7 @@ class WallpaperController:
                 formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)
                 cmd.extend(["--set-property", f"{prop_name}={formatted_value}"])
 
+        self._last_command = cmd
         self.log_manager.add_debug(f"Executing: {' '.join(cmd)}", "Controller")
 
         try:
@@ -252,3 +254,8 @@ class WallpaperController:
             stderr=subprocess.DEVNULL,
             check=False
         )
+
+    def get_current_command(self) -> str:
+        if not self._last_command:
+            return ""
+        return " ".join(self._last_command)
