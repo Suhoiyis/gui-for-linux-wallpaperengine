@@ -106,7 +106,15 @@ class WallpaperApp(Adw.Application):
         self.stack.set_vexpand(True)
 
         # Navbar
-        self.navbar = NavBar(self.stack, on_home_enter=self.on_home_enter)
+        screens = self.screen_manager.get_screens()
+        selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+        self.navbar = NavBar(
+            self.stack, 
+            screens=screens,
+            selected_screen=selected_screen,
+            on_home_enter=self.on_home_enter,
+            on_screen_changed=self.on_navbar_screen_changed
+        )
         main_box.append(self.navbar)
         main_box.append(self.stack)
 
@@ -214,13 +222,17 @@ class WallpaperApp(Adw.Application):
                 self.show_window()
 
     def on_home_enter(self):
-        # When Home page becomes visible, ensure sidebar shows current wallpaper
         try:
             self.wallpapers_page.update_active_wallpaper_label()
-            # Do not override user selection when entering Home; only if none
             self.wallpapers_page.show_current_wallpaper_in_sidebar(False)
         except Exception:
             pass
+
+    def on_navbar_screen_changed(self, screen: str):
+        self.config.set("lastScreen", screen)
+        if hasattr(self, 'wallpapers_page'):
+            self.wallpapers_page.selected_screen = screen
+            self.wallpapers_page.update_active_wallpaper_label()
 
     def refresh_from_cli(self):
         self.wallpapers_page.on_reload_wallpapers(None)

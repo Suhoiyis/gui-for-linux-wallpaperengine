@@ -102,24 +102,6 @@ class WallpapersPage(Gtk.Box):
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         self.toolbar.add_css_class("toolbar")
 
-        # Screen Selector
-        screen_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self.toolbar.append(screen_box)
-        
-        lbl = Gtk.Label(label="🖥")
-        lbl.add_css_class("status-label")
-        screen_box.append(lbl)
-
-        screens = self.screen_manager.get_screens()
-        self.screen_dd = Gtk.DropDown.new_from_strings(screens)
-        # Select current
-        if self.selected_screen in screens:
-            self.screen_dd.set_selected(screens.index(self.selected_screen))
-        
-        self.screen_dd.connect("notify::selected", self.on_screen_changed)
-        screen_box.append(self.screen_dd)
-
-        # Search
         search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.toolbar.append(search_box)
         
@@ -251,13 +233,6 @@ class WallpapersPage(Gtk.Box):
         status_box.append(self.active_wp_label)
 
         parent.append(status_box)
-
-    def on_screen_changed(self, dd, pspec):
-        selected_item = dd.get_selected_item()
-        if selected_item:
-            self.selected_screen = selected_item.get_string()
-            self.config.set("lastScreen", self.selected_screen)
-            self.update_active_wallpaper_label()
 
     def update_active_wallpaper_label(self):
         active_monitors = self.config.get("active_monitors", {})
