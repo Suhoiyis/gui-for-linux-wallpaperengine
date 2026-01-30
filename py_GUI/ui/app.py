@@ -85,7 +85,7 @@ class WallpaperApp(Adw.Application):
             Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
-        self.win = Adw.ApplicationWindow(application=self)
+        self.win = Gtk.ApplicationWindow(application=self)
         self.win.set_title("Linux Wallpaper Engine GUI")
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)

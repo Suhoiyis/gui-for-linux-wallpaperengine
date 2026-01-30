@@ -642,8 +642,14 @@ sleep 1
 - 问题原因：应用初始化后 `_is_first_activation` 标志未重置为 `False`，导致后续 CLI 命令触发 `activate()` 时误判为"首次激活"并显示窗口
 - 修复位置：`py_GUI/ui/app.py` 初始化完成后添加 `self._is_first_activation = False`
 
-#### 9.标题栏
+#### 9.标题栏 ✅ **已修复 (v0.8.2)**
 **描述**：没有标题栏绘制，建议直接让系统默认绘制标题栏（niri、hyprland下不需要，kde下推荐使用ked插件wallpaper-engine-kde-plugin，但在别的环境下没有绘制的标题栏用户没法方便地最大化、最小化、关闭窗口）
+
+**修复细节**:
+- 使用 `Gtk.ApplicationWindow` 替代 `Adw.ApplicationWindow`
+- 标题栏由窗口管理器决定（SSD 模式）
+- niri/Hyprland 等平铺 WM 不显示标题栏
+- GNOME/KDE 等传统桌面显示系统标题栏（含最大化/最小化/关闭按钮）
 
 ---
 

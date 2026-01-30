@@ -5,6 +5,10 @@
 ### 新功能
 - **命令复制**：在 "CURRENTLY USING" 旁边新增 📋 按钮，悬停显示当前运行的后端命令，点击复制到剪贴板
 
+### UI 改进
+- **系统标题栏支持**：使用 `Gtk.ApplicationWindow` 替代 `Adw.ApplicationWindow`，标题栏由窗口管理器绘制（GNOME/KDE 显示标题栏，niri/Hyprland 不显示）
+- **屏幕选择器移至顶栏**：🖥 屏幕选择器从工具栏移至窗口左上角，与 Home/Settings 按钮同排
+
 ### Bug 修复
 - **托盘随机切换修复**：修复了窗口隐藏时，使用托盘"随机切换壁纸"功能会意外唤出 GUI 窗口的问题
 
