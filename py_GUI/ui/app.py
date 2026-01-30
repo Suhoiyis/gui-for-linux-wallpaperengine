@@ -172,6 +172,7 @@ class WallpaperApp(Adw.Application):
         self.start_hidden = False
         
         self.initialized = True
+        self._is_first_activation = False
         self.setup_cycle_timer()
         self.tray.start()
         self.consume_cli_actions()
