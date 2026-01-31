@@ -47,7 +47,7 @@ window {
 .nav-bar {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 12px;
-    padding: 6px;
+    padding: 4px;
     margin: 10px 20px;
 }
 
@@ -76,7 +76,7 @@ window {
 .toolbar {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
-    padding: 10px 15px;
+    padding: 6px 15px;
     margin: 0 20px 10px 20px;
 }
 
@@ -103,9 +103,10 @@ window {
     background: #2a2a2a;
     color: rgba(255,255,255,0.87);
     border-radius: 10px;
-    padding: 0px 8px;
+    padding: 6px 6px;
     border: none;
-    min-height: 42px;
+    min-height: 36px;
+    min-width: 36px;
     font-size: 1.2em;
 }
 
@@ -407,6 +408,11 @@ window {
 .action-btn.danger {
     background: transparent;
     color: #ef4444;
+}
+
+.status-panel {
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .action-btn.danger:hover {

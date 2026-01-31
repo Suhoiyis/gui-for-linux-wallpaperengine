@@ -350,6 +350,7 @@ class WallpaperApp(Adw.Application):
         if wp_id:
             self.wallpapers_page.select_wallpaper(wp_id)
             self.wallpapers_page.apply_wallpaper(wp_id)
+            self.setup_cycle_timer()
 
     def on_action_stop(self, action, param):
         self.stop_wallpaper()
