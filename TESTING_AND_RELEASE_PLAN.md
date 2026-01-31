@@ -594,6 +594,7 @@ class PlaylistManager:
 
 #### 3.删除功能
 **描述**：目前的右键壁纸删除功能仅仅能删除文件夹下的文件，启动steam联网后steam会自动下载回此前删除的壁纸
+- 控制文件的路径好像在`/.local/share/Steam/steamapps/workshop/appworkshop_431960.acf`
 
 #### 4.指令显示/复制 ✅ **已完成 (v0.8.2)**
 **描述**：显示出应用当前壁纸时使用的指令，并且允许用户直接点击复制，相比于在logs里面显示的更加直观
@@ -661,6 +662,9 @@ linux-wallpaperengine --screen-root DP-1 --bg 11111111 --screen-root HDMI-A-1 --
 - 标题栏由窗口管理器决定（SSD 模式）
 - niri/Hyprland 等平铺 WM 不显示标题栏
 - GNOME/KDE 等传统桌面显示系统标题栏（含最大化/最小化/关闭按钮）
+
+#### 10.RANDOM
+**描述**：使用自动切换功能切换壁纸后wallpaper cycling的random的随机计时器应该重置（暂不清楚手动切换壁纸能否使random的计时器重置）总不能刚刚手动切完一个想要的壁纸然后就以为计时器时间到了就又被换掉了吧
 
 ---
 
