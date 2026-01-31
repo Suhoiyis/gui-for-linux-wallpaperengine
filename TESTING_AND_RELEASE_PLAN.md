@@ -594,7 +594,7 @@ class PlaylistManager:
 
 #### 3.删除功能
 **描述**：目前的右键壁纸删除功能仅仅能删除文件夹下的文件，启动steam联网后steam会自动下载回此前删除的壁纸
-- 控制文件的路径好像在`/.local/share/Steam/steamapps/workshop/appworkshop_431960.acf`
+- 控制文件的路径好像在`/.local/share/Steam/steamapps/workshop/appworkshop_431960.acf`要想彻底删除应该还要把这个文件里储存的对应内容（壁纸id应该是对应的）删掉，然后这个文件更新后，修改时间比steam云端更晚，steam应该会自动使用更新的配置文件，这样删除壁纸就能全局有效了
 
 #### 4.指令显示/复制 ✅ **已完成 (v0.8.2)**
 **描述**：显示出应用当前壁纸时使用的指令，并且允许用户直接点击复制，相比于在logs里面显示的更加直观

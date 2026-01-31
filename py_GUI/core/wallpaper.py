@@ -11,6 +11,8 @@ from gi.repository import Gdk, GdkPixbuf
 from py_GUI.const import WORKSHOP_PATH
 from py_GUI.utils import get_folder_size
 
+import re
+
 class WallpaperManager:
     def __init__(self, workshop_path: str = WORKSHOP_PATH):
         self.workshop_path = workshop_path
@@ -19,6 +21,94 @@ class WallpaperManager:
         self._cache_max_size = 80
         self.last_scan_error: Optional[str] = None
         self.scan_errors: List[str] = []
+        # Try to locate Steam appworkshop manifest
+        self.manifest_path = self._find_manifest_path()
+
+    def _find_manifest_path(self) -> Optional[str]:
+        # Typical paths for appworkshop_431960.acf
+        # 1. Same level as workshop/content/431960 -> workshop/appworkshop_431960.acf
+        if not self.workshop_path:
+            return None
+            
+        # workshop_path is usually .../workshop/content/431960
+        # We need to go up two levels to .../workshop/
+        try:
+            content_dir = os.path.dirname(self.workshop_path) # .../content
+            workshop_dir = os.path.dirname(content_dir)       # .../workshop
+            
+            manifest = os.path.join(workshop_dir, "appworkshop_431960.acf")
+            if os.path.exists(manifest):
+                return manifest
+        except:
+            pass
+            
+        return None
+
+    def _remove_from_manifest(self, folder_id: str) -> bool:
+        """Remove item from appworkshop_431960.acf to prevent Steam re-download"""
+        if not self.manifest_path or not os.path.exists(self.manifest_path):
+            return False
+            
+        try:
+            with open(self.manifest_path, 'r') as f:
+                lines = f.readlines()
+            
+            new_lines = []
+            skip = False
+            brace_count = 0
+            
+            # Simple ACF parser/modifier
+            # We look for "folder_id" key and remove its block
+            
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                stripped = line.strip()
+                
+                # Check for item ID block start
+                if f'"{folder_id}"' in stripped:
+                    # Found the item, skip this line and the following block
+                    skip = True
+                    brace_count = 0
+                    
+                    # If line has opening brace, increment
+                    if '{' in stripped:
+                        brace_count += 1
+                    
+                    # If block starts on next line
+                    if brace_count == 0:
+                        # Check next line for brace
+                        if i + 1 < len(lines) and '{' in lines[i+1]:
+                            i += 1
+                            brace_count += 1
+                            
+                    i += 1
+                    continue
+                
+                if skip:
+                    if '{' in stripped:
+                        brace_count += 1
+                    if '}' in stripped:
+                        brace_count -= 1
+                    
+                    # If braces balanced back to 0, we are done skipping
+                    if brace_count == 0:
+                        skip = False
+                    
+                    i += 1
+                    continue
+                
+                new_lines.append(line)
+                i += 1
+            
+            # Write back
+            with open(self.manifest_path, 'w') as f:
+                f.writelines(new_lines)
+                
+            return True
+        except Exception as e:
+            print(f"[ERROR] Failed to update manifest: {e}")
+            return False
 
     def scan(self) -> Dict[str, Dict]:
         self._wallpapers.clear()
@@ -113,16 +203,19 @@ class WallpaperManager:
             return False
 
         try:
-            # Get preview path before deletion for cache clearing
+            # 1. Update manifest to prevent re-download
+            self._remove_from_manifest(folder_id)
+            
+            # 2. Get preview path before deletion for cache clearing
             preview_path = self._wallpapers[folder_id].get('preview', '')
 
-            # Delete folder and contents
+            # 3. Delete folder and contents
             shutil.rmtree(folder_path)
 
-            # Remove from list
+            # 4. Remove from list
             del self._wallpapers[folder_id]
 
-            # Clear from cache
+            # 5. Clear from cache
             if preview_path:
                 cache_keys_to_remove = [k for k in self._texture_cache.keys() if k.startswith(preview_path)]
                 for key in cache_keys_to_remove:
