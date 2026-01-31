@@ -204,7 +204,7 @@ class WallpaperManager:
 
         try:
             # 1. Update manifest to prevent re-download
-            self._remove_from_manifest(folder_id)
+            # self._remove_from_manifest(folder_id)
             
             # 2. Get preview path before deletion for cache clearing
             preview_path = self._wallpapers[folder_id].get('preview', '')
