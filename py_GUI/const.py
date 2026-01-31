@@ -60,6 +60,8 @@ window {
     border: none;
     min-height: 36px;
     transition: all 0.2s;
+    box-shadow: none;
+    outline: none;
 }
 
 .nav-btn:hover {
