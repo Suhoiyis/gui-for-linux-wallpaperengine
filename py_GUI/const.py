@@ -103,7 +103,7 @@ window {
     background: #2a2a2a;
     color: rgba(255,255,255,0.87);
     border-radius: 10px;
-    padding: 8px 12px;
+    padding: 0px 8px;
     border: none;
     min-height: 42px;
     font-size: 1.2em;

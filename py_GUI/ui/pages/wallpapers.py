@@ -193,12 +193,12 @@ class WallpapersPage(Gtk.Box):
         view_box.append(self.btn_list)
 
     def build_status_panel(self, parent: Gtk.Box):
-        status_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        status_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         status_box.add_css_class("status-panel")
         status_box.set_margin_start(20)
         status_box.set_margin_end(10)
-        status_box.set_margin_top(10)
-        status_box.set_margin_bottom(10)
+        status_box.set_margin_top(2)
+        status_box.set_margin_bottom(2)
 
         title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title_row.set_halign(Gtk.Align.START)
