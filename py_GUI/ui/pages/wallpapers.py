@@ -201,18 +201,30 @@ class WallpapersPage(Gtk.Box):
         status_box.set_margin_bottom(2)
 
         title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        title_row.set_halign(Gtk.Align.START)
+        title_row.set_halign(Gtk.Align.FILL)
+
+        left_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        title_row.append(left_box)
 
         title = Gtk.Label(label="CURRENTLY USING")
         title.add_css_class("status-label")
         title.set_halign(Gtk.Align.START)
-        title_row.append(title)
+        left_box.append(title)
 
         self.copy_cmd_btn = Gtk.Button(label="📋")
         self.copy_cmd_btn.add_css_class("flat")
         self.copy_cmd_btn.set_tooltip_text("Copy command")
         self.copy_cmd_btn.connect("clicked", self.on_copy_command_clicked)
-        title_row.append(self.copy_cmd_btn)
+        left_box.append(self.copy_cmd_btn)
+
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        title_row.append(spacer)
+
+        self.counter_label = Gtk.Label(label="0/0")
+        self.counter_label.add_css_class("status-value")
+        self.counter_label.set_halign(Gtk.Align.END)
+        title_row.append(self.counter_label)
 
         status_box.append(title_row)
 
@@ -237,14 +249,14 @@ class WallpapersPage(Gtk.Box):
     def update_active_wallpaper_label(self):
         active_monitors = self.config.get("active_monitors", {})
         current_wp_id = active_monitors.get(self.selected_screen)
-        
+
         if current_wp_id:
             wp = self.wp_manager._wallpapers.get(current_wp_id)
             title = wp['title'] if wp else current_wp_id
             self.active_wp_label.set_markup(markdown_to_pango(title))
         else:
             self.active_wp_label.set_label("None")
-        
+
         cmd = self.controller.get_current_command()
         if cmd:
             escaped_cmd = GLib.markup_escape_text(cmd)
@@ -255,6 +267,25 @@ class WallpapersPage(Gtk.Box):
         else:
             self.copy_cmd_btn.set_tooltip_text("No command running")
             self.copy_cmd_btn.set_sensitive(False)
+
+        self.update_counter_label()
+
+    def update_counter_label(self):
+        filtered = self.filter_wallpapers()
+        total = len(filtered)
+
+        if total == 0:
+            self.counter_label.set_label("0/0")
+            return
+
+        active_monitors = self.config.get("active_monitors", {})
+        current_wp_id = active_monitors.get(self.selected_screen)
+
+        if current_wp_id and current_wp_id in filtered:
+            wp_index = list(filtered.keys()).index(current_wp_id) + 1
+            self.counter_label.set_label(f"{wp_index}/{total}")
+        else:
+            self.counter_label.set_label(f"-/{total}")
 
     def show_current_wallpaper_in_sidebar(self, force: bool = False):
         # Only auto-select if user hasn't selected another wallpaper, unless forced
@@ -300,10 +331,21 @@ class WallpapersPage(Gtk.Box):
     def on_search_changed(self, entry):
         self.search_query = entry.get_text().lower().strip()
         self.refresh_wallpaper_grid()
+        self.update_sidebar_index()
 
     def on_search_activate(self, entry):
         self.search_query = entry.get_text().lower().strip()
         self.refresh_wallpaper_grid()
+        self.update_sidebar_index()
+
+    def update_sidebar_index(self):
+        filtered = self.filter_wallpapers()
+        if self.selected_wp and self.selected_wp in filtered:
+            index = list(filtered.keys()).index(self.selected_wp) + 1
+            total = len(filtered)
+            self.sidebar.update(self.selected_wp, index, total)
+        else:
+            self.sidebar.update(self.selected_wp)
 
     def on_sort_changed(self, dd, pspec):
         idx = dd.get_selected()
@@ -313,6 +355,7 @@ class WallpapersPage(Gtk.Box):
         self.config.set("sortMode", self.sort_mode)
         self.config.set("sortReverse", self.sort_reverse)
         self.refresh_wallpaper_grid()
+        self.update_sidebar_index()
 
     def on_stop_clicked(self):
         # Stop wallpaper on current screen
@@ -503,6 +546,8 @@ class WallpapersPage(Gtk.Box):
             self.wallpaper_scroll.set_child(self.listbox)
             self.populate_list()
 
+        self.update_counter_label()
+
     def filter_wallpapers(self) -> Dict[str, Dict]:
         if not self.search_query:
             result = dict(self.wp_manager._wallpapers)
@@ -681,8 +726,14 @@ class WallpapersPage(Gtk.Box):
         if wp:
             if '_grid_btn' in wp: wp['_grid_btn'].add_css_class("selected")
             if '_list_btn' in wp: wp['_list_btn'].add_css_class("selected")
-        
-        self.sidebar.update(folder_id)
+
+        filtered = self.filter_wallpapers()
+        if folder_id in filtered:
+            index = list(filtered.keys()).index(folder_id) + 1
+            total = len(filtered)
+            self.sidebar.update(folder_id, index, total)
+        else:
+            self.sidebar.update(folder_id)
 
     def apply_wallpaper(self, wp_id: str):
         self.controller.apply(wp_id, self.selected_screen)

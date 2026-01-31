@@ -65,7 +65,6 @@ class Sidebar(Gtk.Box):
         self.lbl_title.set_max_width_chars(25)
         content.append(self.lbl_title)
 
-        # Subtitle (Folder + Size)
         folder_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         folder_row.set_halign(Gtk.Align.START)
         content.append(folder_row)
@@ -79,6 +78,10 @@ class Sidebar(Gtk.Box):
         self.lbl_size = Gtk.Label(label="")
         self.lbl_size.add_css_class("size-chip")
         folder_row.append(self.lbl_size)
+
+        self.lbl_index = Gtk.Label(label="")
+        self.lbl_index.add_css_class("index-chip")
+        folder_row.append(self.lbl_index)
 
         # Folder click to copy
         folder_click = Gtk.GestureClick.new()
@@ -170,7 +173,7 @@ class Sidebar(Gtk.Box):
         self.btn_workshop.connect("clicked", self.on_workshop_clicked)
         btn_box.append(self.btn_workshop)
 
-    def update(self, wp_id: Optional[str]):
+    def update(self, wp_id: Optional[str], index: int = 0, total: int = 0):
         self.selected_wp = wp_id
         if not wp_id:
             self.clear()
@@ -189,6 +192,7 @@ class Sidebar(Gtk.Box):
         self.lbl_title.set_markup(markdown_to_pango(wp['title']))
         self.lbl_folder.set_label(f"Folder: {wp['id']}")
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
+        self.lbl_index.set_label(f"{index}/{total}")
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         
         # Parse description BBCode
@@ -223,6 +227,7 @@ class Sidebar(Gtk.Box):
         self.lbl_title.set_label("Select a Wallpaper")
         self.lbl_folder.set_label("")
         self.lbl_size.set_label("")
+        self.lbl_index.set_label("")
         self.lbl_type.set_label("-")
         self.lbl_desc.set_label("No description.")
         

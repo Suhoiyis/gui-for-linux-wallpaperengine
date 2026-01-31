@@ -312,7 +312,18 @@ togglebutton:focus {
     font-weight: 600;
     color: #22c55e;
     font-size: 0.85em;
-    margin: 5px 20px 5px 0;
+    margin: 5px 0 5px 0;
+}
+
+.index-chip {
+    background: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-weight: 600;
+    color: #eab308;
+    font-size: 0.85em;
+    margin: 5px 0 5px 0;
 }
 
 .sidebar-btn {
