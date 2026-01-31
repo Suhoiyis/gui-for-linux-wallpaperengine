@@ -49,6 +49,22 @@ window {
     border-radius: 12px;
     padding: 4px;
     margin: 10px 20px;
+    border: none;
+    border-bottom: none;
+}
+
+/* Toggle button defaults */
+togglebutton {
+    border: none;
+    box-shadow: none;
+    outline: none;
+    border-bottom: none;
+}
+
+togglebutton:focus {
+    outline: none;
+    box-shadow: none;
+    border: none;
 }
 
 .nav-btn {
@@ -62,16 +78,29 @@ window {
     transition: all 0.2s;
     box-shadow: none;
     outline: none;
+    border-bottom: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
 }
 
 .nav-btn:hover {
     background: #464646;
+    border: none;
+    border-bottom: none;
 }
 
 .nav-btn.active, .nav-btn:checked {
     background: #007bff;
     color: white;
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    border: none;
+    border-bottom: none;
+}
+
+.nav-btn:focus, .nav-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 /* Toolbar */
