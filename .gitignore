@@ -7,12 +7,14 @@ __pycache__/
 wallpaper_C++/
 wallpaper_go/
 linux-wallpaperengine-gui/
+wallpaper-engine-kde-plugin/
 
 # Backup/Temp files
 *.bak
 prompt.md
 development-log-*.md
 wallpaperengine's-README.md
+screen*.png
 
 # IDEs
 .vscode/
