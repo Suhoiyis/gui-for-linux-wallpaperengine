@@ -229,7 +229,7 @@ class WallpapersPage(Gtk.Box):
         title_row.append(spacer)
 
         self.counter_label = Gtk.Label(label="0/0")
-        self.counter_label.add_css_class("index-chip")
+        self.counter_label.add_css_class("status-value-yellow")
         self.counter_label.set_halign(Gtk.Align.END)
         title_row.append(self.counter_label)
 

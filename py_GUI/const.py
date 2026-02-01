@@ -124,6 +124,12 @@ togglebutton:focus {
     text-transform: uppercase;
 }
 
+.status-value-yellow {
+    color: #eab308;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 .search-entry {
     min-height: 20px;
     padding: 0px 6px;
