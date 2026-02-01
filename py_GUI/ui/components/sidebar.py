@@ -5,7 +5,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Gtk, Gdk, GLib, Adw
+from gi.repository import Gtk, Gdk, GLib, Adw, GdkPixbuf
 
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
@@ -286,6 +286,8 @@ class Sidebar(Gtk.Box):
             pass
 
     def update(self, wp_id: Optional[str], index: int = 0, total: int = 0):
+        self.stop_animation()
+        
         self.selected_wp = wp_id
         if not wp_id:
             self.clear()
@@ -297,10 +299,19 @@ class Sidebar(Gtk.Box):
             return
 
         # Update preview
-        if wp['preview'].lower().endswith('.gif'):
-            self.preview_image.set_filename(wp['preview'])
-        else:
-            texture = self.wp_manager.get_texture(wp['preview'], 500)
+        path = wp['preview']
+        loaded_anim = False
+        
+        if path.lower().endswith('.gif'):
+            try:
+                self.start_animation(path)
+                loaded_anim = True
+            except Exception as e:
+                print(f"Animation load failed: {e}")
+                loaded_anim = False
+        
+        if not loaded_anim:
+            texture = self.wp_manager.get_texture(path, 500)
             self.preview_image.set_paintable(texture)
 
         # Update Info
@@ -333,10 +344,48 @@ class Sidebar(Gtk.Box):
                 chip.add_css_class("tag-chip")
                 self.tags_flow.append(chip)
 
-        # Load properties (Commented out as backend support is limited)
-        # self.load_properties(wp_id)
+    def start_animation(self, path):
+        self.anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
+        self.anim_iter = self.anim.get_iter(None)
+        
+        pixbuf = self.anim_iter.get_pixbuf()
+        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
+        self.preview_image.set_paintable(texture)
+        
+        if not self.anim.is_static_image():
+            self.anim_timer = GLib.timeout_add(
+                self.anim_iter.get_delay_time(), 
+                self.on_animation_frame
+            )
+
+    def on_animation_frame(self):
+        if not hasattr(self, 'anim_iter') or not self.anim_iter: 
+            return False
+        
+        try:
+            self.anim_iter.advance(None) 
+        except:
+            return False
+        
+        pixbuf = self.anim_iter.get_pixbuf()
+        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
+        self.preview_image.set_paintable(texture)
+        
+        delay = self.anim_iter.get_delay_time()
+        if delay <= 0: delay = 100
+        
+        self.anim_timer = GLib.timeout_add(delay, self.on_animation_frame)
+        return False
+
+    def stop_animation(self):
+        if hasattr(self, 'anim_timer') and self.anim_timer:
+            GLib.source_remove(self.anim_timer)
+            self.anim_timer = None
+        self.anim = None
+        self.anim_iter = None
 
     def clear(self):
+        self.stop_animation()
         self.selected_wp = None
         self.preview_image.set_paintable(None)
         self.lbl_title.set_label("Select a Wallpaper")
