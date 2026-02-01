@@ -36,12 +36,54 @@ class Sidebar(Gtk.Box):
 
     def set_available_screens(self, screens: List[str]):
         self.available_screens = screens
+        self.update_apply_button_state()
 
     def set_current_screen_callback(self, cb: Callable[[], str]):
         self.get_current_screen = cb
 
     def set_apply_mode_callback(self, cb: Callable[[], str]):
         self.get_apply_mode = cb
+
+    def update_apply_button_mode(self, mode: str):
+        self.update_apply_button_state()
+
+    def update_apply_button_state(self):
+        while True:
+            child = self.apply_btn_container.get_first_child()
+            if child is None: break
+            self.apply_btn_container.remove(child)
+            
+        mode = self.get_apply_mode()
+        screen_count = len(self.available_screens)
+        
+        use_split = (screen_count >= 3) and (mode == "diff")
+        
+        if use_split:
+            self.btn_apply = Adw.SplitButton(label="Apply Wallpaper")
+            self.btn_apply.add_css_class("sidebar-btn")
+            self.btn_apply.add_css_class("suggested-action")
+            self.btn_apply.set_hexpand(True)
+            self.btn_apply.connect("clicked", self.on_apply_clicked)
+            
+            menu_popover = Gtk.Popover()
+            menu_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            menu_content.set_margin_top(12)
+            menu_content.set_margin_bottom(12)
+            menu_content.set_margin_start(12)
+            menu_content.set_margin_end(12)
+            menu_popover.set_child(menu_content)
+            
+            self.btn_apply.set_popover(menu_popover)
+            menu_popover.connect("map", self.on_popover_map)
+            self.popover_box = menu_content
+            
+            self.apply_btn_container.append(self.btn_apply)
+        else:
+            self.btn_apply = Gtk.Button(label="Apply Wallpaper")
+            self.btn_apply.add_css_class("sidebar-btn")
+            self.btn_apply.set_hexpand(True)
+            self.btn_apply.connect("clicked", self.on_apply_clicked)
+            self.apply_btn_container.append(self.btn_apply)
 
     def build_ui(self):
         # Scrollable area
@@ -176,32 +218,13 @@ class Sidebar(Gtk.Box):
         btn_box.set_margin_bottom(20)
         self.append(btn_box)
 
-        # Apply Split Button
-        self.btn_apply = Adw.SplitButton(label="Apply Wallpaper")
-        self.btn_apply.add_css_class("sidebar-btn")
-        self.btn_apply.add_css_class("suggested-action")
-        self.btn_apply.connect("clicked", self.on_apply_clicked)
+        # Apply Button Container
+        self.apply_btn_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.apply_btn_container.set_halign(Gtk.Align.FILL)
+        btn_box.append(self.apply_btn_container)
         
-        # Setup Popover for advanced selection
-        menu_popover = Gtk.Popover()
-        menu_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        menu_content.set_margin_top(12)
-        menu_content.set_margin_bottom(12)
-        menu_content.set_margin_start(12)
-        menu_content.set_margin_end(12)
-        menu_popover.set_child(menu_content)
-        
-        self.btn_apply.set_popover(menu_popover)
-        
-        # Populate popover content dynamically when opening? 
-        # No, Adw.SplitButton popover is static content mostly. 
-        # But we can update it or use a callback if available. 
-        # Actually, let's pre-build the structure but update checkboxes on open.
-        # We can use "notify::popover" or just hook into the popover map signal.
-        menu_popover.connect("map", self.on_popover_map)
-        self.popover_box = menu_content
-
-        btn_box.append(self.btn_apply)
+        # Initial button setup
+        self.update_apply_button_state()
 
         self.btn_workshop = Gtk.Button(label="Open in Workshop")
         self.btn_workshop.add_css_class("sidebar-btn")
