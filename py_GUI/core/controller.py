@@ -27,22 +27,32 @@ class WallpaperController:
     def set_toast_callback(self, callback: Callable[[str], None]):
         self.show_toast = callback
 
-    def apply(self, wp_id: str, screen: Optional[str] = None):
+    def apply(self, wp_id: str, screen: Optional[str] = None, screens: Optional[List[str]] = None):
         """Apply wallpaper (Multi-monitor support)"""
-        # 1. Determine screen
-        if not screen:
-            screen = self.config.get("lastScreen")
-        if not screen or screen == "None":
-            screen = "eDP-1"
+        
+        target_screens = []
+        if screens:
+            target_screens = screens
+        elif screen:
+            target_screens = [screen]
+        else:
+            last = self.config.get("lastScreen")
+            if not last or last == "None":
+                last = "eDP-1"
+            target_screens = [last]
 
-        # 2. Update active monitors state
         active_monitors = self.config.get("active_monitors", {})
-        active_monitors[screen] = wp_id
+        
+        for s in target_screens:
+            active_monitors[s] = wp_id
+            
         self.config.set("active_monitors", active_monitors)
         self.config.set("lastWallpaper", wp_id)
-        self.config.set("lastScreen", screen)
+        
+        if len(target_screens) == 1:
+            self.config.set("lastScreen", target_screens[0])
 
-        self.log_manager.add_info(f"Applying configuration: {active_monitors}", "Controller")
+        self.log_manager.add_info(f"Applying wallpaper {wp_id} to {target_screens}", "Controller")
         self.restart_wallpapers()
 
     def stop_screen(self, screen: str):

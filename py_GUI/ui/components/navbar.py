@@ -6,13 +6,17 @@ from typing import Callable, Optional, List
 class NavBar(Gtk.Box):
     def __init__(self, stack: Gtk.Stack, screens: List[str], selected_screen: str,
                  on_home_enter: Optional[Callable] = None,
-                 on_screen_changed: Optional[Callable[[str], None]] = None):
+                 on_screen_changed: Optional[Callable[[str], None]] = None,
+                 on_link_toggled: Optional[Callable[[bool], None]] = None,
+                 initial_link_state: bool = False):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         self.stack = stack
         self.on_home_enter = on_home_enter
         self.on_screen_changed_cb = on_screen_changed
+        self.on_link_toggled_cb = on_link_toggled
         self.screens = screens
         self.selected_screen = selected_screen
+        self.is_linked = initial_link_state
         self.add_css_class("nav-bar")
         self.build_ui()
 
@@ -20,6 +24,15 @@ class NavBar(Gtk.Box):
         screen_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         screen_box.set_margin_start(15)
         self.append(screen_box)
+
+        if len(self.screens) > 1:
+            self.btn_link = Gtk.ToggleButton()
+            self.btn_link.set_icon_name("link-symbolic" if self.is_linked else "unlink-symbolic")
+            self.btn_link.set_active(self.is_linked)
+            self.btn_link.set_tooltip_text("Link screens (Apply to All)" if self.is_linked else "Unlink screens (Apply to Single)")
+            self.btn_link.add_css_class("flat")
+            self.btn_link.connect("toggled", self.on_link_toggled)
+            screen_box.append(self.btn_link)
 
         lbl = Gtk.Label(label="🖥")
         lbl.add_css_class("status-label")
@@ -53,6 +66,13 @@ class NavBar(Gtk.Box):
         spacer_right = Gtk.Box()
         spacer_right.set_hexpand(True)
         self.append(spacer_right)
+
+    def on_link_toggled(self, btn):
+        self.is_linked = btn.get_active()
+        btn.set_icon_name("link-symbolic" if self.is_linked else "unlink-symbolic")
+        btn.set_tooltip_text("Link screens (Apply to All)" if self.is_linked else "Unlink screens (Apply to Single)")
+        if callable(self.on_link_toggled_cb):
+            self.on_link_toggled_cb(self.is_linked)
 
     def _on_screen_changed(self, dd, pspec):
         selected_item = dd.get_selected_item()

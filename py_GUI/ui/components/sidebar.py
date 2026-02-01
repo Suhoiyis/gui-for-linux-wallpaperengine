@@ -1,10 +1,11 @@
 import threading
 import webbrowser
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
-from gi.repository import Gtk, Gdk, GLib
+gi.require_version('Adw', '1')
+from gi.repository import Gtk, Gdk, GLib, Adw
 
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
@@ -23,11 +24,24 @@ class Sidebar(Gtk.Box):
         
         self.selected_wp: Optional[str] = None
         
+        self.available_screens: List[str] = []
+        self.get_current_screen: Callable[[], str] = lambda: "eDP-1"
+        self.get_apply_mode: Callable[[], str] = lambda: "diff"
+        
         self.add_css_class("sidebar")
         self.set_size_request(320, -1)
         self.set_hexpand(False)
         
         self.build_ui()
+
+    def set_available_screens(self, screens: List[str]):
+        self.available_screens = screens
+
+    def set_current_screen_callback(self, cb: Callable[[], str]):
+        self.get_current_screen = cb
+
+    def set_apply_mode_callback(self, cb: Callable[[], str]):
+        self.get_apply_mode = cb
 
     def build_ui(self):
         # Scrollable area
@@ -162,9 +176,31 @@ class Sidebar(Gtk.Box):
         btn_box.set_margin_bottom(20)
         self.append(btn_box)
 
-        self.btn_apply = Gtk.Button(label="Apply Wallpaper")
+        # Apply Split Button
+        self.btn_apply = Adw.SplitButton(label="Apply Wallpaper")
         self.btn_apply.add_css_class("sidebar-btn")
+        self.btn_apply.add_css_class("suggested-action")
         self.btn_apply.connect("clicked", self.on_apply_clicked)
+        
+        # Setup Popover for advanced selection
+        menu_popover = Gtk.Popover()
+        menu_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        menu_content.set_margin_top(12)
+        menu_content.set_margin_bottom(12)
+        menu_content.set_margin_start(12)
+        menu_content.set_margin_end(12)
+        menu_popover.set_child(menu_content)
+        
+        self.btn_apply.set_popover(menu_popover)
+        
+        # Populate popover content dynamically when opening? 
+        # No, Adw.SplitButton popover is static content mostly. 
+        # But we can update it or use a callback if available. 
+        # Actually, let's pre-build the structure but update checkboxes on open.
+        # We can use "notify::popover" or just hook into the popover map signal.
+        menu_popover.connect("map", self.on_popover_map)
+        self.popover_box = menu_content
+
         btn_box.append(self.btn_apply)
 
         self.btn_workshop = Gtk.Button(label="Open in Workshop")
@@ -172,6 +208,59 @@ class Sidebar(Gtk.Box):
         self.btn_workshop.add_css_class("secondary")
         self.btn_workshop.connect("clicked", self.on_workshop_clicked)
         btn_box.append(self.btn_workshop)
+
+    def on_popover_map(self, popover):
+        while True:
+            child = self.popover_box.get_first_child()
+            if child is None: break
+            self.popover_box.remove(child)
+            
+        lbl = Gtk.Label(label="Apply to specific screens:")
+        lbl.add_css_class("heading")
+        lbl.set_halign(Gtk.Align.START)
+        self.popover_box.append(lbl)
+        
+        self.screen_checks = {}
+        current = self.get_current_screen()
+        
+        for screen in self.available_screens:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            chk = Gtk.CheckButton()
+            chk.set_active(screen == current)
+            self.screen_checks[screen] = chk
+            row.append(chk)
+            
+            lbl_scr = Gtk.Label(label=screen)
+            if screen == current:
+                lbl_scr.set_markup(f"<b>{screen}</b> (Current)")
+            else:
+                lbl_scr.set_label(screen)
+            row.append(lbl_scr)
+            self.popover_box.append(row)
+            
+        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        sep.set_margin_top(6)
+        sep.set_margin_bottom(6)
+        self.popover_box.append(sep)
+        
+        btn_confirm = Gtk.Button(label="Apply to Selected")
+        btn_confirm.add_css_class("suggested-action")
+        btn_confirm.connect("clicked", lambda b: self.on_advanced_apply(popover))
+        self.popover_box.append(btn_confirm)
+
+    def on_advanced_apply(self, popover):
+        if not self.selected_wp: return
+        
+        selected_screens = []
+        for screen, chk in self.screen_checks.items():
+            if chk.get_active():
+                selected_screens.append(screen)
+                
+        if selected_screens:
+            self.controller.apply(self.selected_wp, screens=selected_screens)
+            popover.popdown()
+        else:
+            pass
 
     def update(self, wp_id: Optional[str], index: int = 0, total: int = 0):
         self.selected_wp = wp_id
@@ -392,17 +481,14 @@ class Sidebar(Gtk.Box):
 
     def on_apply_clicked(self, btn):
         if self.selected_wp:
-            self.controller.apply(self.selected_wp)
-            # Signal update to parent? The parent (WallpapersPage) usually updates the "Status Panel".
-            # I can expose a callback. But for now, controller.apply updates the backend.
-            # The UI update for "active wallpaper" label needs to happen.
-            # Maybe `Sidebar` should emit a signal? "wallpaper-applied".
-            # For simplicity, I will use a custom signal-like mechanism or direct call if I passed the parent.
-            # But I didn't pass parent.
-            # I'll leave it as is; the backend works, but the "Current Wallpaper" label in top left won't update
-            # unless we hook it up.
-            # TODO: Add callback for applied wallpaper.
-            pass
+            mode = self.get_apply_mode()
+            
+            if mode == "same" and self.available_screens:
+                self.controller.apply(self.selected_wp, screens=self.available_screens)
+                self.log_manager.add_info(f"Applied wallpaper {self.selected_wp} to ALL screens: {self.available_screens}", "Sidebar")
+            else:
+                current_screen = self.get_current_screen()
+                self.controller.apply(self.selected_wp, screen=current_screen)
 
     def on_workshop_clicked(self, btn):
         if self.selected_wp:

@@ -108,12 +108,16 @@ class WallpaperApp(Adw.Application):
         # Navbar
         screens = self.screen_manager.get_screens()
         selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+        initial_link_state = (self.config.get("apply_mode", "diff") == "same")
+        
         self.navbar = NavBar(
             self.stack, 
             screens=screens,
             selected_screen=selected_screen,
             on_home_enter=self.on_home_enter,
-            on_screen_changed=self.on_navbar_screen_changed
+            on_screen_changed=self.on_navbar_screen_changed,
+            on_link_toggled=self.on_navbar_link_toggled,
+            initial_link_state=initial_link_state
         )
         main_box.append(self.navbar)
         main_box.append(self.stack)
@@ -233,6 +237,13 @@ class WallpaperApp(Adw.Application):
         if hasattr(self, 'wallpapers_page'):
             self.wallpapers_page.selected_screen = screen
             self.wallpapers_page.update_active_wallpaper_label()
+
+    def on_navbar_link_toggled(self, is_linked: bool):
+        mode = "same" if is_linked else "diff"
+        self.config.set("apply_mode", mode)
+        if hasattr(self, 'wallpapers_page'):
+            self.wallpapers_page.apply_mode = mode
+            self.log_manager.add_info(f"Apply mode changed to: {mode}", "App")
 
     def refresh_from_cli(self):
         self.wallpapers_page.on_reload_wallpapers(None)

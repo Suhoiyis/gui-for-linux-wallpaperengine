@@ -45,6 +45,7 @@ class WallpapersPage(Gtk.Box):
         
         # We need to track current screen selection
         self.selected_screen = self.config.get("lastScreen", "eDP-1")
+        self.apply_mode = self.config.get("apply_mode", "diff")
 
         self.build_ui()
 
@@ -96,6 +97,12 @@ class WallpapersPage(Gtk.Box):
 
         # Sidebar
         self.sidebar = Sidebar(self.wp_manager, self.prop_manager, self.controller, self.log_manager)
+        
+        screens = self.screen_manager.get_screens()
+        self.sidebar.set_available_screens(screens)
+        self.sidebar.set_current_screen_callback(lambda: self.selected_screen)
+        self.sidebar.set_apply_mode_callback(lambda: getattr(self, 'apply_mode', 'diff'))
+        
         content_box.append(self.sidebar)
 
     def build_toolbar(self):
