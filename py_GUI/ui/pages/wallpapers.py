@@ -389,9 +389,12 @@ class WallpapersPage(Gtk.Box):
         self.apply_wallpaper(wp_id)
 
     def on_screenshot_clicked(self):
-        target_id = self.active_wp or self.selected_wp
+        active_monitors = self.config.get("active_monitors", {})
+        target_id = active_monitors.get(self.selected_screen)
+        
         if not target_id:
-            show_error_dialog(self.window, "Screenshot Error", "No wallpaper is currently active or selected.")
+            show_error_dialog(self.window, "Screenshot Error", 
+                              f"No wallpaper is currently running on {self.selected_screen}.\n\nPlease apply a wallpaper to this screen first.")
             return
 
         # UI Feedback: Busy state
