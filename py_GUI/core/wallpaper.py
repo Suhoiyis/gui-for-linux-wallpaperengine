@@ -6,7 +6,13 @@ from typing import Dict, Optional, List
 import gi
 
 gi.require_version('Gdk', '4.0')
-from gi.repository import Gdk, GdkPixbuf
+from gi.repository import Gdk, GdkPixbuf, GLib
+
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 from py_GUI.const import WORKSHOP_PATH
 from py_GUI.utils import get_folder_size
@@ -171,6 +177,39 @@ class WallpaperManager:
 
         if not os.path.exists(path):
             return None
+
+        if HAS_PIL and path.lower().endswith('.gif'):
+            try:
+                with Image.open(path) as img:
+                    if getattr(img, "is_animated", False) and img.n_frames > 1:
+                        target = min(15, img.n_frames - 1)
+                        img.seek(target)
+                    
+                    img.thumbnail((size, size), Image.Resampling.LANCZOS)
+                    
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
+                        
+                    w, h = img.size
+                    stride = w * 4
+                    data = GLib.Bytes.new(img.tobytes())
+                    
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+                        data, GdkPixbuf.Colorspace.RGB, True, 8, w, h, stride
+                    )
+                    
+                    texture = Gdk.Texture.new_for_pixbuf(pixbuf)
+                    
+                    if len(self._texture_cache) >= self._cache_max_size:
+                        keys = list(self._texture_cache.keys())[:self._cache_max_size // 2]
+                        for k in keys:
+                            del self._texture_cache[k]
+                        gc.collect()
+
+                    self._texture_cache[cache_key] = texture
+                    return texture
+            except Exception:
+                pass
 
         try:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, size, size, True)

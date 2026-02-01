@@ -297,8 +297,11 @@ class Sidebar(Gtk.Box):
             return
 
         # Update preview
-        texture = self.wp_manager.get_texture(wp['preview'], 500)
-        self.preview_image.set_paintable(texture)
+        if wp['preview'].lower().endswith('.gif'):
+            self.preview_image.set_filename(wp['preview'])
+        else:
+            texture = self.wp_manager.get_texture(wp['preview'], 500)
+            self.preview_image.set_paintable(texture)
 
         # Update Info
         self.lbl_title.set_markup(markdown_to_pango(wp['title']))
