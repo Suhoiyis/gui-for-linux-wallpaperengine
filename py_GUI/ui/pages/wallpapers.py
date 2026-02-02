@@ -112,9 +112,9 @@ class WallpapersPage(Gtk.Box):
         search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.toolbar.append(search_box)
         
-        lbl = Gtk.Label(label="🔍")
-        lbl.add_css_class("status-label")
-        search_box.append(lbl)
+        icon_search = Gtk.Image.new_from_icon_name("system-search-symbolic")
+        icon_search.add_css_class("status-label")
+        search_box.append(icon_search)
 
         self.search_entry = Gtk.Entry()
         self.search_entry.add_css_class("search-entry")
@@ -127,9 +127,9 @@ class WallpapersPage(Gtk.Box):
         sort_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.toolbar.append(sort_box)
 
-        sort_lbl = Gtk.Label(label="⇅")
-        sort_lbl.add_css_class("status-label")
-        sort_box.append(sort_lbl)
+        icon_sort = Gtk.Image.new_from_icon_name("view-sort-ascending-symbolic")
+        icon_sort.add_css_class("status-label")
+        sort_box.append(icon_sort)
 
         sort_options = ["Title", "Size ↓", "Size ↑", "Type", "ID"]
         self.sort_dd = Gtk.DropDown.new_from_strings(sort_options)
@@ -156,26 +156,30 @@ class WallpapersPage(Gtk.Box):
         actions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.toolbar.append(actions_box)
 
-        stop_btn = Gtk.Button(label="⏹")
+        stop_btn = Gtk.Button()
+        stop_btn.set_icon_name("media-playback-stop-symbolic")
         stop_btn.add_css_class("mode-btn")
         stop_btn.add_css_class("stop-btn")
         stop_btn.set_tooltip_text("Stop Wallpaper")
         stop_btn.connect("clicked", lambda _: self.on_stop_clicked())
         actions_box.append(stop_btn)
 
-        refresh_btn = Gtk.Button(label="⟳")
+        refresh_btn = Gtk.Button()
+        refresh_btn.set_icon_name("view-refresh-symbolic")
         refresh_btn.add_css_class("mode-btn")
         refresh_btn.set_tooltip_text("Refresh Wallpapers")
         refresh_btn.connect("clicked", self.on_reload_wallpapers)
         actions_box.append(refresh_btn)
 
-        lucky_btn = Gtk.Button(label="🎲")
+        lucky_btn = Gtk.Button()
+        lucky_btn.set_icon_name("media-playlist-shuffle-symbolic")
         lucky_btn.add_css_class("mode-btn")
         lucky_btn.set_tooltip_text("I'm feeling lucky")
         lucky_btn.connect("clicked", self.on_feeling_lucky)
         actions_box.append(lucky_btn)
 
-        self.btn_screenshot = Gtk.Button(label="📸")
+        self.btn_screenshot = Gtk.Button()
+        self.btn_screenshot.set_icon_name("camera-photo-symbolic")
         self.btn_screenshot.add_css_class("mode-btn")
         self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
         self.btn_screenshot.connect("clicked", lambda _: self.on_screenshot_clicked())
@@ -186,14 +190,16 @@ class WallpapersPage(Gtk.Box):
         view_box.set_margin_start(10)
         self.toolbar.append(view_box)
 
-        self.btn_grid = Gtk.ToggleButton(label="⊞")
+        self.btn_grid = Gtk.ToggleButton()
+        self.btn_grid.set_icon_name("view-grid-symbolic")
         self.btn_grid.set_tooltip_text("Grid View")
         self.btn_grid.add_css_class("mode-btn")
         self.btn_grid.set_active(True)
         self.btn_grid.connect("toggled", self.on_view_grid)
         view_box.append(self.btn_grid)
 
-        self.btn_list = Gtk.ToggleButton(label="☰")
+        self.btn_list = Gtk.ToggleButton()
+        self.btn_list.set_icon_name("view-list-symbolic")
         self.btn_list.set_tooltip_text("List View")
         self.btn_list.add_css_class("mode-btn")
         self.btn_list.connect("toggled", self.on_view_list)
@@ -218,7 +224,8 @@ class WallpapersPage(Gtk.Box):
         title.set_halign(Gtk.Align.START)
         left_box.append(title)
 
-        self.copy_cmd_btn = Gtk.Button(label="📋")
+        self.copy_cmd_btn = Gtk.Button()
+        self.copy_cmd_btn.set_icon_name("edit-copy-symbolic")
         self.copy_cmd_btn.add_css_class("flat")
         self.copy_cmd_btn.set_tooltip_text("Copy command")
         self.copy_cmd_btn.connect("clicked", self.on_copy_command_clicked)
@@ -399,11 +406,11 @@ class WallpapersPage(Gtk.Box):
 
         # UI Feedback: Busy state
         self.btn_screenshot.set_sensitive(False)
-        self.btn_screenshot.set_label("⏳")
+        self.btn_screenshot.set_icon_name("process-working-symbolic")
         self.btn_screenshot.set_tooltip_text("Capturing... please wait")
 
         def reset_ui():
-            self.btn_screenshot.set_label("📸")
+            self.btn_screenshot.set_icon_name("camera-photo-symbolic")
             self.btn_screenshot.set_sensitive(True)
             self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
 

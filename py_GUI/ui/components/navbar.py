@@ -36,9 +36,9 @@ class NavBar(Gtk.Box):
             self.btn_link.connect("toggled", self.on_link_toggled)
             screen_box.append(self.btn_link)
 
-        lbl = Gtk.Label(label="🖥")
-        lbl.add_css_class("status-label")
-        screen_box.append(lbl)
+        icon_screen = Gtk.Image.new_from_icon_name("video-display-symbolic")
+        icon_screen.add_css_class("status-label")
+        screen_box.append(icon_screen)
 
         self.screen_dd = Gtk.DropDown.new_from_strings(self.screens)
         if self.selected_screen in self.screens:
@@ -50,15 +50,19 @@ class NavBar(Gtk.Box):
         spacer_left.set_hexpand(True)
         self.append(spacer_left)
 
-        nav_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        nav_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
 
-        self.btn_home = Gtk.ToggleButton(label="🏠 Home")
+        self.btn_home = Gtk.ToggleButton()
+        self.btn_home.set_icon_name("user-home-symbolic")
+        self.btn_home.set_tooltip_text("Home")
         self.btn_home.add_css_class("nav-btn")
         self.btn_home.set_active(True)
         self.btn_home.connect("toggled", self.on_home_toggled)
         nav_box.append(self.btn_home)
 
-        self.btn_settings = Gtk.ToggleButton(label="⚙️ Settings")
+        self.btn_settings = Gtk.ToggleButton()
+        self.btn_settings.set_icon_name("emblem-system-symbolic")
+        self.btn_settings.set_tooltip_text("Settings")
         self.btn_settings.add_css_class("nav-btn")
         self.btn_settings.connect("toggled", self.on_settings_toggled)
         nav_box.append(self.btn_settings)
@@ -70,7 +74,8 @@ class NavBar(Gtk.Box):
         self.append(spacer_right)
 
         if self.on_restart_app:
-            self.btn_restart = Gtk.Button(label="󰜉")
+            self.btn_restart = Gtk.Button()
+            self.btn_restart.set_icon_name("system-reboot-symbolic")
             self.btn_restart.set_tooltip_text("Restart Application")
             self.btn_restart.add_css_class("nav-btn")
             self.btn_restart.set_margin_end(15)
