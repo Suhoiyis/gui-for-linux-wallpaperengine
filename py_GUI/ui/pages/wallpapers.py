@@ -16,7 +16,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.logger import LogManager
-from py_GUI.utils import markdown_to_pango
+from py_GUI.utils import markdown_to_pango, format_size
 
 from py_GUI.core.screen import ScreenManager
 
@@ -607,8 +607,9 @@ class WallpapersPage(Gtk.Box):
             self.listbox.remove(child)
 
         filtered = self.filter_wallpapers()
-        for folder_id, wp in filtered.items():
-            row = self.create_list_item(folder_id, wp)
+        total = len(filtered)
+        for idx, (folder_id, wp) in enumerate(filtered.items()):
+            row = self.create_list_item(folder_id, wp, idx + 1, total)
             self.listbox.append(row)
 
     def create_grid_item(self, folder_id: str, wp: Dict) -> Gtk.Widget:
@@ -669,7 +670,7 @@ class WallpapersPage(Gtk.Box):
 
         return btn
 
-    def create_list_item(self, folder_id: str, wp: Dict) -> Gtk.Widget:
+    def create_list_item(self, folder_id: str, wp: Dict, index: int, total: int) -> Gtk.Widget:
         btn = Gtk.Button()
         btn.add_css_class("list-item")
         btn.set_has_frame(False)
@@ -699,7 +700,8 @@ class WallpapersPage(Gtk.Box):
             pic.add_css_class("card")
             hbox.append(pic)
 
-        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        info.set_valign(Gtk.Align.CENTER)
         info.set_hexpand(True)
         hbox.append(info)
 
@@ -710,6 +712,12 @@ class WallpapersPage(Gtk.Box):
         t.set_halign(Gtk.Align.START)
         t.set_ellipsize(Pango.EllipsizeMode.END)
         info.append(t)
+
+        sz = format_size(wp.get('size', 0))
+        size_lbl = Gtk.Label(label=sz)
+        size_lbl.add_css_class("size-chip")
+        size_lbl.set_halign(Gtk.Align.START)
+        info.append(size_lbl)
 
         typ = Gtk.Label(label=f"Type: {wp.get('type','Unknown')}")
         typ.add_css_class("list-type")
@@ -724,6 +732,11 @@ class WallpapersPage(Gtk.Box):
         tl.set_halign(Gtk.Align.START)
         tl.set_ellipsize(Pango.EllipsizeMode.END)
         info.append(tl)
+
+        idx_lbl = Gtk.Label(label=f"{index}/{total}")
+        idx_lbl.add_css_class("index-chip")
+        idx_lbl.set_halign(Gtk.Align.START)
+        info.append(idx_lbl)
 
         wp['_list_btn'] = btn
         if folder_id == self.selected_wp:
