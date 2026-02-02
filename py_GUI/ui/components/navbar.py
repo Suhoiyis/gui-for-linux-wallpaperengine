@@ -63,18 +63,19 @@ class NavBar(Gtk.Box):
         self.btn_settings.connect("toggled", self.on_settings_toggled)
         nav_box.append(self.btn_settings)
 
-        if self.on_restart_app:
-            self.btn_restart = Gtk.Button(label="🔄")
-            self.btn_restart.set_tooltip_text("Restart Application")
-            self.btn_restart.add_css_class("nav-btn")
-            self.btn_restart.connect("clicked", lambda _: self.on_restart_app())
-            nav_box.append(self.btn_restart)
-
         self.append(nav_box)
 
         spacer_right = Gtk.Box()
         spacer_right.set_hexpand(True)
         self.append(spacer_right)
+
+        if self.on_restart_app:
+            self.btn_restart = Gtk.Button(label="🔄")
+            self.btn_restart.set_tooltip_text("Restart Application")
+            self.btn_restart.add_css_class("nav-btn")
+            self.btn_restart.set_margin_end(15)
+            self.btn_restart.connect("clicked", lambda _: self.on_restart_app())
+            self.append(self.btn_restart)
 
     def on_link_toggled(self, btn):
         self.is_linked = btn.get_active()
