@@ -2,7 +2,8 @@ from typing import Dict, Callable
 import os
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, GLib, Gdk
+gi.require_version('Adw', '1')
+from gi.repository import Gtk, GLib, Gdk, Adw
 
 from py_GUI.const import WORKSHOP_PATH, ASSETS_PATH
 from py_GUI.core.config import ConfigManager
@@ -58,15 +59,20 @@ class SettingsPage(Gtk.Box):
         sidebar.append(nav_box)
 
         sections = [
-            ("general", "🖥 General"),
-            ("audio", "🔊 Audio"),
-            ("advanced", "⚙️ Advanced"),
-            ("logs", "📋 Logs"),
+            ("general", "General", "preferences-system-symbolic"),
+            ("audio", "Audio", "audio-volume-high-symbolic"),
+            ("advanced", "Advanced", "preferences-other-symbolic"),
+            ("logs", "Logs", "text-x-generic-symbolic"),
         ]
 
         self.nav_btns = {}
-        for section_id, label in sections:
-            btn = Gtk.ToggleButton(label=label)
+        for section_id, label, icon in sections:
+            btn = Gtk.ToggleButton()
+            content = Adw.ButtonContent()
+            content.set_icon_name(icon)
+            content.set_label(label)
+            btn.set_child(content)
+            
             btn.add_css_class("settings-nav-item")
             nav_box.append(btn)
             self.nav_btns[section_id] = btn
@@ -87,7 +93,7 @@ class SettingsPage(Gtk.Box):
         self.build_logs()
 
         # Connect signals
-        for section_id, _ in sections:
+        for section_id, _, _ in sections:
             btn = self.nav_btns[section_id]
             btn.connect("toggled", self.on_nav_toggled, section_id)
 
@@ -372,7 +378,12 @@ class SettingsPage(Gtk.Box):
             self.screen_dd.set_selected(screens.index(str(curr_screen)))
         r.append(self.screen_dd)
 
-        btn = Gtk.Button(label="⟳ Refresh Screens")
+        btn = Gtk.Button()
+        content = Adw.ButtonContent()
+        content.set_icon_name("view-refresh-symbolic")
+        content.set_label("Refresh Screens")
+        btn.set_child(content)
+        
         btn.add_css_class("action-btn")
         btn.add_css_class("secondary")
         btn.connect("clicked", self.on_refresh_screens)
@@ -465,7 +476,12 @@ class SettingsPage(Gtk.Box):
             self.xvfb_sw.set_tooltip_text("Xvfb is not installed on this system.")
         r.append(self.xvfb_sw)
 
-        btn = Gtk.Button(label="⟳ Refresh Screens")
+        btn = Gtk.Button()
+        content = Adw.ButtonContent()
+        content.set_icon_name("view-refresh-symbolic")
+        content.set_label("Refresh Screens")
+        btn.set_child(content)
+        
         btn.add_css_class("action-btn")
         btn.add_css_class("secondary")
         btn.connect("clicked", self.on_refresh_screens)
