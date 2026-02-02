@@ -256,6 +256,47 @@ class SettingsPage(Gtk.Box):
         self.cycle_spin.set_value(self.config.get("cycleInterval", 15))
         r.append(self.cycle_spin)
 
+        # Wayland Tweaks
+        t = Gtk.Label(label="Wayland Tweaks")
+        t.add_css_class("settings-section-title")
+        t.set_halign(Gtk.Align.START)
+        t.set_margin_top(10)
+        box.append(t)
+
+        is_wayland = os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland"
+        
+        status_label = "✅ Wayland Session Detected" if is_wayland else "⚠️ X11 Session"
+        desc = "Wayland-specific pause strategies."
+        if not is_wayland:
+            desc += " (Options disabled in X11)"
+            
+        r = self.create_row("Session Check", desc)
+        box.append(r)
+        
+        lbl_status = Gtk.Label(label=status_label)
+        lbl_status.add_css_class("status-value")
+        if not is_wayland:
+            lbl_status.add_css_class("text-muted")
+        r.append(lbl_status)
+
+        r = self.create_row("Pause Only When Active", "Only pause when fullscreen window is focused.")
+        box.append(r)
+        self.wl_active_sw = Gtk.Switch()
+        self.wl_active_sw.set_active(self.config.get("wayland_only_active", False))
+        self.wl_active_sw.set_valign(Gtk.Align.CENTER)
+        if not is_wayland: self.wl_active_sw.set_sensitive(False)
+        r.append(self.wl_active_sw)
+
+        r = self.create_row("Ignore App IDs", "Comma-separated list of App IDs to ignore (e.g. dock,bar).")
+        r.set_orientation(Gtk.Orientation.VERTICAL)
+        box.append(r)
+        
+        self.wl_ignore_entry = Gtk.Entry()
+        self.wl_ignore_entry.set_text(self.config.get("wayland_ignore_appids", ""))
+        self.wl_ignore_entry.set_placeholder_text("app_id1, app_id2")
+        if not is_wayland: self.wl_ignore_entry.set_sensitive(False)
+        r.append(self.wl_ignore_entry)
+
     def build_audio(self):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -663,6 +704,9 @@ class SettingsPage(Gtk.Box):
         new_values["cycleEnabled"] = self.cycle_sw.get_active()
         new_values["cycleInterval"] = int(self.cycle_spin.get_value())
 
+        new_values["wayland_only_active"] = self.wl_active_sw.get_active()
+        new_values["wayland_ignore_appids"] = self.wl_ignore_entry.get_text().strip()
+
         screens = self.screen_manager.get_screens()
         idx = self.screen_dd.get_selected()
         if idx >= 0 and idx < len(screens):
@@ -709,7 +753,7 @@ class SettingsPage(Gtk.Box):
             "fps", "scaling", "noFullscreenPause", "disableMouse", 
             "disableParallax", "disableParticles", "clamping",
             "silence", "volume", "noautomute", "noAudioProcessing",
-            "assetsPath"
+            "assetsPath", "wayland_only_active", "wayland_ignore_appids"
         }
         
         should_restart = any(k in RESTART_KEYS for k in changed_keys)

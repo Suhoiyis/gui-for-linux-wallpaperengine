@@ -2,12 +2,12 @@
 
 **文档版本**: v1.1
 **创建日期**: 2026-01-25
-**项目当前版本**: v0.8.9
+**项目当前版本**: v0.8.10
 
 ## 📋 项目现状概览
 
 ### 当前状态
-- **版本**: v0.8.9 (2026-02-02)
+- **版本**: v0.8.10 (2026-02-02)
 - **完成度**: ~90%
 - **核心功能**: ✅ 基本完善
 - **测试覆盖**: ❌ 待建立
@@ -709,6 +709,24 @@ linux-wallpaperengine --screen-root DP-1 --bg 11111111 --screen-root HDMI-A-1 --
 - 使用与壁纸名字相同的样式（`status-value` CSS class）
 - 自动更新场景：壁纸变化、屏幕切换、搜索/排序/重新加载
 
+#### 15.Wayland 高级控制 (P3-15) ✅ **已完成 (v0.8.10)**
+**描述**：支持 Wayland 特有的暂停策略控制。
+- `--fullscreen-pause-only-active`: 仅当全屏窗口处于活动状态时暂停。
+- `--fullscreen-pause-ignore-appid`: 忽略特定应用程序（如 Dock、Bar）的全屏状态判定。
+
+**实现细节**:
+- 设置页面新增 "Wayland Tweaks" 区域，自动检测会话类型。
+- 提供 Switch 和 Entry 控件，非 Wayland 环境自动禁用。
+- 后端 Controller 读取配置并动态追加参数。
+
+#### 16.壁纸属性自定义 (P2-3)
+**描述**：支持修改壁纸的自定义属性（如颜色、速度、特效开关）。
+- 解析 `linux-wallpaperengine --list-properties` 的输出。
+- 动态生成设置表单（Slider, Color Picker, Checkbox）。
+- 应用时传递 `--set-property key=value`。
+
+#### 17.窗口化预览 (P3-16)
+**描述**：利用 `--window` 参数提供独立的壁纸预览窗口，无需直接应用到桌面即可查看动态效果。
 
 ---
 
@@ -777,6 +795,6 @@ linux-wallpaperengine --screen-root DP-1 --bg 11111111 --screen-root HDMI-A-1 --
 
 ---
 
-**最后更新**: 2026-02-02 (发布 v0.8.9 - UI 现代化重构)  
+**最后更新**: 2026-02-02 (发布 v0.8.10 - Wayland 支持)  
 **负责人**: 开发团队  
 **审核状态**: 待审核

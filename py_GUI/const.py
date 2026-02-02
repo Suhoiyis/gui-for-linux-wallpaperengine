@@ -34,6 +34,8 @@ DEFAULT_CONFIG = {
     "cycleEnabled": False,
     "cycleInterval": 15,
     "assetsPath": None,  # Custom assets directory (None = auto-detect)
+    "wayland_only_active": False,
+    "wayland_ignore_appids": "",
 }
 
 # CSS Styling

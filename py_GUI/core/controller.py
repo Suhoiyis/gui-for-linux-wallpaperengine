@@ -129,6 +129,15 @@ class WallpaperController:
         if clamp != "clamp":
             cmd.extend(["--clamp", clamp])
 
+        if self.config.get("wayland_only_active", False):
+            cmd.append("--fullscreen-pause-only-active")
+            
+        ignore_ids = (self.config.get("wayland_ignore_appids") or "").strip()
+        if ignore_ids:
+            for appid in ignore_ids.split(','):
+                if appid.strip():
+                    cmd.extend(["--fullscreen-pause-ignore-appid", appid.strip()])
+
         assets_path = self.config.get("assetsPath")
         if assets_path:
             cmd.extend(["--assets-dir", assets_path])
