@@ -715,7 +715,7 @@ class WallpapersPage(Gtk.Box):
 
         sz = format_size(wp.get('size', 0))
         size_lbl = Gtk.Label(label=sz)
-        size_lbl.add_css_class("size-chip")
+        size_lbl.add_css_class("list-size")
         size_lbl.set_halign(Gtk.Align.START)
         info.append(size_lbl)
 
@@ -734,7 +734,7 @@ class WallpapersPage(Gtk.Box):
         info.append(tl)
 
         idx_lbl = Gtk.Label(label=f"{index}/{total}")
-        idx_lbl.add_css_class("index-chip")
+        idx_lbl.add_css_class("list-index")
         idx_lbl.set_halign(Gtk.Align.START)
         info.append(idx_lbl)
 

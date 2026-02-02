@@ -237,7 +237,19 @@ togglebutton:focus {
 }
 
 .list-tags {
-    color: #fbbf24;
+    color: #a78bfa;
+    font-size: 0.85em;
+}
+
+.list-size {
+    color: #4ade80;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+
+.list-index {
+    color: #facc15;
+    font-weight: 600;
     font-size: 0.85em;
 }
 
