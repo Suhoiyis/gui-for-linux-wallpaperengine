@@ -8,12 +8,14 @@ class NavBar(Gtk.Box):
                  on_home_enter: Optional[Callable] = None,
                  on_screen_changed: Optional[Callable[[str], None]] = None,
                  on_link_toggled: Optional[Callable[[bool], None]] = None,
+                 on_restart_app: Optional[Callable] = None,
                  initial_link_state: bool = False):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         self.stack = stack
         self.on_home_enter = on_home_enter
         self.on_screen_changed_cb = on_screen_changed
         self.on_link_toggled_cb = on_link_toggled
+        self.on_restart_app = on_restart_app
         self.screens = screens
         self.selected_screen = selected_screen
         self.is_linked = initial_link_state
@@ -60,6 +62,13 @@ class NavBar(Gtk.Box):
         self.btn_settings.add_css_class("nav-btn")
         self.btn_settings.connect("toggled", self.on_settings_toggled)
         nav_box.append(self.btn_settings)
+
+        if self.on_restart_app:
+            self.btn_restart = Gtk.Button(label="🔄")
+            self.btn_restart.set_tooltip_text("Restart Application")
+            self.btn_restart.add_css_class("nav-btn")
+            self.btn_restart.connect("clicked", lambda _: self.on_restart_app())
+            nav_box.append(self.btn_restart)
 
         self.append(nav_box)
 

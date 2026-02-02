@@ -117,6 +117,7 @@ class WallpaperApp(Adw.Application):
             on_home_enter=self.on_home_enter,
             on_screen_changed=self.on_navbar_screen_changed,
             on_link_toggled=self.on_navbar_link_toggled,
+            on_restart_app=self.restart_app,
             initial_link_state=initial_link_state
         )
         main_box.append(self.navbar)
@@ -334,6 +335,15 @@ class WallpaperApp(Adw.Application):
         self.controller.stop()
         self.tray.stop()
         self.quit()
+
+    def restart_app(self):
+        self.log_manager.add_info("Restarting application...", "App")
+        self.controller.stop()
+        self.tray.stop()
+        
+        import os
+        import sys
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     def setup_actions(self):
         # Apply Wallpaper Action
