@@ -316,7 +316,7 @@ class Sidebar(Gtk.Box):
 
         # Update Info
         self.lbl_title.set_markup(markdown_to_pango(wp['title']))
-        self.lbl_folder.set_label(f"Folder: {wp['id']}")
+        self.lbl_folder.set_label(f"{wp['id']}")
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
         self.lbl_index.set_label(f"{index}/{total}")
         self.lbl_type.set_label(wp.get('type', 'Unknown'))

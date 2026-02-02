@@ -70,7 +70,7 @@ class NavBar(Gtk.Box):
         self.append(spacer_right)
 
         if self.on_restart_app:
-            self.btn_restart = Gtk.Button(label="🔄")
+            self.btn_restart = Gtk.Button(label="󰜉")
             self.btn_restart.set_tooltip_text("Restart Application")
             self.btn_restart.add_css_class("nav-btn")
             self.btn_restart.set_margin_end(15)

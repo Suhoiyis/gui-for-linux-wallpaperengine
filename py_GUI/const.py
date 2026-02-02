@@ -125,7 +125,7 @@ togglebutton:focus {
 }
 
 .status-value-yellow {
-    color: #eab308;
+    color: #767779;
     font-weight: 700;
     text-transform: uppercase;
 }
