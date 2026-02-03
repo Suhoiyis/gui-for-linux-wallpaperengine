@@ -2,7 +2,7 @@ import os
 
 # Application constants
 APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.8.1'
+VERSION = '0.8.11'
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +33,7 @@ DEFAULT_CONFIG = {
     "active_monitors": {},
     "cycleEnabled": False,
     "cycleInterval": 15,
+    "cycleOrder": "random", # random, title, size, type, id
     "assetsPath": None,  # Custom assets directory (None = auto-detect)
     "wayland_only_active": False,
     "wayland_ignore_appids": "",

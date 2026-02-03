@@ -116,6 +116,40 @@ class WallpaperManager:
             print(f"[ERROR] Failed to update manifest: {e}")
             return False
 
+    def get_sorted_wallpapers(self, sort_mode: str = "random", reverse: bool = False) -> List[str]:
+        """Get sorted list of wallpaper IDs"""
+        if not self._wallpapers:
+            return []
+            
+        # "random" implies shuffling, but typically for sequential cycling we just shuffle once or pick randomly.
+        # However, for consistency with the UI dropdown, "random" usually means "pick random next", 
+        # but if we want a "randomized playlist" we'd return a shuffled list.
+        # The prompt asks for "Random" as an option in the dropdown alongside Size/Title.
+        # If sort_mode is 'random', we can just return keys (or shuffled keys). 
+        # But 'random' cycling in App is usually stateless.
+        # Let's support the explicit sorts here.
+
+        items = list(self._wallpapers.items())
+        
+        if sort_mode == "title":
+            items.sort(key=lambda x: x[1].get('title', '').lower(), reverse=reverse)
+        elif sort_mode == "size":
+            # Default to largest first (descending) if direction not specified?
+            # Actually, standard sort usually means smallest first (ascending).
+            # If the user wants descending, we need a flag or separate option.
+            # But here we only have "Size" option. Let's default to Small -> Large (Ascending) 
+            # as is standard for lists, UNLESS 'reverse' is True.
+            items.sort(key=lambda x: x[1].get('size', 0), reverse=reverse)
+        elif sort_mode == "size_desc":
+             items.sort(key=lambda x: x[1].get('size', 0), reverse=True)
+        elif sort_mode == "type":
+            items.sort(key=lambda x: x[1].get('type', '').lower(), reverse=reverse)
+        elif sort_mode == "id":
+            items.sort(key=lambda x: x[0], reverse=reverse)
+        # For 'random', we don't really sort, caller handles it.
+        
+        return [item[0] for item in items]
+
     def scan(self) -> Dict[str, Dict]:
         self._wallpapers.clear()
         self.last_scan_error = None

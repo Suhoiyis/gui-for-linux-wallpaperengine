@@ -256,6 +256,27 @@ class SettingsPage(Gtk.Box):
         self.cycle_spin.set_value(self.config.get("cycleInterval", 15))
         r.append(self.cycle_spin)
 
+        # Order
+        r = self.create_row("Cycle Order", "Order in which wallpapers are cycled.")
+        box.append(r)
+        order_opts = ["Random", "Title", "Size ↑", "Size ↓", "Type", "ID"]
+        self.cycle_order_dd = Gtk.DropDown.new_from_strings(order_opts)
+        
+        curr_order = self.config.get("cycleOrder", "random").lower()
+        # Find index
+        idx = 0
+        if curr_order == "size": 
+             curr_order = "size ↑"
+        elif curr_order == "size_desc":
+             curr_order = "size ↓"
+
+        for i, opt in enumerate(order_opts):
+            if opt.lower() == curr_order:
+                idx = i
+                break
+        self.cycle_order_dd.set_selected(idx)
+        r.append(self.cycle_order_dd)
+
         # Wayland Tweaks
         t = Gtk.Label(label="Wayland Tweaks")
         t.add_css_class("settings-section-title")
@@ -703,6 +724,20 @@ class SettingsPage(Gtk.Box):
         
         new_values["cycleEnabled"] = self.cycle_sw.get_active()
         new_values["cycleInterval"] = int(self.cycle_spin.get_value())
+        
+        cycle_opts = ["random", "title", "size ↑", "size ↓", "type", "id"]
+        # Safe check for index range
+        sel_idx = self.cycle_order_dd.get_selected()
+        if 0 <= sel_idx < len(cycle_opts):
+            val = cycle_opts[sel_idx]
+            if val == "size ↑":
+                new_values["cycleOrder"] = "size"
+            elif val == "size ↓":
+                new_values["cycleOrder"] = "size_desc"
+            else:
+                new_values["cycleOrder"] = val
+        else:
+            new_values["cycleOrder"] = "random"
 
         new_values["wayland_only_active"] = self.wl_active_sw.get_active()
         new_values["wayland_ignore_appids"] = self.wl_ignore_entry.get_text().strip()

@@ -98,7 +98,13 @@ class WallpaperController:
         # Global args
         cmd.extend(["-f", str(self.config.get("fps", 30))])
 
-        if self.config.get("silence", True):
+        # Strict boolean check with default True for None
+        silence_cfg = self.config.get("silence")
+        is_silent_mode = True if silence_cfg is None else bool(silence_cfg)
+        
+        self.log_manager.add_debug(f"Building command. Silence mode: {is_silent_mode} (Raw: {silence_cfg})", "Controller")
+
+        if is_silent_mode:
             cmd.append("--silent")
         else:
             cmd.extend(["--volume", str(self.config.get("volume", 50))])
@@ -144,12 +150,11 @@ class WallpaperController:
 
         # Properties (Apply for all active wallpapers)
         audio_props = {'musicvolume', 'music', 'bellvolume', 'sound', 'soundsettings', 'volume'}
-        is_silent = self.config.get("silence", True)
-
+        
         for wid in set(active_monitors.values()):
             user_props = self.prop_manager._user_properties.get(wid, {})
             for prop_name, prop_value in user_props.items():
-                if is_silent and prop_name.lower() in audio_props:
+                if is_silent_mode and prop_name.lower() in audio_props:
                     continue
                 prop_type = self.prop_manager.get_property_type(wid, prop_name)
                 formatted_value = self.prop_manager.format_property_value(prop_type, prop_value)

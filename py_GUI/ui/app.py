@@ -276,7 +276,10 @@ class WallpaperApp(Adw.Application):
         self.wallpapers_page.update_active_wallpaper_label()
     
     def random_wallpaper(self):
-        # Randomize for ALL active screens (or at least the primary one if none active)
+        # Triggered by cycle timer or CLI or Menu
+        # Cycle order logic
+        cycle_order = self.config.get("cycleOrder", "random")
+        
         active_monitors = self.config.get("active_monitors", {})
         screens = self.screen_manager.get_screens()
         
@@ -291,9 +294,32 @@ class WallpaperApp(Adw.Application):
         import random
         new_monitors = {}
         
+        # Get sorted list if needed
+        sorted_ids = []
+        if cycle_order != "random":
+             sorted_ids = self.wp_manager.get_sorted_wallpapers(cycle_order)
+             # Fallback to random if sort fails or empty
+             if not sorted_ids:
+                 sorted_ids = all_wps
+                 cycle_order = "random"
+
         for scr in active_monitors.keys():
             if scr in screens:
-                wp_id = random.choice(all_wps)
+                if cycle_order == "random":
+                    wp_id = random.choice(all_wps)
+                else:
+                    # Sequential logic
+                    current_wp = active_monitors.get(scr)
+                    next_index = 0
+                    if current_wp and current_wp in sorted_ids:
+                        current_index = sorted_ids.index(current_wp)
+                        next_index = (current_index + 1) % len(sorted_ids)
+                    else:
+                        # If current not found or None, start from 0
+                        next_index = 0
+                    
+                    wp_id = sorted_ids[next_index]
+
                 new_monitors[scr] = wp_id
         
         if new_monitors:
@@ -308,6 +334,8 @@ class WallpaperApp(Adw.Application):
 
             self.controller.restart_wallpapers()
             self.wallpapers_page.update_active_wallpaper_label()
+            
+            self.log_manager.add_info(f"Cycled wallpaper ({cycle_order})", "App")
 
     def on_cycle_trigger(self):
         self.log_manager.add_info("Cycling wallpaper...", "App")
