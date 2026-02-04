@@ -370,6 +370,15 @@ togglebutton:focus {
     background: rgba(255,255,255,0.1);
 }
 
+.sidebar-btn.danger {
+    background: #dc2626;
+    color: white;
+}
+
+.sidebar-btn.danger:hover {
+    background: #ef4444;
+}
+
 /* Settings page */
 .settings-container {
     background: rgba(20, 20, 20, 0.5);
