@@ -60,6 +60,13 @@ class NavBar(Gtk.Box):
         self.btn_home.connect("toggled", self.on_home_toggled)
         nav_box.append(self.btn_home)
 
+        self.btn_performance = Gtk.ToggleButton()
+        self.btn_performance.set_icon_name("utilities-system-monitor-symbolic")
+        self.btn_performance.set_tooltip_text("Performance")
+        self.btn_performance.add_css_class("nav-btn")
+        self.btn_performance.connect("toggled", self.on_performance_toggled)
+        nav_box.append(self.btn_performance)
+
         self.btn_settings = Gtk.ToggleButton()
         self.btn_settings.set_icon_name("emblem-system-symbolic")
         self.btn_settings.set_tooltip_text("Settings")
@@ -103,6 +110,7 @@ class NavBar(Gtk.Box):
     def on_home_toggled(self, btn):
         if btn.get_active():
             self.btn_settings.set_active(False)
+            self.btn_performance.set_active(False)
             self.stack.set_visible_child_name("wallpapers")
             try:
                 if callable(self.on_home_enter):
@@ -110,7 +118,14 @@ class NavBar(Gtk.Box):
             except Exception:
                 pass
 
+    def on_performance_toggled(self, btn):
+        if btn.get_active():
+            self.btn_home.set_active(False)
+            self.btn_settings.set_active(False)
+            self.stack.set_visible_child_name("performance")
+
     def on_settings_toggled(self, btn):
         if btn.get_active():
             self.btn_home.set_active(False)
+            self.btn_performance.set_active(False)
             self.stack.set_visible_child_name("settings")

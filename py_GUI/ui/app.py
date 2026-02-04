@@ -16,6 +16,7 @@ from py_GUI.utils import markdown_to_pango
 from py_GUI.ui.components.navbar import NavBar
 from py_GUI.ui.pages.wallpapers import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
+from py_GUI.ui.pages.performance import PerformancePage
 from py_GUI.ui.tray import TrayIcon
 
 class WallpaperApp(Adw.Application):
@@ -130,6 +131,10 @@ class WallpaperApp(Adw.Application):
             self.screen_manager, self.show_toast
         )
         self.stack.add_named(self.wallpapers_page, "wallpapers")
+
+        # Performance Page
+        self.performance_page = PerformancePage(self.controller)
+        self.stack.add_named(self.performance_page, "performance")
 
         self.settings_page = SettingsPage(
             self.config, self.screen_manager, self.log_manager, 

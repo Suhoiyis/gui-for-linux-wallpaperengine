@@ -478,9 +478,6 @@ class SettingsPage(Gtk.Box):
         r = self.create_row("Start Hidden", "Start in tray without showing window.")
         box.append(r)
         self.start_hidden_sw = Gtk.Switch()
-        # Default to True if creating new, or check existing? 
-        # Integrator doesn't easily check 'hidden' flag in existing file without parsing.
-        # Let's default to True as it's the desired behavior for autostart.
         self.start_hidden_sw.set_active(True)
         self.start_hidden_sw.set_valign(Gtk.Align.CENTER)
         r.append(self.start_hidden_sw)
@@ -532,22 +529,61 @@ class SettingsPage(Gtk.Box):
         self.xvfb_sw = Gtk.Switch()
         self.xvfb_sw.set_active(self.config.get("preferXvfb", True))
         self.xvfb_sw.set_valign(Gtk.Align.CENTER)
-        # If not installed, disable the switch to avoid confusion? 
-        # Or keep it enabled so user can preset it? Let's keep it enabled but maybe tooltip it.
         if not has_xvfb:
             self.xvfb_sw.set_tooltip_text("Xvfb is not installed on this system.")
         r.append(self.xvfb_sw)
 
-        btn = Gtk.Button()
-        content = Adw.ButtonContent()
-        content.set_icon_name("view-refresh-symbolic")
-        content.set_label("Refresh Screens")
-        btn.set_child(content)
+    def on_browse_workshop(self, btn):
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Select Workshop Directory")
+        dialog.select_folder(self.get_root(), None, self._on_workshop_folder_selected)
+
+    def _on_workshop_folder_selected(self, dialog, result):
+        try:
+            folder = dialog.select_folder_finish(result)
+            if folder:
+                path = folder.get_path()
+                self.path_entry.set_text(path)
+        except GLib.Error:
+            pass
+
+    def on_browse_assets(self, btn):
+        dialog = Gtk.FileDialog()
+        dialog.set_title("Select Assets Directory")
+        dialog.select_folder(self.get_root(), None, self._on_assets_folder_selected)
+
+    def _on_assets_folder_selected(self, dialog, result):
+        try:
+            folder = dialog.select_folder_finish(result)
+            if folder:
+                path = folder.get_path()
+                self.assets_entry.set_text(path)
+        except GLib.Error:
+            pass
+
+    def on_create_desktop_entry(self, btn):
+        success, msg = self.integrator.create_desktop_entry()
+        if success:
+            self.show_toast("Desktop entry created successfully")
+        else:
+            self.show_toast(f"Failed to create desktop entry: {msg}")
+
+    def on_refresh_screens(self, btn):
+        self.screen_manager.detect_screens()
+        screens = self.screen_manager.get_screens()
         
-        btn.add_css_class("action-btn")
-        btn.add_css_class("secondary")
-        btn.connect("clicked", self.on_refresh_screens)
-        box.append(btn)
+        # Preserve selection if possible
+        selected = self.screen_dd.get_selected_item()
+        selected_str = selected.get_string() if selected else None
+        
+        self.screen_dd.set_model(Gtk.StringList.new(screens))
+        
+        if selected_str and selected_str in screens:
+            self.screen_dd.set_selected(screens.index(selected_str))
+        elif screens:
+            self.screen_dd.set_selected(0)
+            
+        self.show_toast(f"Screens refreshed: {', '.join(screens)}")
 
     def build_logs(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
@@ -566,7 +602,6 @@ class SettingsPage(Gtk.Box):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scroll.set_vexpand(True)
-        # Avoid forcing a minimum height that could push the window beyond physical size
         box.append(scroll)
 
         self.log_view = Gtk.TextView()
@@ -679,197 +714,88 @@ class SettingsPage(Gtk.Box):
         GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
 
     def on_save(self, btn):
-        # 1. Collect new values
-        new_values = {}
-        new_values["fps"] = int(self.fps_spin.get_value())
-        
-        opts = ["default", "stretch", "fit", "fill"]
-        new_values["scaling"] = opts[self.scaling_dd.get_selected()]
-        
-        new_values["noFullscreenPause"] = self.pause_sw.get_active()
-        new_values["disableMouse"] = self.mouse_sw.get_active()
-        new_values["disableParallax"] = self.parallax_sw.get_active()
-        new_values["disableParticles"] = self.particles_sw.get_active()
-        
-        clamp_opts = ["clamp", "border", "repeat"]
-        new_values["clamping"] = clamp_opts[self.clamp_dd.get_selected()]
-
-        new_values["silence"] = self.silence_sw.get_active()
-        new_values["volume"] = int(self.vol_spin.get_value())
-        new_values["noautomute"] = self.noautomute_sw.get_active()
-        new_values["noAudioProcessing"] = self.noaudioproc_sw.get_active()
-        
-        path = self.path_entry.get_text().strip()
-        if path:
-            if os.path.isdir(path):
-                new_values["workshopPath"] = path
-            else:
-                self.log_manager.add_error(f"Workshop path does not exist: {path}", "GUI")
-                self.show_toast(f"⚠️ Workshop path does not exist: {path}")
-
-        assets_path = self.assets_entry.get_text().strip()
-        if assets_path:
-            if os.path.isdir(assets_path):
-                new_values["assetsPath"] = assets_path
-            else:
-                self.log_manager.add_error(f"Assets path does not exist: {assets_path}", "GUI")
-                self.show_toast(f"⚠️ Assets path does not exist: {assets_path}")
-                new_values["assetsPath"] = None
-        else:
-            new_values["assetsPath"] = None
-
-        new_values["screenshotDelay"] = int(self.screenshot_delay_spin.get_value())
-        new_values["screenshotRes"] = self.screenshot_res_entry.get_text().strip() or "3840x2160"
-        new_values["preferXvfb"] = self.xvfb_sw.get_active()
-        
-        new_values["cycleEnabled"] = self.cycle_sw.get_active()
-        new_values["cycleInterval"] = int(self.cycle_spin.get_value())
-        
-        cycle_opts = ["random", "title", "size ↑", "size ↓", "type", "id"]
-        # Safe check for index range
-        sel_idx = self.cycle_order_dd.get_selected()
-        if 0 <= sel_idx < len(cycle_opts):
-            val = cycle_opts[sel_idx]
-            if val == "size ↑":
-                new_values["cycleOrder"] = "size"
-            elif val == "size ↓":
-                new_values["cycleOrder"] = "size_desc"
-            else:
-                new_values["cycleOrder"] = val
-        else:
-            new_values["cycleOrder"] = "random"
-
-        new_values["wayland_only_active"] = self.wl_active_sw.get_active()
-        new_values["wayland_ignore_appids"] = self.wl_ignore_entry.get_text().strip()
-
-        screens = self.screen_manager.get_screens()
-        idx = self.screen_dd.get_selected()
-        if idx >= 0 and idx < len(screens):
-            new_values["lastScreen"] = screens[idx]
-        else:
-            new_values["lastScreen"] = "eDP-1"
-            
-        # 2. Detect changes
-        changed_keys = []
-        for k, v in new_values.items():
-            if self.config.get(k) != v:
-                self.config.set(k, v)
-                changed_keys.append(k)
-
-        # 2.5 Verify paths immediately after save
-        if "workshopPath" in changed_keys:
-            self.wp_manager.workshop_path = new_values["workshopPath"]
-            self.wp_manager.scan()
-            count = len(self.wp_manager._wallpapers)
-            if self.wp_manager.last_scan_error:
-                self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}")
-            else:
-                self.show_toast(f"✅ Found {count} wallpapers")
-        
-        if "assetsPath" in changed_keys and new_values.get("assetsPath"):
-            assets_path = new_values["assetsPath"]
-            materials_dir = os.path.join(assets_path, "materials")
-            shaders_dir = os.path.join(assets_path, "shaders")
-            if os.path.isdir(materials_dir) and os.path.isdir(shaders_dir):
-                self.show_toast(f"✅ Assets directory verified")
-            else:
-                self.show_toast(f"⚠️ Assets directory may be incomplete (missing materials/ or shaders/)")
-
-        # 3. Handle Autostart
         try:
-            enabled = self.autostart_sw.get_active()
-            hidden = self.start_hidden_sw.get_active()
-            self.integrator.set_autostart(enabled, hidden=hidden)
-        except Exception as e:
-            self.log_manager.add_error(f"Failed to set autostart: {e}", "GUI")
+            # General
+            self.config.set("fps", int(self.fps_spin.get_value()))
+            
+            scaling_opts = ["default", "stretch", "fit", "fill"]
+            idx = self.scaling_dd.get_selected()
+            if 0 <= idx < len(scaling_opts):
+                self.config.set("scaling", scaling_opts[idx])
+                
+            self.config.set("noFullscreenPause", self.pause_sw.get_active())
+            self.config.set("disableMouse", self.mouse_sw.get_active())
+            self.config.set("disableParallax", self.parallax_sw.get_active())
+            self.config.set("disableParticles", self.particles_sw.get_active())
+            
+            clamp_opts = ["clamp", "border", "repeat"]
+            idx = self.clamp_dd.get_selected()
+            if 0 <= idx < len(clamp_opts):
+                self.config.set("clamping", clamp_opts[idx])
 
-        # 4. Smart Restart
-        RESTART_KEYS = {
-            "fps", "scaling", "noFullscreenPause", "disableMouse", 
-            "disableParallax", "disableParticles", "clamping",
-            "silence", "volume", "noautomute", "noAudioProcessing",
-            "assetsPath", "wayland_only_active", "wayland_ignore_appids"
-        }
-        
-        should_restart = any(k in RESTART_KEYS for k in changed_keys)
-        
-        if should_restart:
-            self.log_manager.add_info("Rendering settings changed, restarting wallpapers...", "GUI")
-            self.controller.restart_wallpapers()
-        else:
-            self.log_manager.add_info("Settings saved (No restart needed)", "GUI")
+            # Automation
+            self.config.set("cycleEnabled", self.cycle_sw.get_active())
+            self.config.set("cycleInterval", int(self.cycle_spin.get_value()))
             
-        # 5. Cycle Timer Update
-        CYCLE_KEYS = {"cycleEnabled", "cycleInterval"}
-        if any(k in CYCLE_KEYS for k in changed_keys):
-             if self.on_cycle_settings_changed:
-                 self.log_manager.add_info("Cycling settings changed, updating timer...", "GUI")
-                 self.on_cycle_settings_changed()
+            cycle_opts = ["random", "title", "size", "size_desc", "type", "id"]
+            # Map UI index to config value
+            # UI: ["Random", "Title", "Size ↑", "Size ↓", "Type", "ID"]
+            sel_idx = self.cycle_order_dd.get_selected()
+            if 0 <= sel_idx < len(cycle_opts):
+                self.config.set("cycleOrder", cycle_opts[sel_idx])
             
-        # UI Feedback
-        orig_label = btn.get_label()
-        btn.set_label("Saved! ✓")
-        
-        def restore_btn():
-            btn.set_label(orig_label)
-            return False
+            self.config.set("wayland_only_active", self.wl_active_sw.get_active())
+            self.config.set("wayland_ignore_appids", self.wl_ignore_entry.get_text())
+
+            # Audio
+            self.config.set("silence", self.silence_sw.get_active())
+            self.config.set("volume", int(self.vol_spin.get_value()))
+            self.config.set("noautomute", self.noautomute_sw.get_active())
+            self.config.set("noAudioProcessing", self.noaudioproc_sw.get_active())
+
+            # Advanced
+            self.config.set("workshopPath", self.path_entry.get_text())
             
-        GLib.timeout_add(2000, restore_btn)
+            assets_path = self.assets_entry.get_text().strip()
+            self.config.set("assetsPath", assets_path if assets_path else None)
+            
+            # Screen Root
+            screens = self.screen_manager.get_screens()
+            sel_idx = self.screen_dd.get_selected()
+            # If screens list changed since build, this might be risky, but refresh updates model
+            # Re-fetch model from dropdown?
+            model = self.screen_dd.get_model()
+            if model and 0 <= sel_idx < model.get_n_items():
+                selected_screen = model.get_item(sel_idx).get_string()
+                self.config.set("lastScreen", selected_screen)
+
+            # Autostart
+            if self.autostart_sw.get_active():
+                self.integrator.enable_autostart(hidden=self.start_hidden_sw.get_active())
+            else:
+                self.integrator.disable_autostart()
+
+            # Screenshot
+            self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
+            self.config.set("screenshotRes", self.screenshot_res_entry.get_text())
+            self.config.set("preferXvfb", self.xvfb_sw.get_active())
+
+            self.wp_manager.set_workshop_path(self.config.get("workshopPath"))
+            
+            # Trigger cycle timer update if needed
+            if self.on_cycle_settings_changed:
+                self.on_cycle_settings_changed()
+
+            self.show_toast("Settings saved successfully")
+            
+            # Restart if active to apply immediate changes (like FPS/Scaling)
+            # Optional: Ask user? Or just do it.
+            # self.controller.restart_wallpapers() 
+            
+        except Exception as e:
+            self.show_toast(f"Error saving settings: {e}")
+            print(f"Save error: {e}")
 
     def on_reload(self, btn):
-        self.wp_manager.clear_cache()
-        path = self.path_entry.get_text().strip()
-        if path:
-            self.wp_manager.workshop_path = path
-        self.wp_manager.scan()
-        # Note: WallpapersPage needs to refresh. We might need a global event bus or signal.
-        # But for now, user has to go back to Home tab and click refresh there, or we can assume
-        # next time they go there it's fine.
-        # Ideally, `on_reload` should signal app to refresh wallpapers page.
-
-    def on_refresh_screens(self, btn):
-        screens = self.screen_manager.refresh()
-        curr = str(self.config.get("lastScreen", "eDP-1"))
-        if curr not in screens: screens.append(curr)
-        self.screen_dd.set_model(Gtk.StringList.new(screens))
-        if curr in screens:
-            self.screen_dd.set_selected(screens.index(curr))
-
-    def on_create_desktop_entry(self, btn):
-        try:
-            path = self.integrator.create_menu_shortcut()
-            self.log_manager.add_info(f"Desktop entry created at: {path}", "GUI")
-            
-            orig = btn.get_label()
-            btn.set_label("Created!")
-            GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
-        except Exception as e:
-            self.log_manager.add_error(f"Failed to create desktop entry: {e}", "GUI")
-
-    def on_browse_workshop(self, btn):
-        dialog = Gtk.FileDialog()
-        dialog.set_title("Select Workshop Directory")
-        dialog.select_folder(self.get_root(), None, self._on_workshop_folder_selected)
-
-    def _on_workshop_folder_selected(self, dialog, result):
-        try:
-            folder = dialog.select_folder_finish(result)
-            if folder:
-                path = folder.get_path()
-                self.path_entry.set_text(path)
-        except GLib.Error:
-            pass
-
-    def on_browse_assets(self, btn):
-        dialog = Gtk.FileDialog()
-        dialog.set_title("Select Assets Directory")
-        dialog.select_folder(self.get_root(), None, self._on_assets_folder_selected)
-
-    def _on_assets_folder_selected(self, dialog, result):
-        try:
-            folder = dialog.select_folder_finish(result)
-            if folder:
-                path = folder.get_path()
-                self.assets_entry.set_text(path)
-        except GLib.Error:
-            pass
+        self.controller.restart_wallpapers()
+        self.show_toast("Reloading wallpapers...")

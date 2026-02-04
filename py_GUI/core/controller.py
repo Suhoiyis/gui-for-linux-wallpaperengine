@@ -7,6 +7,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.logger import LogManager
 
 from py_GUI.core.screen import ScreenManager
+from py_GUI.core.performance import PerformanceMonitor
 
 class WallpaperController:
     def __init__(self, config: ConfigManager, prop_manager: PropertiesManager, 
@@ -18,6 +19,8 @@ class WallpaperController:
         self.current_proc: Optional[subprocess.Popen] = None
         self.show_toast: Callable[[str], None] = lambda msg: None
         self._last_command: List[str] = []
+        
+        self.perf_monitor = PerformanceMonitor()
         
         if shutil.which("xvfb-run"):
             self.log_manager.add_info("Xvfb detected: Silent screenshots enabled", "Controller")
@@ -189,6 +192,11 @@ class WallpaperController:
 
             self.log_manager.add_info("Engine started successfully", "Controller")
 
+            # Start Performance Monitoring
+            if self.current_proc and self.current_proc.pid:
+                self.perf_monitor.stop_all_backends()
+                self.perf_monitor.start_monitoring("backend", self.current_proc.pid)
+
             colors_script = os.path.expanduser("~/niri/scripts/sync_colors.sh")
             if os.path.exists(colors_script):
                 try:
@@ -262,6 +270,9 @@ class WallpaperController:
     def stop(self):
         """Stop wallpaper"""
         self.log_manager.add_info("Stopping wallpaper", "Controller")
+        
+        self.perf_monitor.stop_all_backends()
+        
         if self.current_proc:
             self.current_proc.terminate()
             self.current_proc = None
