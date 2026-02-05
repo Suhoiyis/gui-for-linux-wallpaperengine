@@ -193,6 +193,10 @@ class WallpaperApp(Adw.Application):
         self._is_first_activation = False
         self.setup_cycle_timer()
         self.tray.start()
+        
+        if self.tray.process and self.tray.process.pid:
+            self.controller.perf_monitor.start_monitoring("tray", self.tray.process.pid)
+        
         self.consume_cli_actions()
 
     def auto_apply(self, wp_id):

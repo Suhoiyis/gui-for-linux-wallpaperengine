@@ -47,6 +47,8 @@ class PerformancePage(Gtk.Box):
         self.create_overview_card("Total CPU", "cpu", 0, 0, unit="%")
         self.create_overview_card("Total Memory", "memory_mb", 0, 1, unit=" MB")
         self.create_overview_card("Active Threads", "threads", 0, 2)
+        
+        self.create_threads_expander()
 
         # Process Table
         self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
@@ -87,15 +89,38 @@ class PerformancePage(Gtk.Box):
         self.overview_grid.attach(card, col, row, 1, 1)
         self.total_labels[key] = (lbl_val, unit)
 
+    def create_threads_expander(self):
+        expander = Gtk.Expander(label="Python Threads (Frontend only)")
+        expander.set_expanded(False)
+        expander.add_css_class("card")
+        self.append(expander)
+        
+        self.threads_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.threads_list_box.set_margin_top(10)
+        self.threads_list_box.set_margin_start(10)
+        expander.set_child(self.threads_list_box)
+
     def on_perf_update(self, stats: Dict):
         GLib.idle_add(lambda: self._update_ui(stats))
 
     def _update_ui(self, stats: Dict):
-        # Update Overview
         total = stats.get("total", {})
         for key, (lbl, unit) in self.total_labels.items():
-            val = total.get(key, 0)
-            lbl.set_label(f"{val}{unit}")
+            fmt_key = f"{key}_fmt"
+            if fmt_key in total:
+                lbl.set_label(total[fmt_key])
+            else:
+                val = total.get(key, 0)
+                lbl.set_label(f"{val}{unit}")
+        
+        thread_names = total.get("thread_names", [])
+        while self.threads_list_box.get_first_child():
+            self.threads_list_box.remove(self.threads_list_box.get_first_child())
+        for name in thread_names:
+            lbl = Gtk.Label(label=f"• {name}")
+            lbl.set_halign(Gtk.Align.START)
+            lbl.add_css_class("text-muted")
+            self.threads_list_box.append(lbl)
 
         # Update Process List
         details = stats.get("details", {})
@@ -202,6 +227,6 @@ class PerformancePage(Gtk.Box):
         return row
 
     def _update_process_row(self, row, category, data):
-        row.cpu_lbl.set_label(f"{data['cpu']}%")
-        row.mem_lbl.set_label(f"{data['memory_mb']} MB")
+        row.cpu_lbl.set_label(data.get('cpu_fmt', f"{data['cpu']}%"))
+        row.mem_lbl.set_label(data.get('memory_fmt', f"{data['memory_mb']} MB"))
         row.status_lbl.set_label(data['status'].upper())

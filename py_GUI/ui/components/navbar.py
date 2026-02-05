@@ -61,7 +61,7 @@ class NavBar(Gtk.Box):
         nav_box.append(self.btn_home)
 
         self.btn_performance = Gtk.ToggleButton()
-        self.btn_performance.set_icon_name("utilities-system-monitor-symbolic")
+        self.btn_performance.set_icon_name("org.gnome.SystemMonitor-symbolic")
         self.btn_performance.set_tooltip_text("Performance")
         self.btn_performance.add_css_class("nav-btn")
         self.btn_performance.connect("toggled", self.on_performance_toggled)

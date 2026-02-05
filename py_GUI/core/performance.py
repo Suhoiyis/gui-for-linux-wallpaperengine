@@ -3,34 +3,55 @@ import time
 import threading
 from typing import Dict, List, Optional, Callable
 
+def _format_cpu(val: float) -> str:
+    return f"{int(val)}%" if val == int(val) else f"{val:.1f}%"
+
+def _format_mem(val: float) -> str:
+    return f"{int(val)} MB" if val == int(val) else f"{val:.1f} MB"
+
 class PerformanceMonitor:
     def __init__(self):
-        # Map: category -> pid
-        self._monitored_pids: Dict[str, int] = {}
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._callbacks: List[Callable[[Dict], None]] = []
-        self._interval = 1.0  # Faster updates (1s)
+        self._interval = 1.0
+        
+        self._processes: Dict[str, psutil.Process] = {}
+        self._add_process("frontend", psutil.Process().pid)
 
-        # Always monitor self (GUI)
-        self._monitored_pids["frontend"] = psutil.Process().pid
+    def _find_real_process(self, pid: int) -> Optional[psutil.Process]:
+        try:
+            proc = psutil.Process(pid)
+            children = proc.children(recursive=True)
+            for child in children:
+                if child.name() == "linux-wallpaperengine":
+                    return child
+            return proc
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return None
+
+    def _add_process(self, category: str, pid: int) -> bool:
+        proc = self._find_real_process(pid) if category == "backend" else None
+        if proc is None:
+            try:
+                proc = psutil.Process(pid)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                return False
+        proc.cpu_percent()
+        self._processes[category] = proc
+        return True
 
     def start_monitoring(self, category: str, pid: int):
-        """Start tracking a specific process (backend, tray, etc)"""
-        self._monitored_pids[category] = pid
-        self._ensure_thread_running()
+        if self._add_process(category, pid):
+            self._ensure_thread_running()
 
     def stop_monitoring(self, category: str):
-        """Stop tracking a specific category"""
-        if category in self._monitored_pids:
-            del self._monitored_pids[category]
+        self._processes.pop(category, None)
 
     def stop_all_backends(self):
-        """Stop monitoring backend/tray but keep frontend"""
-        keys = list(self._monitored_pids.keys())
+        keys = [k for k in self._processes.keys() if k != "frontend"]
         for k in keys:
-            if k != "frontend":
-                del self._monitored_pids[k]
+            del self._processes[k]
 
     def _ensure_thread_running(self):
         if not self._thread or not self._thread.is_alive():
@@ -39,9 +60,8 @@ class PerformanceMonitor:
             self._thread.start()
 
     def add_callback(self, callback: Callable[[Dict], None]):
-        """Register a callback to receive stats updates"""
         self._callbacks.append(callback)
-        self._ensure_thread_running() # Ensure loop is running if UI requests it
+        self._ensure_thread_running()
 
     def _monitor_loop(self):
         while not self._stop_event.is_set():
@@ -50,41 +70,42 @@ class PerformanceMonitor:
                 "details": {}
             }
             
-            # Snapshot of keys to avoid modification during iteration
-            active_items = list(self._monitored_pids.items())
-            
-            for category, pid in active_items:
+            for category, proc in list(self._processes.items()):
                 try:
-                    proc = psutil.Process(pid)
                     with proc.oneshot():
                         cpu = proc.cpu_percent(interval=None)
-                        mem_info = proc.memory_info()
-                        mem_mb = mem_info.rss / (1024 * 1024)
+                        mem_mb = proc.memory_info().rss / (1024 * 1024)
                         threads = proc.num_threads()
                         status = proc.status()
                         name = proc.name()
 
-                    data = {
-                        "pid": pid,
+                    stats["details"][category] = {
+                        "pid": proc.pid,
                         "name": name,
-                        "cpu": cpu,
+                        "cpu": round(cpu, 1),
+                        "cpu_fmt": _format_cpu(round(cpu, 1)),
                         "memory_mb": round(mem_mb, 1),
+                        "memory_fmt": _format_mem(round(mem_mb, 1)),
                         "threads": threads,
                         "status": status
                     }
-                    stats["details"][category] = data
                     
-                    # Aggregate total
                     stats["total"]["cpu"] += cpu
                     stats["total"]["memory_mb"] += mem_mb
                     stats["total"]["threads"] += threads
 
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     if category != "frontend":
-                        self.stop_monitoring(category)
+                        self._processes.pop(category, None)
             
-            stats["total"]["memory_mb"] = round(stats["total"]["memory_mb"], 1)
-            stats["total"]["cpu"] = round(stats["total"]["cpu"], 1)
+            total_cpu = round(stats["total"]["cpu"], 1)
+            total_mem = round(stats["total"]["memory_mb"], 1)
+            stats["total"]["cpu"] = total_cpu
+            stats["total"]["cpu_fmt"] = _format_cpu(total_cpu)
+            stats["total"]["memory_mb"] = total_mem
+            stats["total"]["memory_fmt"] = _format_mem(total_mem)
+            
+            stats["total"]["thread_names"] = [t.name for t in threading.enumerate()]
 
             self._notify(stats)
             time.sleep(self._interval)
