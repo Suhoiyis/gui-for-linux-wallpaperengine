@@ -1,13 +1,31 @@
 import psutil
 import time
 import threading
+import os
+from collections import deque
 from typing import Dict, List, Optional, Callable
+
+HISTORY_SIZE = 60
 
 def _format_cpu(val: float) -> str:
     return f"{int(val)}%" if val == int(val) else f"{val:.1f}%"
 
 def _format_mem(val: float) -> str:
     return f"{int(val)} MB" if val == int(val) else f"{val:.1f} MB"
+
+def _get_thread_names(pid: int) -> List[str]:
+    names = []
+    task_dir = f"/proc/{pid}/task"
+    try:
+        for tid in os.listdir(task_dir):
+            try:
+                with open(f"{task_dir}/{tid}/comm") as f:
+                    names.append(f.read().strip())
+            except (IOError, OSError):
+                pass
+    except (IOError, OSError):
+        pass
+    return names
 
 class PerformanceMonitor:
     def __init__(self):
@@ -17,7 +35,14 @@ class PerformanceMonitor:
         self._interval = 1.0
         
         self._processes: Dict[str, psutil.Process] = {}
+        self._history: Dict[str, Dict[str, deque]] = {}
         self._add_process("frontend", psutil.Process().pid)
+
+    def _init_history(self, category: str):
+        self._history[category] = {
+            "cpu": deque(maxlen=HISTORY_SIZE),
+            "memory_mb": deque(maxlen=HISTORY_SIZE)
+        }
 
     def _find_real_process(self, pid: int) -> Optional[psutil.Process]:
         try:
@@ -39,6 +64,7 @@ class PerformanceMonitor:
                 return False
         proc.cpu_percent()
         self._processes[category] = proc
+        self._init_history(category)
         return True
 
     def start_monitoring(self, category: str, pid: int):
@@ -47,11 +73,13 @@ class PerformanceMonitor:
 
     def stop_monitoring(self, category: str):
         self._processes.pop(category, None)
+        self._history.pop(category, None)
 
     def stop_all_backends(self):
         keys = [k for k in self._processes.keys() if k != "frontend"]
         for k in keys:
             del self._processes[k]
+            self._history.pop(k, None)
 
     def _ensure_thread_running(self):
         if not self._thread or not self._thread.is_alive():
@@ -70,6 +98,9 @@ class PerformanceMonitor:
                 "details": {}
             }
             
+            if "total" not in self._history:
+                self._init_history("total")
+
             for category, proc in list(self._processes.items()):
                 try:
                     with proc.oneshot():
@@ -79,6 +110,12 @@ class PerformanceMonitor:
                         status = proc.status()
                         name = proc.name()
 
+                    if category not in self._history:
+                        self._init_history(category)
+                    
+                    self._history[category]["cpu"].append(cpu)
+                    self._history[category]["memory_mb"].append(mem_mb)
+
                     stats["details"][category] = {
                         "pid": proc.pid,
                         "name": name,
@@ -87,7 +124,11 @@ class PerformanceMonitor:
                         "memory_mb": round(mem_mb, 1),
                         "memory_fmt": _format_mem(round(mem_mb, 1)),
                         "threads": threads,
-                        "status": status
+                        "status": status,
+                        "history": {
+                            "cpu": list(self._history[category]["cpu"]),
+                            "memory_mb": list(self._history[category]["memory_mb"])
+                        }
                     }
                     
                     stats["total"]["cpu"] += cpu
@@ -100,12 +141,27 @@ class PerformanceMonitor:
             
             total_cpu = round(stats["total"]["cpu"], 1)
             total_mem = round(stats["total"]["memory_mb"], 1)
+            
+            self._history["total"]["cpu"].append(total_cpu)
+            self._history["total"]["memory_mb"].append(total_mem)
+            
             stats["total"]["cpu"] = total_cpu
             stats["total"]["cpu_fmt"] = _format_cpu(total_cpu)
             stats["total"]["memory_mb"] = total_mem
             stats["total"]["memory_fmt"] = _format_mem(total_mem)
+            stats["total"]["history"] = {
+                "cpu": list(self._history["total"]["cpu"]),
+                "memory_mb": list(self._history["total"]["memory_mb"])
+            }
             
-            stats["total"]["thread_names"] = [t.name for t in threading.enumerate()]
+            all_thread_names = {}
+            for category, proc in list(self._processes.items()):
+                try:
+                    names = _get_thread_names(proc.pid)
+                    all_thread_names[category] = names
+                except Exception:
+                    all_thread_names[category] = []
+            stats["total"]["thread_names"] = all_thread_names
 
             self._notify(stats)
             time.sleep(self._interval)
