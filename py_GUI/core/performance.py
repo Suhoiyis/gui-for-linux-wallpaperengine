@@ -76,7 +76,7 @@ class PerformanceMonitor:
         self._history.pop(category, None)
 
     def stop_all_backends(self):
-        keys = [k for k in self._processes.keys() if k != "frontend"]
+        keys = [k for k in self._processes.keys() if k not in ("frontend", "tray")]
         for k in keys:
             del self._processes[k]
             self._history.pop(k, None)

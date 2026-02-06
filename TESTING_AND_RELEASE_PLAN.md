@@ -1,14 +1,14 @@
 # Linux Wallpaper Engine GUI - 测试与发布计划
 
-**文档版本**: v1.1
+**文档版本**: v1.2
 **创建日期**: 2026-01-25
-**项目当前版本**: v0.8.10
+**项目当前版本**: v0.9.0
 
 ## 📋 项目现状概览
 
 ### 当前状态
-- **版本**: v0.8.10 (2026-02-02)
-- **完成度**: ~90%
+- **版本**: v0.9.0 (2026-02-06)
+- **完成度**: ~92%
 - **核心功能**: ✅ 基本完善
 - **测试覆盖**: ❌ 待建立
 - **发布渠道**: ❌ 仅源码
@@ -22,6 +22,7 @@
 - ✅ 命令行控制
 - ✅ 配置管理
 - ✅ 系统集成 (自启动、桌面快捷方式)
+- ✅ **性能监控** (v0.9.0 新增)
 
 ---
 
@@ -249,60 +250,51 @@ jobs:
 
 ---
 
-### 3. 性能监控工具
+### 3. 性能监控工具 ✅ **已完成 (v0.9.0)**
 
-#### 3.1 后端限制说明
+#### 3.1 实现概览
 
-**关键约束**: 壁纸渲染在 C++ 后端 `linux-wallpaperengine` 中执行，Python GUI 仅作为控制器。
+**实现位置**: `py_GUI/core/performance.py`, `py_GUI/ui/pages/performance.py`, `py_GUI/ui/components/sparkline.py`
 
-**能够监控的**:
+**功能特性**:
+| 功能 | 描述 |
+|------|------|
+| 总览卡片 | Total CPU、Total Memory、Active Threads 三项核心指标 |
+| 历史曲线图 | 基于 Cairo 的 Sparkline 组件，显示最近 60 秒数据 |
+| 进程详情 | Frontend/Backend/Tray 三个进程独立监控 |
+| 动态着色 | CPU 根据负载变色（绿<20%、橙<40%、红≥40%），内存蓝色 |
+| 线程列表 | 可展开查看各进程线程名称（3列布局） |
+| 壁纸详情 | Backend 进程可展开显示各显示器壁纸缩略图、标题、ID |
+
+#### 3.2 技术实现
+
+**核心类**: `PerformanceMonitor`
+- 使用 `psutil` 进行进程级监控
+- 1 秒采样间隔，60 秒历史缓冲
+- 缓存 `psutil.Process` 对象避免重复查找
+- 自动识别真正的后端进程（跳过 bash wrapper）
+
+**UI 组件**: `Sparkline`
+- 纯 Cairo 绘制，无外部依赖
+- 自适应缩放（最小 10%，最大 100%）
+- 右对齐模式（数据不足 60 秒时从右侧开始绘制）
+- 网格线和刻度标签
+
+**监控能力**:
 | 指标 | 方式 | 精度 |
 |------|------|------|
 | 后端进程 CPU 占用 | psutil | 进程级 |
 | 后端进程内存使用 | psutil | 进程级 |
-| 壁纸启动时间 | 时间戳差值 | 粗粒度（命令到进程启动）|
-| 进程存活状态 | poll() | 实时 |
-| 启动失败率 | 日志统计 | 精确 |
+| 进程存活状态 | psutil | 实时 |
+| 线程名称 | /proc/{pid}/task | 实时 |
+| 当前壁纸信息 | config + wp_manager | 实时 |
 
 **无法监控的（后端不提供API）**:
 | 指标 | 原因 |
 |------|------|
 | 真实 FPS | 需要后端暴露渲染帧率 |
 | 渲染性能细节 | OpenGL/渲染管线内部 |
-| 壁纸加载各阶段耗时 | 后端未提供分阶段信息 |
 | GPU 使用率 | 需要后端或系统级接口 |
-
-#### 3.2 可实现的简化版监控
-
-**实现位置**: `py_GUI/core/performance.py`
-
-```python
-import psutil
-import time
-
-class RealisticPerformanceMonitor:
-    def __init__(self):
-        self.backend_process = None
-        
-    def track_wallpaper_start_time(self, wp_id):
-        start = time.time()
-        # 启动后端进程...
-        return time.time() - start
-    
-    def get_backend_metrics(self):
-        if self.backend_process and self.backend_process.poll() is None:
-            try:
-                proc = psutil.Process(self.backend_process.pid)
-                return {
-                    'memory_mb': proc.memory_info().rss / 1024 / 1024,
-                    'cpu_percent': proc.cpu_percent(),
-                    'status': proc.status(),
-                    'runtime': time.time() - proc.create_time()
-                }
-            except:
-                return None
-        return None
-```
 
 #### 3.3 性能基准测试
 - 建立 Performance Regression 测试
@@ -795,6 +787,6 @@ linux-wallpaperengine --screen-root DP-1 --bg 11111111 --screen-root HDMI-A-1 --
 
 ---
 
-**最后更新**: 2026-02-02 (发布 v0.8.10 - Wayland 支持)  
+**最后更新**: 2026-02-06 (发布 v0.9.0 - 性能监控)  
 **负责人**: 开发团队  
 **审核状态**: 待审核

@@ -116,6 +116,9 @@ class WallpaperManager:
             print(f"[ERROR] Failed to update manifest: {e}")
             return False
 
+    def get_wallpaper(self, wallpaper_id: str) -> Optional[Dict]:
+        return self._wallpapers.get(str(wallpaper_id))
+
     def get_sorted_wallpapers(self, sort_mode: str = "random", reverse: bool = False) -> List[str]:
         """Get sorted list of wallpaper IDs"""
         if not self._wallpapers:

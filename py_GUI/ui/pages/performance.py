@@ -389,35 +389,62 @@ class PerformancePage(Gtk.Box):
                     if active_monitors:
                         row.details_expander.set_visible(True)
                         
-                        # Clear old
                         while row.details_box.get_first_child():
                             row.details_box.remove(row.details_box.get_first_child())
                         
-                        # Rebuild
                         for screen, wp_id in active_monitors.items():
                             title = "Unknown"
-                            try:
-                                wp = self.controller.wp_manager.get_wallpaper(str(wp_id))
+                            preview_path = None
+                            clean_id = str(wp_id).strip()
+                            
+                            if hasattr(self.controller, 'wp_manager'):
+                                wp = self.controller.wp_manager.get_wallpaper(clean_id)
                                 if wp:
                                     title = wp.get("title", "Untitled")
-                            except:
-                                pass
+                                    preview_path = wp.get("preview")
                             
-                            s_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                            s_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+                            s_row.set_margin_top(5)
+                            s_row.set_margin_bottom(5)
                             row.details_box.append(s_row)
                             
-                            icon = Gtk.Image.new_from_icon_name("video-display-symbolic")
-                            s_row.append(icon)
+                            if preview_path and hasattr(self.controller, 'wp_manager'):
+                                texture = self.controller.wp_manager.get_texture(preview_path, size=64)
+                                if texture:
+                                    thumb = Gtk.Picture.new_for_paintable(texture)
+                                    thumb.set_size_request(64, 36)
+                                    thumb.set_content_fit(Gtk.ContentFit.COVER)
+                                    thumb.add_css_class("thumbnail")
+                                    s_row.append(thumb)
+                                else:
+                                    placeholder = Gtk.Image.new_from_icon_name("image-missing-symbolic")
+                                    placeholder.set_pixel_size(36)
+                                    s_row.append(placeholder)
+                            else:
+                                placeholder = Gtk.Image.new_from_icon_name("video-display-symbolic")
+                                placeholder.set_pixel_size(36)
+                                s_row.append(placeholder)
                             
-                            lbl = Gtk.Label(label=f"<b>{screen}</b>: {title}")
-                            lbl.set_use_markup(True)
-                            lbl.set_halign(Gtk.Align.START)
-                            s_row.append(lbl)
+                            info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+                            info_box.set_valign(Gtk.Align.CENTER)
+                            s_row.append(info_box)
                             
-                            id_lbl = Gtk.Label(label=f"(ID: {wp_id})")
+                            screen_lbl = Gtk.Label(label=screen)
+                            screen_lbl.set_halign(Gtk.Align.START)
+                            screen_lbl.add_css_class("heading")
+                            info_box.append(screen_lbl)
+                            
+                            title_lbl = Gtk.Label(label=title)
+                            title_lbl.set_halign(Gtk.Align.START)
+                            title_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+                            title_lbl.set_max_width_chars(40)
+                            info_box.append(title_lbl)
+                            
+                            id_lbl = Gtk.Label(label=f"ID: {wp_id}")
                             id_lbl.add_css_class("text-muted")
-                            s_row.append(id_lbl)
+                            id_lbl.set_halign(Gtk.Align.START)
+                            info_box.append(id_lbl)
                     else:
                         row.details_expander.set_visible(False)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Performance] Backend details error: {e}")

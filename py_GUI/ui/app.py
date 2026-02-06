@@ -33,6 +33,7 @@ class WallpaperApp(Adw.Application):
         self.prop_manager = PropertiesManager(self.config)
         self.screen_manager = ScreenManager()
         self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager, self.screen_manager)
+        self.controller.wp_manager = self.wp_manager
 
         self.start_hidden = False
         self.cli_actions = []
