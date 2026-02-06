@@ -29,6 +29,8 @@ class SettingsPage(Gtk.Box):
         self.on_cycle_settings_changed = on_cycle_changed
         self.show_toast = show_toast or (lambda msg: None)
         
+        self.current_filter = "All"
+        
         self.add_css_class("settings-container")
         self.build_ui()
 
@@ -593,10 +595,22 @@ class SettingsPage(Gtk.Box):
         box.set_margin_end(40)
         self.stack.add_named(box, "logs")
 
+        # Header with Filter
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        box.append(header_box)
+
         t = Gtk.Label(label="Logs")
         t.add_css_class("settings-section-title")
         t.set_halign(Gtk.Align.START)
-        box.append(t)
+        t.set_hexpand(True)
+        header_box.append(t)
+
+        # Filter Dropdown
+        filter_opts = ["All", "Controller", "Engine", "GUI"]
+        self.filter_dd = Gtk.DropDown.new_from_strings(filter_opts)
+        self.filter_dd.set_valign(Gtk.Align.CENTER)
+        self.filter_dd.connect("notify::selected", self.on_filter_changed)
+        header_box.append(self.filter_dd)
 
         # Log View
         scroll = Gtk.ScrolledWindow()
@@ -641,6 +655,12 @@ class SettingsPage(Gtk.Box):
         self.log_manager.register_callback(self.on_log_update)
         self.refresh_logs()
 
+    def on_filter_changed(self, dd, pspec):
+        selected = dd.get_selected_item()
+        if selected:
+            self.current_filter = selected.get_string()
+            self.refresh_logs()
+
     def setup_log_tags(self):
         tbl = self.log_buffer.get_tag_table()
         
@@ -674,6 +694,13 @@ class SettingsPage(Gtk.Box):
         lvl = entry.get("level", "")
         src = entry.get("source", "")
         msg = entry.get("message", "")
+
+        if self.current_filter != "All":
+            if self.current_filter == "GUI":
+                if src in ["Controller", "Engine"]:
+                    return
+            elif src != self.current_filter:
+                return
 
         end = self.log_buffer.get_end_iter()
         
