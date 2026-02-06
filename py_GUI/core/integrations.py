@@ -11,7 +11,7 @@ class AppIntegrator:
         self.project_root = os.path.dirname(os.path.dirname(current_dir))
         
         self.script_path = os.path.join(self.project_root, "run_gui.py")
-        self.icon_path = os.path.join(self.project_root, "gui_tray.png")
+        self.icon_path = os.path.join(self.project_root, "pic/gui_tray.png")
         self.python_exe = sys.executable
         
         self.app_dir = os.path.expanduser("~/.local/share/applications")
@@ -42,6 +42,15 @@ X-GNOME-Autostart-enabled=true
         path = os.path.join(self.app_dir, self.desktop_filename)
         self._write_file(path, self._generate_content(hidden=False))
         return path
+
+    def create_desktop_entry(self):
+        """Wrapper for SettingsPage compatibility"""
+        try:
+            path = self.create_menu_shortcut()
+            return True, f"Desktop entry created at: {path}"
+        except Exception as e:
+            return False, f"Failed to create desktop entry: {str(e)}"
+
 
     def set_autostart(self, enabled: bool, hidden: bool = True):
         """Enable or disable autostart"""

@@ -10,7 +10,7 @@ CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 WORKSHOP_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/431960")
 ASSETS_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/common/wallpaper_engine/assets")
-ICON_PATH = os.path.join(PROJECT_ROOT, "gui_tray.png")
+ICON_PATH = os.path.join(PROJECT_ROOT, "pic/gui_tray.png")
 
 DEFAULT_CONFIG = {
     "fps": 30,
@@ -370,14 +370,14 @@ togglebutton:focus {
     background: rgba(255,255,255,0.1);
 }
 
-.sidebar-btn.danger {
-    background: #dc2626;
-    color: white;
-}
+# .sidebar-btn.danger {
+#     background: #dc2626;
+#     color: white;
+# }
 
-.sidebar-btn.danger:hover {
-    background: #ef4444;
-}
+# .sidebar-btn.danger:hover {
+#     background: #ef4444;
+# }
 
 /* Settings page */
 .settings-container {

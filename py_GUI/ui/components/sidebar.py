@@ -226,11 +226,11 @@ class Sidebar(Gtk.Box):
         # Initial button setup
         self.update_apply_button_state()
 
-        self.btn_stop = Gtk.Button(label="Stop Wallpaper")
-        self.btn_stop.add_css_class("sidebar-btn")
-        self.btn_stop.add_css_class("danger")
-        self.btn_stop.connect("clicked", self.on_stop_clicked)
-        btn_box.append(self.btn_stop)
+        # self.btn_stop = Gtk.Button(label="Stop Wallpaper")
+        # self.btn_stop.add_css_class("sidebar-btn")
+        # self.btn_stop.add_css_class("danger")
+        # self.btn_stop.connect("clicked", self.on_stop_clicked)
+        # btn_box.append(self.btn_stop)
 
         self.btn_workshop = Gtk.Button(label="Open in Workshop")
         self.btn_workshop.add_css_class("sidebar-btn")
@@ -560,11 +560,12 @@ class Sidebar(Gtk.Box):
     #         self.log_manager.add_debug(f"Property changed for active wallpaper {self.selected_wp}, reapplying...", "Sidebar")
     #         self.controller.apply(self.selected_wp)
 
-    def on_stop_clicked(self, btn):
-        current_screen = self.get_current_screen()
-        if current_screen:
-            self.controller.stop_screen(current_screen)
-            self.log_manager.add_info(f"Stopped wallpaper on {current_screen}", "Sidebar")
+
+    # def on_stop_clicked(self, btn):
+    #     current_screen = self.get_current_screen()
+    #     if current_screen:
+    #         self.controller.stop_screen(current_screen)
+    #         self.log_manager.add_info(f"Stopped wallpaper on {current_screen}", "Sidebar")
 
     def on_apply_clicked(self, btn):
         if self.selected_wp:
