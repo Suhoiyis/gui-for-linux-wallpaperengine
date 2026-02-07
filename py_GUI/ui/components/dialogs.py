@@ -32,7 +32,7 @@ def show_error_dialog(parent_window, title, message):
     error_dialog.connect("response", lambda d, r: d.destroy())
     error_dialog.present()
 
-def show_screenshot_success_dialog(parent_window, file_path):
+def show_screenshot_success_dialog(parent_window, file_path, stats=None):
     import subprocess
     import os
     import shutil
@@ -46,6 +46,8 @@ def show_screenshot_success_dialog(parent_window, file_path):
     )
     
     msg = f"Screenshot has been saved to:\n{file_path}"
+    if stats:
+        msg += f"\n\n{stats}"
     dialog.set_property("secondary-text", msg)
     
     # Add custom action buttons

@@ -446,7 +446,7 @@ class WallpapersPage(Gtk.Box):
                 # Web wallpapers might need more time, user setting is respected
             
             self.log_manager.add_info(f"Taking screenshot to {output_path}...", "GUI")
-            proc = self.controller.take_screenshot(target_id, output_path, delay=delay_frames)
+            proc, tracker = self.controller.take_screenshot(target_id, output_path, delay=delay_frames)
             
             start_time = time.time()
             
@@ -530,11 +530,15 @@ class WallpapersPage(Gtk.Box):
                     proc.terminate()
 
             def show_success():
-                # Verify file one last time
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     self.log_manager.add_info(f"Screenshot complete: {output_path}", "GUI")
+                    
+                    stats = self.controller.perf_monitor.stop_task(tracker)
+                    self.controller.perf_monitor.add_screenshot_history(target_id, output_path, stats)
+                    stats_str = f"Duration: {stats['duration']:.2f}s | Max CPU: {stats['max_cpu']:.1f}% | Max Mem: {stats['max_mem']:.1f} MB"
+                    
                     reset_ui()
-                    show_screenshot_success_dialog(self.window, output_path)
+                    show_screenshot_success_dialog(self.window, output_path, stats_str)
                 else:
                     # Rare race condition or save failed
                     verify_after_kill()

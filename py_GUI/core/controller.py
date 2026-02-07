@@ -1,7 +1,7 @@
 import subprocess
 import os
 import shutil
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Tuple, Dict
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.logger import LogManager
@@ -20,7 +20,7 @@ class WallpaperController:
         self.show_toast: Callable[[str], None] = lambda msg: None
         self._last_command: List[str] = []
         
-        self.perf_monitor = PerformanceMonitor()
+        self.perf_monitor = PerformanceMonitor(config=config)
         
         if shutil.which("xvfb-run"):
             self.log_manager.add_info("Xvfb detected: Silent screenshots enabled", "Controller")
@@ -265,7 +265,10 @@ class WallpaperController:
         # Run asynchronously with a new session so we can kill the whole group
         # Redirect stderr to a temp file for debugging crashes
         err_log = open("/tmp/wallpaper_screenshot_error.log", "w")
-        return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=err_log, start_new_session=True, env=env)
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=err_log, start_new_session=True, env=env)
+        
+        tracker = self.perf_monitor.start_task("screenshot", proc.pid)
+        return proc, tracker
 
     def stop(self):
         """Stop wallpaper"""

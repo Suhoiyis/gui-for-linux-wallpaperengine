@@ -2,6 +2,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gdk, GLib, Pango
 
+import time
 from typing import Dict, List
 from py_GUI.core.controller import WallpaperController
 from py_GUI.ui.components.sparkline import Sparkline
@@ -100,6 +101,8 @@ class PerformancePage(Gtk.Box):
         self.content_box.append(self.process_list)
         
         self.process_widgets = {}
+        
+        self.build_screenshot_history_panel()
 
     def create_overview_card(self, title, key, row, col, unit=""):
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -150,7 +153,6 @@ class PerformancePage(Gtk.Box):
                 val = total.get(key, 0)
                 lbl.set_label(f"{val}{unit}")
             
-            # Colorize Total CPU Label
             if key == "cpu":
                 lbl.remove_css_class("success")
                 lbl.remove_css_class("warning")
@@ -165,7 +167,6 @@ class PerformancePage(Gtk.Box):
             elif key == "memory_mb":
                 lbl.add_css_class("memory-text")
         
-        # Update Total Charts
         history = total.get("history", {})
         if "cpu" in history:
             cpu_data = history["cpu"]
@@ -173,14 +174,13 @@ class PerformancePage(Gtk.Box):
             max_cpu = min(max_cpu, 100.0)
             self.total_cpu_chart.set_data(cpu_data, max_val=max_cpu, unit="%")
             
-            # Colorize Total CPU Chart
             current_cpu = cpu_data[-1] if cpu_data else 0
             if current_cpu < 20:
-                self.total_cpu_chart.set_color((0.18, 0.76, 0.49)) # Green
+                self.total_cpu_chart.set_color((0.18, 0.76, 0.49))
             elif current_cpu < 40:
-                self.total_cpu_chart.set_color((0.96, 0.62, 0.04)) # Orange
+                self.total_cpu_chart.set_color((0.96, 0.62, 0.04))
             else:
-                self.total_cpu_chart.set_color((0.88, 0.11, 0.14)) # Red
+                self.total_cpu_chart.set_color((0.88, 0.11, 0.14))
             
         if "memory_mb" in history:
             self.total_mem_chart.set_data(history["memory_mb"], unit=" MB")
@@ -230,6 +230,11 @@ class PerformancePage(Gtk.Box):
                 self.process_widgets[pid] = row
             
             self._update_process_row(self.process_widgets[pid], category, data)
+        
+        current_count = len(self.controller.perf_monitor.get_screenshot_history())
+        if current_count != self._last_screenshot_count:
+            self._last_screenshot_count = current_count
+            self._refresh_screenshot_history()
 
     def _create_process_row(self, category: str, data: Dict) -> Gtk.Box:
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -448,3 +453,95 @@ class PerformancePage(Gtk.Box):
                         row.details_expander.set_visible(False)
             except Exception as e:
                 print(f"[Performance] Backend details error: {e}")
+
+    def build_screenshot_history_panel(self):
+        self.content_box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+        
+        header = Gtk.Label(label="Screenshot History")
+        header.add_css_class("settings-section-title")
+        header.set_halign(Gtk.Align.START)
+        self.content_box.append(header)
+        
+        desc = Gtk.Label(label="Resource usage from recent screenshot captures (last 10).")
+        desc.add_css_class("text-muted")
+        desc.set_halign(Gtk.Align.START)
+        self.content_box.append(desc)
+        
+        self.screenshot_history_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.content_box.append(self.screenshot_history_box)
+        
+        self._last_screenshot_count = 0
+        self._refresh_screenshot_history()
+
+    def _refresh_screenshot_history(self):
+        while self.screenshot_history_box.get_first_child():
+            self.screenshot_history_box.remove(self.screenshot_history_box.get_first_child())
+        
+        history = self.controller.perf_monitor.get_screenshot_history()
+        
+        if not history:
+            empty_label = Gtk.Label(label="No screenshots taken yet.")
+            empty_label.add_css_class("text-muted")
+            empty_label.set_halign(Gtk.Align.START)
+            self.screenshot_history_box.append(empty_label)
+            return
+        
+        for record in reversed(history):
+            row = self._create_screenshot_history_row(record)
+            self.screenshot_history_box.append(row)
+
+    def _create_screenshot_history_row(self, record: Dict) -> Gtk.Box:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
+        row.add_css_class("list-item")
+        row.set_margin_top(5)
+        row.set_margin_bottom(5)
+        
+        icon = Gtk.Image.new_from_icon_name("camera-photo-symbolic")
+        icon.set_pixel_size(24)
+        row.append(icon)
+        
+        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        info_box.set_hexpand(True)
+        row.append(info_box)
+        
+        timestamp = record.get("timestamp", 0)
+        time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
+        wp_id = record.get("wp_id", "Unknown")
+        
+        title_lbl = Gtk.Label(label=f"Wallpaper {wp_id}")
+        title_lbl.add_css_class("list-title")
+        title_lbl.set_halign(Gtk.Align.START)
+        title_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+        info_box.append(title_lbl)
+        
+        time_lbl = Gtk.Label(label=time_str)
+        time_lbl.add_css_class("text-muted")
+        time_lbl.set_halign(Gtk.Align.START)
+        info_box.append(time_lbl)
+        
+        stats_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        row.append(stats_box)
+        
+        duration = record.get("duration", 0)
+        max_cpu = record.get("max_cpu", 0)
+        max_mem = record.get("max_mem", 0)
+        
+        self._add_stat_column(stats_box, f"{duration:.1f}s", "Duration", 70)
+        self._add_stat_column(stats_box, f"{max_cpu:.1f}%", "Max CPU", 70)
+        self._add_stat_column(stats_box, f"{max_mem:.1f} MB", "Max Mem", 80)
+        
+        return row
+
+    def _add_stat_column(self, parent: Gtk.Box, value: str, label: str, width: int):
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        col.set_size_request(width, -1)
+        
+        val_lbl = Gtk.Label(label=value)
+        val_lbl.add_css_class("heading")
+        col.append(val_lbl)
+        
+        lbl = Gtk.Label(label=label)
+        lbl.add_css_class("text-muted")
+        col.append(lbl)
+        
+        parent.append(col)

@@ -797,17 +797,21 @@ class SettingsPage(Gtk.Box):
                 self.config.set("lastScreen", selected_screen)
 
             # Autostart
-            if self.autostart_sw.get_active():
-                self.integrator.enable_autostart(hidden=self.start_hidden_sw.get_active())
-            else:
-                self.integrator.disable_autostart()
+            self.integrator.set_autostart(
+                self.autostart_sw.get_active(),
+                hidden=self.start_hidden_sw.get_active()
+            )
 
             # Screenshot
             self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
             self.config.set("screenshotRes", self.screenshot_res_entry.get_text())
             self.config.set("preferXvfb", self.xvfb_sw.get_active())
 
-            self.wp_manager.set_workshop_path(self.config.get("workshopPath"))
+            new_path = self.config.get("workshopPath")
+            if new_path and new_path != self.wp_manager.workshop_path:
+                self.wp_manager.workshop_path = new_path
+                self.wp_manager.manifest_path = self.wp_manager._find_manifest_path()
+                self.wp_manager.scan()
             
             # Trigger cycle timer update if needed
             if self.on_cycle_settings_changed:
