@@ -2,21 +2,21 @@ import os
 import sys
 import stat
 
+from py_GUI.const import APP_ID
+
 class AppIntegrator:
     def __init__(self):
         # Resolve paths dynamically based on this file's location
-        # this file is in py_GUI/core/integrations.py
-        # root is ../../..
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.project_root = os.path.dirname(os.path.dirname(current_dir))
         
         self.script_path = os.path.join(self.project_root, "run_gui.py")
-        self.icon_path = os.path.join(self.project_root, "pic/gui_tray.png")
+        self.icon_path = os.path.join(self.project_root, "pic/GUI.png")
         self.python_exe = sys.executable
         
         self.app_dir = os.path.expanduser("~/.local/share/applications")
         self.autostart_dir = os.path.expanduser("~/.config/autostart")
-        self.desktop_filename = "linux-wallpaperengine-gui.desktop"
+        self.desktop_filename = f"{APP_ID}.desktop"
 
     def _generate_content(self, hidden=False):
         exec_cmd = f"{self.python_exe} \"{self.script_path}\""
@@ -33,6 +33,7 @@ Path={self.project_root}
 Terminal=false
 Categories=Utility;Graphics;
 StartupNotify=true
+StartupWMClass=linux-wallpaperengine-gui
 X-GNOME-Autostart-enabled=true
 """
 

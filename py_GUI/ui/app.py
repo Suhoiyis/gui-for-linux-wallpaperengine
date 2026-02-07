@@ -1,4 +1,5 @@
 import sys
+import os
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -87,8 +88,21 @@ class WallpaperApp(Adw.Application):
             Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
+        # Setup Icon Theme
+        display = Gdk.Display.get_default()
+        icon_theme = Gtk.IconTheme.get_for_display(display)
+        
+        # Add 'pic' directory to icon search path
+        # py_GUI/ui/app.py -> .../linux-wallpaperengine-gui/
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        pic_path = os.path.join(base_path, "pic")
+        
+        if os.path.exists(pic_path):
+            icon_theme.add_search_path(pic_path)
+
         self.win = Gtk.ApplicationWindow(application=self)
         self.win.set_title("Linux Wallpaper Engine GUI")
+        self.win.set_icon_name("GUI") # Matches GUI.png in pic/
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)
@@ -425,5 +439,7 @@ class WallpaperApp(Adw.Application):
             self.wallpapers_page.open_wallpaper_folder(wp_id)
 
 def main():
+    # Set program name for WM class matching - must match the .desktop filename
+    GLib.set_prgname(APP_ID)
     app = WallpaperApp()
     app.run(sys.argv)
