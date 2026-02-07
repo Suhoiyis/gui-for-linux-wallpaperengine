@@ -36,6 +36,7 @@ class PerformanceMonitor:
         
         self._processes: Dict[str, psutil.Process] = {}
         self._history: Dict[str, Dict[str, deque]] = {}
+        self._cpu_count = psutil.cpu_count() or 1
         self._add_process("frontend", psutil.Process().pid)
 
     def _init_history(self, category: str):
@@ -104,7 +105,7 @@ class PerformanceMonitor:
             for category, proc in list(self._processes.items()):
                 try:
                     with proc.oneshot():
-                        cpu = proc.cpu_percent(interval=None)
+                        cpu = proc.cpu_percent(interval=None) / self._cpu_count
                         mem_mb = proc.memory_info().rss / (1024 * 1024)
                         threads = proc.num_threads()
                         status = proc.status()
