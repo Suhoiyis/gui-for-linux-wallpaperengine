@@ -461,22 +461,25 @@ class PerformancePage(Gtk.Box):
         header_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.content_box.append(header_row)
         
+        header_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        header_box.set_hexpand(True)
+        header_row.append(header_box)
+        
         header = Gtk.Label(label="Screenshot History")
         header.add_css_class("settings-section-title")
         header.set_halign(Gtk.Align.START)
-        header.set_hexpand(True)
-        header_row.append(header)
-        
-        clear_btn = Gtk.Button(label="Clear")
-        clear_btn.add_css_class("flat")
-        clear_btn.set_tooltip_text("Clear all screenshot history")
-        clear_btn.connect("clicked", self._on_clear_history_clicked)
-        header_row.append(clear_btn)
+        header_box.append(header)
         
         desc = Gtk.Label(label="Resource usage from recent screenshot captures (last 10).")
         desc.add_css_class("text-muted")
         desc.set_halign(Gtk.Align.START)
-        self.content_box.append(desc)
+        header_box.append(desc)
+        
+        clear_btn = Gtk.Button(label="Clear")
+        clear_btn.set_tooltip_text("Clear all screenshot history")
+        clear_btn.connect("clicked", self._on_clear_history_clicked)
+        clear_btn.set_valign(Gtk.Align.CENTER)
+        header_row.append(clear_btn)
         
         self.screenshot_history_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.content_box.append(self.screenshot_history_box)
