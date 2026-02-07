@@ -181,7 +181,7 @@ class PerformanceMonitor:
     def _ensure_thread_running(self):
         if not self._thread or not self._thread.is_alive():
             self._stop_event.clear()
-            self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
+            self._thread = threading.Thread(target=self._monitor_loop, name="PerfMonitor", daemon=True)
             self._thread.start()
 
     def add_callback(self, callback: Callable[[Dict], None]):

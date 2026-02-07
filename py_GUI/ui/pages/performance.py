@@ -202,13 +202,15 @@ class PerformancePage(Gtk.Box):
             self.threads_list_box.append(grid)
             
             for i, name in enumerate(names):
+                clean_name = self._clean_thread_name(name)
                 row_idx = i // 3
                 col_idx = i % 3
-                lbl = Gtk.Label(label=f"• {name}")
+                lbl = Gtk.Label(label=f"• {clean_name}")
                 lbl.set_halign(Gtk.Align.START)
                 lbl.add_css_class("text-muted")
                 lbl.set_ellipsize(Pango.EllipsizeMode.END)
                 grid.attach(lbl, col_idx, row_idx, 1, 1)
+
 
         # Update Process List
         details = stats.get("details", {})
@@ -236,6 +238,43 @@ class PerformancePage(Gtk.Box):
         if latest_ts != self._last_screenshot_ts:
             self._last_screenshot_ts = latest_ts
             self._refresh_screenshot_history()
+
+
+    def _clean_thread_name(self, name: str) -> str:
+        name = name.strip()
+        
+        # Mapping for known truncated/ugly names
+        mapping = {
+            "linux-w:disk$0": "Disk I/O 0",
+            "linux-w:disk$1": "Disk I/O 1",
+            "linux-w:disk$2": "Disk I/O 2",
+            "linux-w:disk$3": "Disk I/O 3",
+            "linux-wa:gdrv0": "Graphics Drv 0",
+            "SDLPwAudioPlug": "Audio (SDL)",
+            "gly-global-exec": "GStreamer Exec",
+            "gmain": "GLib Main",
+            "gdbus": "GDBus Worker",
+            "dconf worker": "DConf Worker",
+            "pool-spawner": "GStreamer Pool",
+            "videoconvert0:s": "Video Convert",
+            "Thread-1(_moni": "PerfMonitor",
+        }
+        
+        if name in mapping:
+            return mapping[name]
+            
+        # Generic cleanups
+        if name.startswith("Thread-") and "(_" in name:
+            try:
+                # Try to extract function name: Thread-1(_monitor_loop) -> Monitor Loop
+                func = name.split("(_")[1].split(")")[0]
+                # Handle truncated case like "_moni"
+                if func == "_moni": return "PerfMonitor"
+                return func.replace("_", " ").title().strip()
+            except:
+                pass
+                
+        return name
 
     def _create_process_row(self, category: str, data: Dict) -> Gtk.Box:
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
