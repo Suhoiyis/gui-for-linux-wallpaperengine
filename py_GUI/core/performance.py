@@ -150,10 +150,11 @@ class PerformanceMonitor:
     def add_screenshot_history(self, wp_id: str, output_path: str, stats: Dict):
         if not self._config:
             return
-        history = self._config.get("screenshot_history", [])
+        existing = self._config.get("screenshot_history", [])
+        history = list(existing)
         record = {
             "timestamp": time.time(),
-            "wp_id": wp_id,
+            "wp_id": str(wp_id),
             "output_path": output_path,
             "duration": stats.get("duration", 0),
             "max_cpu": stats.get("max_cpu", 0),
@@ -169,7 +170,13 @@ class PerformanceMonitor:
     def get_screenshot_history(self) -> List[Dict]:
         if not self._config:
             return []
-        return self._config.get("screenshot_history", [])
+        # Return a copy to prevent modification during iteration
+        history = self._config.get("screenshot_history", [])
+        return [dict(record) for record in history]
+
+    def clear_screenshot_history(self):
+        if self._config:
+            self._config.set("screenshot_history", [])
 
     def _ensure_thread_running(self):
         if not self._thread or not self._thread.is_alive():

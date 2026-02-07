@@ -457,10 +457,20 @@ class PerformancePage(Gtk.Box):
     def build_screenshot_history_panel(self):
         self.content_box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         
+        header_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.content_box.append(header_row)
+        
         header = Gtk.Label(label="Screenshot History")
         header.add_css_class("settings-section-title")
         header.set_halign(Gtk.Align.START)
-        self.content_box.append(header)
+        header.set_hexpand(True)
+        header_row.append(header)
+        
+        clear_btn = Gtk.Button(label="Clear")
+        clear_btn.add_css_class("flat")
+        clear_btn.set_tooltip_text("Clear all screenshot history")
+        clear_btn.connect("clicked", self._on_clear_history_clicked)
+        header_row.append(clear_btn)
         
         desc = Gtk.Label(label="Resource usage from recent screenshot captures (last 10).")
         desc.add_css_class("text-muted")
@@ -490,15 +500,40 @@ class PerformancePage(Gtk.Box):
             row = self._create_screenshot_history_row(record)
             self.screenshot_history_box.append(row)
 
+    def _on_clear_history_clicked(self, btn):
+        self.controller.perf_monitor.clear_screenshot_history()
+        self._last_screenshot_count = 0
+        self._refresh_screenshot_history()
+
     def _create_screenshot_history_row(self, record: Dict) -> Gtk.Box:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         row.add_css_class("list-item")
         row.set_margin_top(5)
         row.set_margin_bottom(5)
         
-        icon = Gtk.Image.new_from_icon_name("camera-photo-symbolic")
-        icon.set_pixel_size(24)
-        row.append(icon)
+        wp_id = record.get("wp_id", "Unknown")
+        output_path = record.get("output_path", "")
+        wp_title = None
+        thumbnail_added = False
+        
+        if hasattr(self.controller, 'wp_manager'):
+            wp = self.controller.wp_manager.get_wallpaper(str(wp_id))
+            if wp:
+                wp_title = wp.get("title")
+                if wp.get("preview"):
+                    texture = self.controller.wp_manager.get_texture(wp["preview"], size=48)
+                    if texture:
+                        thumb = Gtk.Picture.new_for_paintable(texture)
+                        thumb.set_size_request(48, 27)
+                        thumb.set_content_fit(Gtk.ContentFit.COVER)
+                        thumb.add_css_class("thumbnail")
+                        row.append(thumb)
+                        thumbnail_added = True
+        
+        if not thumbnail_added:
+            icon = Gtk.Image.new_from_icon_name("camera-photo-symbolic")
+            icon.set_pixel_size(24)
+            row.append(icon)
         
         info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         info_box.set_hexpand(True)
@@ -506,12 +541,13 @@ class PerformancePage(Gtk.Box):
         
         timestamp = record.get("timestamp", 0)
         time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
-        wp_id = record.get("wp_id", "Unknown")
         
-        title_lbl = Gtk.Label(label=f"Wallpaper {wp_id}")
+        display_name = wp_title if wp_title else f"Wallpaper {wp_id}"
+        title_lbl = Gtk.Label(label=display_name)
         title_lbl.add_css_class("list-title")
         title_lbl.set_halign(Gtk.Align.START)
         title_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+        title_lbl.set_max_width_chars(30)
         info_box.append(title_lbl)
         
         time_lbl = Gtk.Label(label=time_str)
@@ -530,7 +566,37 @@ class PerformancePage(Gtk.Box):
         self._add_stat_column(stats_box, f"{max_cpu:.1f}%", "Max CPU", 70)
         self._add_stat_column(stats_box, f"{max_mem:.1f} MB", "Max Mem", 80)
         
+        actions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        row.append(actions_box)
+        
+        open_folder_btn = Gtk.Button()
+        open_folder_btn.set_icon_name("folder-open-symbolic")
+        open_folder_btn.add_css_class("flat")
+        open_folder_btn.set_tooltip_text("Open folder")
+        open_folder_btn.connect("clicked", lambda _: self._open_screenshot_folder(output_path))
+        actions_box.append(open_folder_btn)
+        
+        open_image_btn = Gtk.Button()
+        open_image_btn.set_icon_name("image-x-generic-symbolic")
+        open_image_btn.add_css_class("flat")
+        open_image_btn.set_tooltip_text("Open image")
+        open_image_btn.connect("clicked", lambda _: self._open_screenshot_image(output_path))
+        actions_box.append(open_image_btn)
+        
         return row
+
+    def _open_screenshot_folder(self, path: str):
+        import subprocess
+        import os
+        if path and os.path.exists(path):
+            folder = os.path.dirname(path)
+            subprocess.Popen(["xdg-open", folder])
+
+    def _open_screenshot_image(self, path: str):
+        import subprocess
+        import os
+        if path and os.path.exists(path):
+            subprocess.Popen(["xdg-open", path])
 
     def _add_stat_column(self, parent: Gtk.Box, value: str, label: str, width: int):
         col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
