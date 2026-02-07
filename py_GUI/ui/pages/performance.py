@@ -88,8 +88,6 @@ class PerformancePage(Gtk.Box):
         mem_card.append(self.total_mem_chart)
         total_charts_row.append(mem_card)
 
-        self.create_threads_expander()
-
         self.content_box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         
         table_label = Gtk.Label(label="Process Details")
@@ -127,18 +125,6 @@ class PerformancePage(Gtk.Box):
         self.overview_grid.attach(card, col, row, 1, 1)
         self.total_labels[key] = (lbl_val, unit)
 
-    def create_threads_expander(self):
-        expander = Gtk.Expander(label="Thread Details")
-        expander.set_expanded(False)
-        expander.add_css_class("card")
-        self.content_box.append(expander)
-        
-        self.threads_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self.threads_list_box.set_margin_top(15)
-        self.threads_list_box.set_margin_start(20)
-        self.threads_list_box.set_margin_end(20)
-        self.threads_list_box.set_margin_bottom(15)
-        expander.set_child(self.threads_list_box)
 
     def on_perf_update(self, stats: Dict):
         GLib.idle_add(lambda: self._update_ui(stats))
@@ -186,31 +172,6 @@ class PerformancePage(Gtk.Box):
             self.total_mem_chart.set_data(history["memory_mb"], unit=" MB")
         
         thread_names = total.get("thread_names", {})
-        while self.threads_list_box.get_first_child():
-            self.threads_list_box.remove(self.threads_list_box.get_first_child())
-        
-        for category, names in thread_names.items():
-            header = Gtk.Label(label=f"{category.title()} ({len(names)})")
-            header.set_halign(Gtk.Align.START)
-            header.add_css_class("heading")
-            self.threads_list_box.append(header)
-            
-            grid = Gtk.Grid()
-            grid.set_column_spacing(20)
-            grid.set_row_spacing(6)
-            grid.set_column_homogeneous(True)
-            self.threads_list_box.append(grid)
-            
-            for i, name in enumerate(names):
-                clean_name = self._clean_thread_name(name)
-                row_idx = i // 3
-                col_idx = i % 3
-                lbl = Gtk.Label(label=f"• {clean_name}")
-                lbl.set_halign(Gtk.Align.START)
-                lbl.add_css_class("text-muted")
-                lbl.set_ellipsize(Pango.EllipsizeMode.END)
-                grid.attach(lbl, col_idx, row_idx, 1, 1)
-
 
         # Update Process List
         details = stats.get("details", {})
@@ -231,7 +192,7 @@ class PerformancePage(Gtk.Box):
                 self.process_list.append(row)
                 self.process_widgets[pid] = row
             
-            self._update_process_row(self.process_widgets[pid], category, data)
+            self._update_process_row(self.process_widgets[pid], category, data, thread_names.get(category, []))
         
         history = self.controller.perf_monitor.get_screenshot_history()
         latest_ts = history[-1].get("timestamp", 0) if history else 0
@@ -374,6 +335,7 @@ class PerformancePage(Gtk.Box):
         # Wallpaper Details Expander (Backend only)
         if category == "backend":
             main_box.details_expander = Gtk.Expander(label="Wallpaper Details")
+            main_box.details_expander.add_css_class("boxed-expander")
             main_box.details_expander.set_margin_start(52)
             main_box.details_expander.set_visible(False)
             
@@ -385,9 +347,25 @@ class PerformancePage(Gtk.Box):
             main_box.append(main_box.details_expander)
             main_box.last_monitors_hash = None
 
+        # Thread Details Expander (All processes)
+        main_box.threads_expander = Gtk.Expander(label="Thread Details")
+        main_box.threads_expander.add_css_class("boxed-expander")
+        main_box.threads_expander.set_margin_start(52)
+        main_box.threads_expander.set_expanded(False)
+        
+        main_box.threads_grid = Gtk.Grid()
+        main_box.threads_grid.set_column_spacing(20)
+        main_box.threads_grid.set_row_spacing(6)
+        main_box.threads_grid.set_column_homogeneous(True)
+        main_box.threads_grid.set_margin_top(5)
+        main_box.threads_grid.set_margin_bottom(10)
+        
+        main_box.threads_expander.set_child(main_box.threads_grid)
+        main_box.append(main_box.threads_expander)
+
         return main_box
 
-    def _update_process_row(self, row, category, data):
+    def _update_process_row(self, row, category, data, thread_names: List[str]):
         cpu_val = data.get('cpu', 0)
         row.cpu_lbl.set_label(data.get('cpu_fmt', f"{cpu_val}%"))
         
@@ -421,6 +399,23 @@ class PerformancePage(Gtk.Box):
         if "memory_mb" in history:
             # Auto-scale memory chart
             row.mem_chart.set_data(history["memory_mb"], unit=" MB")
+
+        while row.threads_grid.get_first_child():
+            row.threads_grid.remove(row.threads_grid.get_first_child())
+            
+        if thread_names:
+            row.threads_expander.set_label(f"Thread Details ({len(thread_names)})")
+            for i, name in enumerate(thread_names):
+                clean_name = self._clean_thread_name(name)
+                row_idx = i // 3
+                col_idx = i % 3
+                lbl = Gtk.Label(label=f"• {clean_name}")
+                lbl.set_halign(Gtk.Align.START)
+                lbl.add_css_class("text-muted")
+                lbl.set_ellipsize(Pango.EllipsizeMode.END)
+                row.threads_grid.attach(lbl, col_idx, row_idx, 1, 1)
+        else:
+            row.threads_expander.set_label("Thread Details (0)")
 
         # Update Wallpaper Details (Backend only)
         if category == "backend" and hasattr(row, 'details_expander'):

@@ -560,4 +560,23 @@ dropdown button {
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.08);
 }
+
+/* Boxed Expander */
+.boxed-expander {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin: 5px 0;
+    padding: 2px;
+}
+
+.boxed-expander title {
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.boxed-expander:checked {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+}
 """
