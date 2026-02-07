@@ -345,6 +345,18 @@ jobs:
 ### 优先级 P2 (功能缺失)
 > **注**: 自定义资源支持已在 v0.8.1 完成，移出此列表
 
+#### 0. 滚动条样式优化 ⚠️ **搁置/待调研**
+**描述**：滚动条视觉呈现两层结构（疑似 trough + slider 分离显示），尝试隐藏 trough 未完全生效
+
+**当前状态**：
+- 已优化：透明度淡入淡出、细化宽度（3px）、半透明白色
+- 未解决：GTK4/Adwaita 主题下 scrollbar 仍显示双层结构，CSS `background: transparent` 未完全覆盖默认样式
+
+**下一步**：
+- 调研 GTK4 scrollbar 完整 CSS 节点（scrollbar > range > trough > slider）
+- 尝试 `all: unset` 或 `-gtk-icon-source: none` 等强制重置
+- 考虑是否为 Adwaita 主题特有行为
+
 #### 1. 自定义资源支持 ✅ **已完成 (v0.8.1)**
 **功能描述**: `--assets-dir` 自定义 assets 目录路径
 

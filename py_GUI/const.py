@@ -491,20 +491,38 @@ togglebutton:focus {
     background: rgba(255, 77, 77, 0.1);
 }
 
-/* Scrollbar */
+/* Scrollbar - thin & elegant */
 scrollbar {
     background: transparent;
+    opacity: 0.5;
+    transition: opacity 200ms ease-in-out;
+}
+
+scrollbar:hover {
+    opacity: 1;
+}
+
+scrollbar trough {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    min-width: 3px;
+    min-height: 3px;
 }
 
 scrollbar slider {
-    background: #007bff;
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 9999px;
-    min-width: 6px;
-    min-height: 6px;
+    min-width: 3px;
+    min-height: 3px;
+    margin: 0;
+    padding: 0;
+    transition: all 200ms ease-in-out;
 }
 
 scrollbar slider:hover {
-    background: #53a6ff;
+    background: rgba(255, 255, 255, 0.5);
 }
 
 /* Common */
