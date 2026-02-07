@@ -21,4 +21,5 @@ screen*.png
 .idea/
 
 .sisyphus/
+.opencode/
 scripts/
