@@ -537,8 +537,13 @@ class WallpapersPage(Gtk.Box):
                     self.controller.perf_monitor.add_screenshot_history(target_id, output_path, stats)
                     stats_str = f"Duration: {stats['duration']:.2f}s | Max CPU: {stats['max_cpu']:.1f}% | Max Mem: {stats['max_mem']:.1f} MB"
                     
+                    texture = None
+                    wp = self.wp_manager._wallpapers.get(target_id)
+                    if wp and wp.get("preview"):
+                        texture = self.wp_manager.get_texture(wp["preview"], size=120)
+                    
                     reset_ui()
-                    show_screenshot_success_dialog(self.window, output_path, stats_str)
+                    show_screenshot_success_dialog(self.window, output_path, stats_str, texture)
                 else:
                     # Rare race condition or save failed
                     verify_after_kill()

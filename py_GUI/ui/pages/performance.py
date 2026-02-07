@@ -231,9 +231,10 @@ class PerformancePage(Gtk.Box):
             
             self._update_process_row(self.process_widgets[pid], category, data)
         
-        current_count = len(self.controller.perf_monitor.get_screenshot_history())
-        if current_count != self._last_screenshot_count:
-            self._last_screenshot_count = current_count
+        history = self.controller.perf_monitor.get_screenshot_history()
+        latest_ts = history[-1].get("timestamp", 0) if history else 0
+        if latest_ts != self._last_screenshot_ts:
+            self._last_screenshot_ts = latest_ts
             self._refresh_screenshot_history()
 
     def _create_process_row(self, category: str, data: Dict) -> Gtk.Box:
@@ -480,7 +481,7 @@ class PerformancePage(Gtk.Box):
         self.screenshot_history_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.content_box.append(self.screenshot_history_box)
         
-        self._last_screenshot_count = 0
+        self._last_screenshot_ts = 0
         self._refresh_screenshot_history()
 
     def _refresh_screenshot_history(self):
@@ -502,7 +503,7 @@ class PerformancePage(Gtk.Box):
 
     def _on_clear_history_clicked(self, btn):
         self.controller.perf_monitor.clear_screenshot_history()
-        self._last_screenshot_count = 0
+        self._last_screenshot_ts = 0
         self._refresh_screenshot_history()
 
     def _create_screenshot_history_row(self, record: Dict) -> Gtk.Box:
@@ -587,10 +588,29 @@ class PerformancePage(Gtk.Box):
 
     def _open_screenshot_folder(self, path: str):
         import subprocess
+        import shutil
         import os
-        if path and os.path.exists(path):
-            folder = os.path.dirname(path)
+        if not path or not os.path.exists(path):
+            return
+        
+        folder = os.path.dirname(path)
+        file_managers = [
+            "thunar", "nautilus", "dolphin", "nemo",
+            "pcmanfm", "pcmanfm-qt", "caja", "index", "files"
+        ]
+        
+        for fm in file_managers:
+            if shutil.which(fm):
+                try:
+                    subprocess.Popen([fm, folder])
+                    return
+                except:
+                    continue
+        
+        try:
             subprocess.Popen(["xdg-open", folder])
+        except:
+            pass
 
     def _open_screenshot_image(self, path: str):
         import subprocess
