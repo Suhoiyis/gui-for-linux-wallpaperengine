@@ -8,7 +8,13 @@ class AnimatedPreview(Gtk.Picture):
         super().__init__()
         self.set_content_fit(Gtk.ContentFit.COVER)
         self.set_size_request(*size_request)
-        self.add_css_class("sidebar-preview")
+        
+        # Force fill behavior
+        self.set_halign(Gtk.Align.FILL)
+        self.set_valign(Gtk.Align.FILL)
+        self.set_hexpand(False)
+        self.set_vexpand(False)
+        self.set_can_shrink(True)
         
         self.anim = None
         self.anim_iter = None

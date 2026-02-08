@@ -108,9 +108,14 @@ class Sidebar(Gtk.Box):
         preview_container.set_halign(Gtk.Align.CENTER)
         preview_container.add_css_class("sidebar-preview")
 
+        preview_scroll = Gtk.ScrolledWindow()
+        preview_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
+        preview_scroll.set_size_request(280, 280)
+        preview_container.append(preview_scroll)
+
         self.preview_image = AnimatedPreview(size_request=(280, 280))
         self.preview_image.set_hexpand(False)
-        preview_container.append(self.preview_image)
+        preview_scroll.set_child(self.preview_image)
         content.append(preview_container)
 
         # Title

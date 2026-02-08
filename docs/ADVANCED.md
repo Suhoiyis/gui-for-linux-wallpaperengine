@@ -259,7 +259,7 @@ window-rule {
 ##### Hyprland (hyprland.conf)
 ```ini
 windowrulev2 = float,title:^(Wallpaper Preview)$
-windowrulev2 = size 300 600,title:^(Wallpaper Preview)$
+windowrulev2 = size 300 800,title:^(Wallpaper Preview)$
 windowrulev2 = center,title:^(Wallpaper Preview)$
 ```
 
@@ -304,7 +304,7 @@ Compact Mode 旨在提供一个极简的预览窗口。在平铺窗口管理器�
 window-rule {
     match title="Wallpaper Preview"
     default-column-width { fixed 300; }
-    default-window-height { fixed 600; }
+    default-window-height { fixed 800; }
 }
 ```
 
@@ -312,7 +312,7 @@ window-rule {
 
 ```
 windowrulev2 = float, title:^(Wallpaper Preview)$
-windowrulev2 = size 300 600, title:^(Wallpaper Preview)$
+windowrulev2 = size 300 800, title:^(Wallpaper Preview)$
 ```
 
 ---

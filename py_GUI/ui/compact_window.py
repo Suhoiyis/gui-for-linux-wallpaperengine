@@ -103,8 +103,13 @@ class CompactWindow(Gtk.ApplicationWindow):
         preview_container.add_css_class("sidebar-preview")
         content.append(preview_container)
         
+        preview_scroll = Gtk.ScrolledWindow()
+        preview_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
+        preview_scroll.set_size_request(200, 200)
+        preview_container.append(preview_scroll)
+        
         self.preview_image = AnimatedPreview(size_request=(200, 200))
-        preview_container.append(self.preview_image)
+        preview_scroll.set_child(self.preview_image)
         
         self.lbl_title = Gtk.Label(label="Select a Wallpaper")
         self.lbl_title.add_css_class("sidebar-title")
