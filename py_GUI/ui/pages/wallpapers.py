@@ -111,6 +111,7 @@ class WallpapersPage(Gtk.Box):
             on_lucky=lambda: self.on_feeling_lucky(None),
             on_jump=lambda: self.on_currently_using_clicked()
         )
+        self.sidebar.on_jump_requested = self._on_sidebar_jump_requested
         
         self.content_box.append(self.sidebar)
 
@@ -244,10 +245,23 @@ class WallpapersPage(Gtk.Box):
         spacer.set_hexpand(True)
         title_row.append(spacer)
 
-        self.counter_label = Gtk.Label(label="0/0")
-        self.counter_label.add_css_class("status-value-yellow")
-        self.counter_label.set_halign(Gtk.Align.END)
-        title_row.append(self.counter_label)
+        self.jump_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.jump_box.set_halign(Gtk.Align.END)
+        title_row.append(self.jump_box)
+
+        self.entry_jump = Gtk.Entry()
+        self.entry_jump.set_has_frame(False)
+        self.entry_jump.set_width_chars(1)
+        self.entry_jump.set_max_width_chars(4)
+        self.entry_jump.set_alignment(1.0)
+        self.entry_jump.add_css_class("status-value-yellow")
+        self.entry_jump.set_tooltip_text("Type number and Enter to jump")
+        self.entry_jump.connect("activate", self._on_jump_entry_activate)
+        self.jump_box.append(self.entry_jump)
+
+        self.lbl_jump_total = Gtk.Label(label="/0")
+        self.lbl_jump_total.add_css_class("status-value-yellow")
+        self.jump_box.append(self.lbl_jump_total)
 
         status_box.append(title_row)
 
@@ -298,17 +312,46 @@ class WallpapersPage(Gtk.Box):
         total = len(filtered)
 
         if total == 0:
-            self.counter_label.set_label("0/0")
+            self.entry_jump.set_text("0")
+            self.lbl_jump_total.set_label("/0")
             return
 
         active_monitors = self.config.get("active_monitors", {})
         current_wp_id = active_monitors.get(self.selected_screen)
 
+        self.lbl_jump_total.set_label(f"/{total}")
+        
         if current_wp_id and current_wp_id in filtered:
             wp_index = list(filtered.keys()).index(current_wp_id) + 1
-            self.counter_label.set_label(f"{wp_index}/{total}")
+            self.entry_jump.set_text(str(wp_index))
         else:
-            self.counter_label.set_label(f"-/{total}")
+            self.entry_jump.set_text("-")
+
+    def _on_jump_entry_activate(self, entry):
+        text = entry.get_text().strip()
+        if not text:
+            return
+            
+        try:
+            self._jump_to_index(int(text))
+        except ValueError:
+            self.update_counter_label()
+
+    def _on_sidebar_jump_requested(self, idx: int):
+        self._jump_to_index(idx)
+
+    def _jump_to_index(self, idx: int):
+        filtered = self.filter_wallpapers()
+        total = len(filtered)
+        if total == 0:
+            return
+            
+        if idx < 1: idx = 1
+        if idx > total: idx = total
+        
+        ids = list(filtered.keys())
+        wp_id = ids[idx - 1]
+        self.select_wallpaper(wp_id)
 
     def show_current_wallpaper_in_sidebar(self, force: bool = False):
         # Only auto-select if user hasn't selected another wallpaper, unless forced
