@@ -450,7 +450,12 @@ class WallpaperApp(Adw.Application):
         
         import os
         import sys
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        
+        # Filter out hidden/minimized flags so the app shows up after restart
+        # The user clicked Restart in the GUI, so they expect the window to reappear
+        args = [arg for arg in sys.argv if arg not in ("--hidden", "--minimized")]
+        
+        os.execv(sys.executable, [sys.executable] + args)
 
     def setup_actions(self):
         # Apply Wallpaper Action
