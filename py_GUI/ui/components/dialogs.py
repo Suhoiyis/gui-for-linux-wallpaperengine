@@ -186,7 +186,7 @@ def show_screenshot_success_dialog(parent_window, file_path, stats=None, texture
     dialog.connect("response", on_response)
     dialog.present()
 
-def show_nickname_dialog(parent, wp_id: str, title: str, preview_path: Optional[str], current_nickname: Optional[str], on_confirm: Callable[[str], None], texture: Optional[Gdk.Texture] = None):
+def show_nickname_dialog(parent, title: str, current_nickname: Optional[str], on_confirm: Callable[[str], None]):
     dialog = Adw.MessageDialog(
         transient_for=parent,
         heading="Set Nickname",
@@ -205,22 +205,6 @@ def show_nickname_dialog(parent, wp_id: str, title: str, preview_path: Optional[
     content_box.set_margin_start(12)
     content_box.set_margin_end(12)
     
-    if texture:
-        picture = Gtk.Picture.new_for_paintable(texture)
-        picture.set_size_request(100, 100)
-        picture.set_content_fit(Gtk.ContentFit.COVER)
-        picture.add_css_class("card")
-        content_box.append(picture)
-    elif preview_path:
-        try:
-            picture = Gtk.Picture.new_for_filename(preview_path)
-            picture.set_size_request(100, 100)
-            picture.set_content_fit(Gtk.ContentFit.COVER)
-            picture.add_css_class("card")
-            content_box.append(picture)
-        except Exception:
-            pass
-            
     entry = Gtk.Entry()
     entry.set_placeholder_text("Enter nickname...")
     if current_nickname:
