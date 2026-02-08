@@ -111,7 +111,6 @@ class WallpapersPage(Gtk.Box):
             on_lucky=lambda: self.on_feeling_lucky(None),
             on_jump=lambda: self.on_currently_using_clicked()
         )
-        self.sidebar.on_jump_requested = self._on_sidebar_jump_requested
         
         self.content_box.append(self.sidebar)
 
@@ -336,9 +335,6 @@ class WallpapersPage(Gtk.Box):
             self._jump_to_index(int(text))
         except ValueError:
             self.update_counter_label()
-
-    def _on_sidebar_jump_requested(self, idx: int):
-        self._jump_to_index(idx)
 
     def _jump_to_index(self, idx: int):
         filtered = self.filter_wallpapers()

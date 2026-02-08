@@ -24,7 +24,6 @@ class Sidebar(Gtk.Box):
         self.log_manager = log_manager
         
         self.selected_wp: Optional[str] = None
-        self.on_jump_requested: Optional[Callable[[int], None]] = None
         
         self.available_screens: List[str] = []
         self.get_current_screen: Callable[[], str] = lambda: "eDP-1"
@@ -142,21 +141,9 @@ class Sidebar(Gtk.Box):
         self.lbl_size.add_css_class("size-chip")
         folder_row.append(self.lbl_size)
 
-        self.index_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        self.index_box.add_css_class("index-chip")
-        folder_row.append(self.index_box)
-
-        self.entry_jump = Gtk.Entry()
-        self.entry_jump.set_has_frame(False)
-        self.entry_jump.set_width_chars(1)
-        self.entry_jump.set_max_width_chars(4)
-        self.entry_jump.set_alignment(1.0)
-        self.entry_jump.set_tooltip_text("Type number and Enter to jump")
-        self.entry_jump.connect("activate", self._on_jump_entry_activate)
-        self.index_box.append(self.entry_jump)
-
-        self.lbl_jump_total = Gtk.Label(label="/0")
-        self.index_box.append(self.lbl_jump_total)
+        self.lbl_index = Gtk.Label(label="")
+        self.lbl_index.add_css_class("index-chip")
+        folder_row.append(self.lbl_index)
 
         # Folder click to copy
         folder_click = Gtk.GestureClick.new()
@@ -369,8 +356,7 @@ class Sidebar(Gtk.Box):
         self.lbl_folder.set_label(f"{wp['id']}")
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
         
-        self.entry_jump.set_text(str(index) if index > 0 else "-")
-        self.lbl_jump_total.set_label(f"/{total}")
+        self.lbl_index.set_label(f"{index}/{total}")
         
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         
@@ -401,8 +387,7 @@ class Sidebar(Gtk.Box):
         self.lbl_title.set_label("Select a Wallpaper")
         self.lbl_folder.set_label("")
         self.lbl_size.set_label("")
-        self.entry_jump.set_text("")
-        self.lbl_jump_total.set_label("")
+        self.lbl_index.set_label("")
         self.lbl_type.set_label("-")
         self.lbl_desc.set_label("No description.")
         
@@ -410,16 +395,6 @@ class Sidebar(Gtk.Box):
             child = self.tags_flow.get_first_child()
             if child is None: break
             self.tags_flow.remove(child)
-
-    def _on_jump_entry_activate(self, entry):
-        text = entry.get_text().strip()
-        if not text: return
-        try:
-            idx = int(text)
-            if callable(self.on_jump_requested):
-                self.on_jump_requested(idx)
-        except ValueError:
-            pass
 
         # Clear properties
         # while True:
