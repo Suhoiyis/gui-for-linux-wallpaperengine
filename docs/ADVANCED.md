@@ -270,7 +270,30 @@ bindsym $mod+Shift+w exec python3 /home/user/suw/run_gui.py --random
 exec-once = python3 /home/user/suw/run_gui.py --hidden
 
 bind = SUPER, W, exec, python3 /home/user/suw/run_gui.py --toggle
-bind = SUPER SHIFT, W, exec, python3 /home/user/suw/run_gui.py --random
+    bind = SUPER SHIFT, W, exec, python3 /home/user/suw/run_gui.py --random
+}
+
+---
+
+## Compact Mode 窗口配置 (Niri/Hyprland)
+
+Compact Mode 旨在提供一个极简的预览窗口。在平铺窗口管理器中，你可能需要配置特定的窗口规则来保持其尺寸或浮动状态。
+
+### Niri (config.kdl)
+
+```kdl
+window-rule {
+    match title="Wallpaper Preview"
+    default-column-width { fixed 300; }
+    default-window-height { fixed 600; }
+}
+```
+
+### Hyprland (hyprland.conf)
+
+```
+windowrulev2 = float, title:^(Wallpaper Preview)$
+windowrulev2 = size 300 600, title:^(Wallpaper Preview)$
 ```
 
 ---

@@ -2,7 +2,7 @@ import os
 
 # Application constants
 APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.9.2'
+VERSION = '0.9.3'
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -37,6 +37,7 @@ DEFAULT_CONFIG = {
     "assetsPath": None,  # Custom assets directory (None = auto-detect)
     "wayland_only_active": False,
     "wayland_ignore_appids": "",
+    "compact_mode": False,  # Compact preview mode for tiling WMs
 }
 
 # CSS Styling
