@@ -12,6 +12,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
 from py_GUI.utils import markdown_to_pango, bbcode_to_pango, format_size
+from py_GUI.ui.components.animated_preview import AnimatedPreview
 
 class Sidebar(Gtk.Box):
     def __init__(self, wp_manager: WallpaperManager, prop_manager: PropertiesManager, 
@@ -107,9 +108,7 @@ class Sidebar(Gtk.Box):
         preview_container.set_halign(Gtk.Align.CENTER)
         preview_container.add_css_class("sidebar-preview")
 
-        self.preview_image = Gtk.Picture()
-        self.preview_image.set_content_fit(Gtk.ContentFit.COVER)
-        self.preview_image.set_size_request(280, 280)
+        self.preview_image = AnimatedPreview(size_request=(280, 280))
         self.preview_image.set_hexpand(False)
         preview_container.append(self.preview_image)
         content.append(preview_container)
@@ -336,8 +335,6 @@ class Sidebar(Gtk.Box):
             pass
 
     def update(self, wp_id: Optional[str], index: int = 0, total: int = 0):
-        self.stop_animation()
-        
         self.selected_wp = wp_id
         if not wp_id:
             self.clear()
@@ -348,34 +345,17 @@ class Sidebar(Gtk.Box):
             self.clear()
             return
 
-        # Update preview
-        path = wp['preview']
-        loaded_anim = False
-        
-        if path.lower().endswith('.gif'):
-            try:
-                self.start_animation(path)
-                loaded_anim = True
-            except Exception as e:
-                print(f"Animation load failed: {e}")
-                loaded_anim = False
-        
-        if not loaded_anim:
-            texture = self.wp_manager.get_texture(path, 500)
-            self.preview_image.set_paintable(texture)
+        self.preview_image.set_image_from_path(wp['preview'], self.wp_manager)
 
-        # Update Info
         self.lbl_title.set_markup(markdown_to_pango(wp['title']))
         self.lbl_folder.set_label(f"{wp['id']}")
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
         self.lbl_index.set_label(f"{index}/{total}")
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         
-        # Parse description BBCode
         desc = wp.get('description', '')
         self.lbl_desc.set_markup(bbcode_to_pango(desc) or 'No description.')
 
-        # Update Tags
         while True:
             child = self.tags_flow.get_first_child()
             if child is None: break
@@ -394,50 +374,9 @@ class Sidebar(Gtk.Box):
                 chip.add_css_class("tag-chip")
                 self.tags_flow.append(chip)
 
-    def start_animation(self, path):
-        self.anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
-        self.anim_iter = self.anim.get_iter(None)
-        
-        pixbuf = self.anim_iter.get_pixbuf()
-        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        self.preview_image.set_paintable(texture)
-        
-        if not self.anim.is_static_image():
-            self.anim_timer = GLib.timeout_add(
-                self.anim_iter.get_delay_time(), 
-                self.on_animation_frame
-            )
-
-    def on_animation_frame(self):
-        if not hasattr(self, 'anim_iter') or not self.anim_iter: 
-            return False
-        
-        try:
-            self.anim_iter.advance(None) 
-        except:
-            return False
-        
-        pixbuf = self.anim_iter.get_pixbuf()
-        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        self.preview_image.set_paintable(texture)
-        
-        delay = self.anim_iter.get_delay_time()
-        if delay <= 0: delay = 100
-        
-        self.anim_timer = GLib.timeout_add(delay, self.on_animation_frame)
-        return False
-
-    def stop_animation(self):
-        if hasattr(self, 'anim_timer') and self.anim_timer:
-            GLib.source_remove(self.anim_timer)
-            self.anim_timer = None
-        self.anim = None
-        self.anim_iter = None
-
     def clear(self):
-        self.stop_animation()
         self.selected_wp = None
-        self.preview_image.set_paintable(None)
+        self.preview_image.set_image_from_path(None, None)
         self.lbl_title.set_label("Select a Wallpaper")
         self.lbl_folder.set_label("")
         self.lbl_size.set_label("")
@@ -445,7 +384,6 @@ class Sidebar(Gtk.Box):
         self.lbl_type.set_label("-")
         self.lbl_desc.set_label("No description.")
         
-        # Clear tags
         while True:
             child = self.tags_flow.get_first_child()
             if child is None: break

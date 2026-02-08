@@ -2,6 +2,8 @@
 
 ## 最新更新 (尚未提交版号)
 
+- **侧边栏优化 (Sidebar Optimization)**：
+  - **代码重构**：将主窗口侧边栏迁移至全新的 `AnimatedPreview` 组件，实现了与紧凑模式（Compact Mode）统一的图像渲染逻辑，并移除了冗余代码。
 - **紧凑模式改进 (Compact Mode Improvements)**：
   - **重构与性能优化**：
     - 将 GIF 动画逻辑提取到独立的 `AnimatedPreview` 组件中，提高代码复用性
