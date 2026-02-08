@@ -33,7 +33,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.target_screen = self.config.get("lastScreen", "eDP-1")
         
         self.set_title("Wallpaper Preview")
-        self.set_default_size(300, 800)
+        self.set_default_size(300, 740)
         self.set_resizable(True)
         self.connect("close-request", self._on_close_request)
         
