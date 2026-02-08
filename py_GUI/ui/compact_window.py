@@ -33,7 +33,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.target_screen = self.config.get("lastScreen", "eDP-1")
         
         self.set_title("Wallpaper Preview")
-        self.set_default_size(300, 740)
+        self.set_default_size(300, 700)
         self.set_resizable(True)
         self.connect("close-request", self._on_close_request)
         
@@ -103,8 +103,9 @@ class CompactWindow(Gtk.ApplicationWindow):
         preview_container.add_css_class("sidebar-preview")
         top_section.append(preview_container)
         
-        jump_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        jump_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         jump_box.set_valign(Gtk.Align.START)
+        jump_box.set_margin_start(4)
         top_section.append(jump_box)
         
         jump_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
@@ -124,6 +125,31 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.lbl_jump_total = Gtk.Label(label="/0")
         self.lbl_jump_total.add_css_class("dim-label")
         jump_row.append(self.lbl_jump_total)
+
+        self.btn_stop = Gtk.Button()
+        self.btn_stop.set_size_request(34, 34)
+        self.btn_stop.set_icon_name("media-playback-stop-symbolic")
+        self.btn_stop.add_css_class("circular")
+        self.btn_stop.add_css_class("stop-btn")
+        self.btn_stop.set_tooltip_text("Stop Wallpaper")
+        self.btn_stop.connect("clicked", self._on_stop_clicked)
+        jump_box.append(self.btn_stop)
+        
+        self.btn_lucky = Gtk.Button()
+        self.btn_lucky.set_size_request(34, 34)
+        self.btn_lucky.set_icon_name("media-playlist-shuffle-symbolic")
+        self.btn_lucky.add_css_class("circular")
+        self.btn_lucky.set_tooltip_text("I'm feeling lucky")
+        self.btn_lucky.connect("clicked", self._on_lucky_clicked)
+        jump_box.append(self.btn_lucky)
+        
+        self.btn_jump = Gtk.Button()
+        self.btn_jump.set_size_request(34, 34)
+        self.btn_jump.set_icon_name("go-home-symbolic")
+        self.btn_jump.add_css_class("circular")
+        self.btn_jump.set_tooltip_text("Jump to current wallpaper")
+        self.btn_jump.connect("clicked", self._on_jump_clicked)
+        jump_box.append(self.btn_jump)
         
         preview_scroll = Gtk.ScrolledWindow()
         preview_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -198,35 +224,6 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.btn_apply.connect("clicked", self._on_apply_clicked)
         content.append(self.btn_apply)
         
-        actions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        actions_box.set_halign(Gtk.Align.CENTER)
-        actions_box.set_margin_top(8)
-        content.append(actions_box)
-        
-        self.btn_stop = Gtk.Button()
-        self.btn_stop.set_size_request(34, 34)
-        self.btn_stop.set_icon_name("media-playback-stop-symbolic")
-        self.btn_stop.add_css_class("circular")
-        self.btn_stop.set_tooltip_text("Stop Wallpaper")
-        self.btn_stop.connect("clicked", self._on_stop_clicked)
-        actions_box.append(self.btn_stop)
-        
-        self.btn_lucky = Gtk.Button()
-        self.btn_lucky.set_size_request(34, 34)
-        self.btn_lucky.set_icon_name("media-playlist-shuffle-symbolic")
-        self.btn_lucky.add_css_class("circular")
-        self.btn_lucky.set_tooltip_text("I'm feeling lucky")
-        self.btn_lucky.connect("clicked", self._on_lucky_clicked)
-        actions_box.append(self.btn_lucky)
-        
-        self.btn_jump = Gtk.Button()
-        self.btn_jump.set_size_request(34, 34)
-        self.btn_jump.set_icon_name("go-home-symbolic")
-        self.btn_jump.add_css_class("circular")
-        self.btn_jump.set_tooltip_text("Jump to current wallpaper")
-        self.btn_jump.connect("clicked", self._on_jump_clicked)
-        actions_box.append(self.btn_jump)
-        
         nav_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         nav_container.set_halign(Gtk.Align.CENTER)
         nav_container.set_margin_top(12)
@@ -285,15 +282,9 @@ class CompactWindow(Gtk.ApplicationWindow):
             if self.selected_wp and self.selected_wp in self._wallpaper_ids:
                 curr_idx = self._wallpaper_ids.index(self.selected_wp) + 1
                 entry.set_text(str(curr_idx))
-            
-            entry.set_position(-1)
-            
-        except ValueError:
-            if self.selected_wp and self.selected_wp in self._wallpaper_ids:
-                current = self._wallpaper_ids.index(self.selected_wp) + 1
-                entry.set_text(str(current))
             else:
                 entry.set_text("")
+            entry.set_position(-1)
 
     def _on_close_request(self, win):
         self.on_compact_mode_toggled_cb(False)

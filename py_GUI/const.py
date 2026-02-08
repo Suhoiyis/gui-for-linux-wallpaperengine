@@ -163,7 +163,10 @@ togglebutton:focus {
 .stop-btn {
     background: #2a2a2a;
     color: #ef4444;
-    font-size: 1.4em;
+}
+
+.stop-btn image {
+    color: #ef4444;
 }
 
 .stop-btn:hover {
