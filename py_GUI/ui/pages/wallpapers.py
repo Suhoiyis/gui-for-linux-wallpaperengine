@@ -10,7 +10,7 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gtk, Gdk, Gio, Pango, GLib
 
 from py_GUI.ui.components.sidebar import Sidebar
-from py_GUI.ui.components.dialogs import show_delete_dialog, show_error_dialog, show_screenshot_success_dialog
+from py_GUI.ui.components.dialogs import show_delete_dialog, show_error_dialog, show_screenshot_success_dialog, show_nickname_dialog
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
@@ -24,7 +24,7 @@ class WallpapersPage(Gtk.Box):
     def __init__(self, window: Gtk.Window, config: ConfigManager, 
                  wp_manager: WallpaperManager, prop_manager: PropertiesManager,
                  controller: WallpaperController, log_manager: LogManager,
-                 screen_manager: ScreenManager, show_toast: Callable[[str], None] = None):
+                 screen_manager: ScreenManager, nickname_manager, show_toast: Callable[[str], None] = None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         
         self.window = window
@@ -33,6 +33,7 @@ class WallpapersPage(Gtk.Box):
         self.prop_manager = prop_manager
         self.controller = controller
         self.log_manager = log_manager
+        self.nickname_manager = nickname_manager
         self.screen_manager = screen_manager
         self.show_toast = show_toast or (lambda msg: None)
 
@@ -99,7 +100,7 @@ class WallpapersPage(Gtk.Box):
         self.wallpaper_scroll.set_child(self.flowbox)
 
         # Sidebar
-        self.sidebar = Sidebar(self.wp_manager, self.prop_manager, self.controller, self.log_manager)
+        self.sidebar = Sidebar(self.wp_manager, self.prop_manager, self.controller, self.log_manager, self.nickname_manager)
         
         screens = self.screen_manager.get_screens()
         self.sidebar.set_available_screens(screens)
@@ -111,6 +112,7 @@ class WallpapersPage(Gtk.Box):
             on_lucky=lambda: self.on_feeling_lucky(None),
             on_jump=lambda: self.on_currently_using_clicked()
         )
+        self.sidebar.btn_edit_nickname.connect("clicked", lambda _: self.on_edit_nickname(self.selected_wp) if self.selected_wp else None)
         
         self.content_box.append(self.sidebar)
 
@@ -288,7 +290,11 @@ class WallpapersPage(Gtk.Box):
 
         if current_wp_id:
             wp = self.wp_manager._wallpapers.get(current_wp_id)
-            title = wp['title'] if wp else current_wp_id
+            if wp:
+                display_name, _ = self.nickname_manager.get_display_name(wp)
+                title = display_name
+            else:
+                title = current_wp_id
             self.active_wp_label.set_markup(markdown_to_pango(title))
         else:
             self.active_wp_label.set_label("None")
@@ -634,8 +640,10 @@ class WallpapersPage(Gtk.Box):
                 title = wp.get('title', '').lower()
                 desc = wp.get('description', '').lower()
                 tags = ' '.join(str(t).lower() for t in wp.get('tags', []))
+                nickname = (self.nickname_manager.get(wp_id) or "").lower() if self.nickname_manager else ""
                 if (self.search_query in title or self.search_query in desc or 
-                    self.search_query in tags or self.search_query in wp_id.lower()):
+                    self.search_query in tags or self.search_query in wp_id.lower() or
+                    self.search_query in nickname):
                     result[wp_id] = wp
 
         if self.sort_mode == "title":
@@ -673,12 +681,20 @@ class WallpapersPage(Gtk.Box):
             self.listbox.append(row)
 
     def create_grid_item(self, folder_id: str, wp: Dict) -> Gtk.Widget:
+        display_name, original_title = self.nickname_manager.get_display_name(wp)
+        is_nickname = (original_title is not None)
+
         btn = Gtk.Button()
         btn.add_css_class("wallpaper-item")
         btn.add_css_class("wallpaper-card")
         btn.set_size_request(170, 170)
         btn.set_has_frame(False)
-        btn.set_tooltip_markup(markdown_to_pango(wp['title']))
+        
+        tooltip_text = markdown_to_pango(display_name)
+        if is_nickname:
+             tooltip_text += f"\n<span size='small' alpha='70%'>Original: {markdown_to_pango(wp.get('title', ''))}</span>"
+        btn.set_tooltip_markup(tooltip_text)
+        
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
         gesture = Gtk.GestureClick.new()
@@ -717,8 +733,10 @@ class WallpapersPage(Gtk.Box):
         name_box.set_margin_bottom(10)
         lbl = Gtk.Label()
         lbl.set_use_markup(True)
-        lbl.set_markup(markdown_to_pango(wp['title']))
+        lbl.set_markup(markdown_to_pango(display_name))
         lbl.add_css_class("wallpaper-name")
+        if is_nickname:
+            lbl.add_css_class("nickname-text")
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         lbl.set_max_width_chars(15)
         name_box.append(lbl)
@@ -731,10 +749,18 @@ class WallpapersPage(Gtk.Box):
         return btn
 
     def create_list_item(self, folder_id: str, wp: Dict, index: int, total: int) -> Gtk.Widget:
+        display_name, original_title = self.nickname_manager.get_display_name(wp)
+        is_nickname = (original_title is not None)
+
         btn = Gtk.Button()
         btn.add_css_class("list-item")
         btn.set_has_frame(False)
-        btn.set_tooltip_markup(markdown_to_pango(wp['title']))
+        
+        tooltip_text = markdown_to_pango(display_name)
+        if is_nickname:
+             tooltip_text += f"\n<span size='small' alpha='70%'>Original: {markdown_to_pango(wp.get('title', ''))}</span>"
+        btn.set_tooltip_markup(tooltip_text)
+        
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
         gesture = Gtk.GestureClick.new()
@@ -767,11 +793,21 @@ class WallpapersPage(Gtk.Box):
 
         t = Gtk.Label()
         t.set_use_markup(True)
-        t.set_markup(markdown_to_pango(wp['title']))
+        t.set_markup(markdown_to_pango(display_name))
         t.add_css_class("list-title")
+        if is_nickname:
+            t.add_css_class("nickname-text")
         t.set_halign(Gtk.Align.START)
         t.set_ellipsize(Pango.EllipsizeMode.END)
         info.append(t)
+
+        if is_nickname:
+            orig_lbl = Gtk.Label()
+            orig_lbl.set_use_markup(True)
+            orig_lbl.set_markup(f"<span size='small' alpha='60%'>{markdown_to_pango(wp.get('title', ''))}</span>")
+            orig_lbl.set_halign(Gtk.Align.START)
+            orig_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+            info.append(orig_lbl)
 
         sz = format_size(wp.get('size', 0))
         size_lbl = Gtk.Label(label=sz)
@@ -893,6 +929,15 @@ class WallpapersPage(Gtk.Box):
         # Separator
         box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         
+        btn_edit = Gtk.Button()
+        btn_edit.set_has_frame(False)
+        lbl_edit = Gtk.Label(label="Set Nickname")
+        lbl_edit.set_halign(Gtk.Align.START)
+        btn_edit.set_child(lbl_edit)
+        btn_edit.set_halign(Gtk.Align.FILL)
+        btn_edit.connect("clicked", lambda _: (self.on_edit_nickname(folder_id), popover.popdown()))
+        box.append(btn_edit)
+        
         # Danger Item
         box.append(create_menu_item("Delete Wallpaper", "win.delete", folder_id, is_danger=True))
         
@@ -947,6 +992,24 @@ class WallpapersPage(Gtk.Box):
                     subprocess.Popen(['xdg-open', folder_path])
                 except Exception as e:
                     self.log_manager.add_error(f"Failed to open folder: {e}", "GUI")
+
+    def on_edit_nickname(self, wp_id: str):
+        wp = self.wp_manager._wallpapers.get(wp_id)
+        if not wp:
+            return
+        
+        title = wp.get('title', '')
+        current_nickname = self.nickname_manager.get(wp_id) if self.nickname_manager else None
+        preview_path = wp.get('preview')
+        
+        def on_confirm(new_nick: str):
+            if self.nickname_manager:
+                self.nickname_manager.set(wp_id, new_nick)
+                self.refresh_wallpaper_grid()
+                self.update_sidebar_index()
+                self.update_active_wallpaper_label()
+        
+        show_nickname_dialog(self.window, wp_id, title, preview_path, current_nickname, on_confirm)
 
     def set_compact_mode(self, enabled: bool):
         self.left_area.set_visible(not enabled)

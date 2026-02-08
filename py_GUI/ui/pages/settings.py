@@ -3,7 +3,7 @@ import os
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Gtk, GLib, Gdk, Adw
+from gi.repository import Gtk, GLib, Gdk, Adw, Gio
 
 from py_GUI.const import WORKSHOP_PATH, ASSETS_PATH
 from py_GUI.core.config import ConfigManager
@@ -16,7 +16,7 @@ from py_GUI.core.integrations import AppIntegrator
 class SettingsPage(Gtk.Box):
     def __init__(self, config: ConfigManager, screen_manager: ScreenManager, 
                  log_manager: LogManager, controller: WallpaperController,
-                 wp_manager: WallpaperManager, on_cycle_changed=None,
+                 wp_manager: WallpaperManager, nickname_manager, on_cycle_changed=None,
                  show_toast: Callable[[str], None] = None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         
@@ -25,6 +25,7 @@ class SettingsPage(Gtk.Box):
         self.log_manager = log_manager
         self.controller = controller
         self.wp_manager = wp_manager
+        self.nickname_manager = nickname_manager
         self.integrator = AppIntegrator()
         self.on_cycle_settings_changed = on_cycle_changed
         self.show_toast = show_toast or (lambda msg: None)
@@ -172,6 +173,15 @@ class SettingsPage(Gtk.Box):
         t.add_css_class("settings-section-title")
         t.set_halign(Gtk.Align.START)
         box.append(t)
+        
+        # Nicknames
+        r = self.create_row("Wallpaper Nicknames", "Manage custom names for wallpapers.")
+        box.append(r)
+        
+        btn_manage_nicks = Gtk.Button(label="Manage")
+        btn_manage_nicks.set_valign(Gtk.Align.CENTER)
+        btn_manage_nicks.connect("clicked", self.on_manage_nicknames)
+        r.append(btn_manage_nicks)
         
         # FPS
         r = self.create_row("FPS Limit", "Target frames per second.")
@@ -739,6 +749,25 @@ class SettingsPage(Gtk.Box):
         orig = btn.get_label()
         btn.set_label("Copied!")
         GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
+
+    def on_manage_nicknames(self, btn):
+        try:
+            from py_GUI.ui.components.nickname_manager_dialog import NicknameManagerDialog
+            root = self.get_root()
+            if not root:
+                app = Gio.Application.get_default()
+                if app:
+                    root = app.get_active_window()
+            
+            if root:
+                dialog = NicknameManagerDialog(root, self.nickname_manager, self.wp_manager)
+                dialog.present()
+            else:
+                print("[ERROR] Nickname Manager: Could not find parent window.")
+        except Exception as e:
+            print(f"[ERROR] Nickname Manager Error: {e}")
+            import traceback
+            traceback.print_exc()
 
     def on_save(self, btn):
         try:

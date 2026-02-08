@@ -583,4 +583,17 @@ dropdown button {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.15);
 }
+
+/* Nickname Support */
+.nickname-text {
+    font-style: italic;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.original-name-text {
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 20px 5px 20px;
+}
 """

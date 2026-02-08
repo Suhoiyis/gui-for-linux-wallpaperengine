@@ -1,6 +1,11 @@
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+try:
+    gi.require_version('Adw', '1')
+except ValueError:
+    pass
+from gi.repository import Gtk, Adw, Gdk
+from typing import Optional, Callable
 
 def show_delete_dialog(parent_window, wp_id, on_confirm):
     dialog = Gtk.Dialog(
@@ -178,5 +183,57 @@ def show_screenshot_success_dialog(parent_window, file_path, stats=None, texture
         
         d.destroy()
 
+    dialog.connect("response", on_response)
+    dialog.present()
+
+def show_nickname_dialog(parent, wp_id: str, title: str, preview_path: Optional[str], current_nickname: Optional[str], on_confirm: Callable[[str], None]):
+    dialog = Adw.MessageDialog(
+        transient_for=parent,
+        heading="Set Nickname",
+        body=f"Set a custom nickname for '{title}'"
+    )
+    
+    dialog.add_response("cancel", "Cancel")
+    dialog.add_response("save", "Save")
+    dialog.set_response_appearance("save", Adw.ResponseAppearance.SUGGESTED)
+    dialog.set_default_response("save")
+    dialog.set_close_response("cancel")
+    
+    content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+    content_box.set_margin_top(12)
+    content_box.set_margin_bottom(12)
+    content_box.set_margin_start(12)
+    content_box.set_margin_end(12)
+    
+    if preview_path:
+        try:
+            picture = Gtk.Picture.new_for_filename(preview_path)
+            picture.set_size_request(100, 100)
+            picture.set_content_fit(Gtk.ContentFit.COVER)
+            picture.add_css_class("card")
+            content_box.append(picture)
+        except Exception:
+            pass
+            
+    entry = Gtk.Entry()
+    entry.set_placeholder_text("Enter nickname...")
+    if current_nickname:
+        entry.set_text(current_nickname)
+    entry.set_activates_default(True)
+    content_box.append(entry)
+    
+    hint = Gtk.Label(label="Leave empty to remove nickname")
+    hint.add_css_class("caption")
+    hint.add_css_class("dim-label")
+    content_box.append(hint)
+    
+    dialog.set_extra_child(content_box)
+    
+    def on_response(d, response):
+        if response == "save":
+            text = entry.get_text().strip()
+            on_confirm(text)
+        d.close()
+        
     dialog.connect("response", on_response)
     dialog.present()

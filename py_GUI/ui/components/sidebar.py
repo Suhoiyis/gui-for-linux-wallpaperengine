@@ -16,12 +16,13 @@ from py_GUI.ui.components.animated_preview import AnimatedPreview
 
 class Sidebar(Gtk.Box):
     def __init__(self, wp_manager: WallpaperManager, prop_manager: PropertiesManager, 
-                 controller: WallpaperController, log_manager: LogManager):
+                 controller: WallpaperController, log_manager: LogManager, nickname_manager=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.wp_manager = wp_manager
         self.prop_manager = prop_manager
         self.controller = controller
         self.log_manager = log_manager
+        self.nickname_manager = nickname_manager
         
         self.selected_wp: Optional[str] = None
         
@@ -118,14 +119,44 @@ class Sidebar(Gtk.Box):
         preview_scroll.set_child(self.preview_image)
         content.append(preview_container)
 
-        # Title
+        # Title Row (Title + spacer + Edit Button)
+        title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        title_row.set_halign(Gtk.Align.FILL)
+        title_row.set_margin_start(20)
+        title_row.set_margin_end(20)
+        content.append(title_row)
+
         self.lbl_title = Gtk.Label(label="Select a Wallpaper")
         self.lbl_title.add_css_class("sidebar-title")
         self.lbl_title.set_use_markup(True)
         self.lbl_title.set_halign(Gtk.Align.START)
         self.lbl_title.set_wrap(True)
-        self.lbl_title.set_max_width_chars(25)
-        content.append(self.lbl_title)
+        self.lbl_title.set_max_width_chars(20)
+        self.lbl_title.set_xalign(0)
+        title_row.append(self.lbl_title)
+
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        title_row.append(spacer)
+
+        self.btn_edit_nickname = Gtk.Button()
+        self.btn_edit_nickname.set_icon_name("document-edit-symbolic")
+        self.btn_edit_nickname.add_css_class("flat")
+        self.btn_edit_nickname.add_css_class("circular")
+        self.btn_edit_nickname.set_tooltip_text("Edit Nickname")
+        self.btn_edit_nickname.set_valign(Gtk.Align.CENTER)
+        self.btn_edit_nickname.set_visible(False)
+        title_row.append(self.btn_edit_nickname)
+
+        # Original Name Label (below title)
+        self.lbl_original_name = Gtk.Label(label="")
+        self.lbl_original_name.add_css_class("original-name-text")
+        self.lbl_original_name.set_halign(Gtk.Align.START)
+        self.lbl_original_name.set_wrap(True)
+        self.lbl_original_name.set_max_width_chars(30)
+        self.lbl_original_name.set_xalign(0)
+        self.lbl_original_name.set_visible(False)
+        content.append(self.lbl_original_name)
 
         folder_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         folder_row.set_halign(Gtk.Align.START)
@@ -352,7 +383,30 @@ class Sidebar(Gtk.Box):
 
         self.preview_image.set_image_from_path(wp['preview'], self.wp_manager)
 
-        self.lbl_title.set_markup(markdown_to_pango(wp['title']))
+        # Nickname Logic
+        original_title = wp.get('title', 'Unknown')
+        display_title = original_title
+        has_nickname = False
+        
+        if self.nickname_manager:
+            display_title, returned_original = self.nickname_manager.get_display_name(wp)
+            if returned_original is not None:
+                original_title = returned_original
+            if display_title != original_title:
+                has_nickname = True
+        
+        self.lbl_title.set_markup(markdown_to_pango(display_title))
+        
+        if has_nickname:
+            self.lbl_title.add_css_class("nickname-text")
+            self.lbl_original_name.set_label(original_title)
+            self.lbl_original_name.set_visible(True)
+        else:
+            self.lbl_title.remove_css_class("nickname-text")
+            self.lbl_original_name.set_visible(False)
+            
+        self.btn_edit_nickname.set_visible(True)
+
         self.lbl_folder.set_label(f"{wp['id']}")
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
         
@@ -385,6 +439,9 @@ class Sidebar(Gtk.Box):
         self.selected_wp = None
         self.preview_image.set_image_from_path(None, None)
         self.lbl_title.set_label("Select a Wallpaper")
+        self.lbl_title.remove_css_class("nickname-text")
+        self.lbl_original_name.set_visible(False)
+        self.btn_edit_nickname.set_visible(False)
         self.lbl_folder.set_label("")
         self.lbl_size.set_label("")
         self.lbl_index.set_label("")

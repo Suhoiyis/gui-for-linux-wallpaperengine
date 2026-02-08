@@ -433,14 +433,18 @@ class PerformancePage(Gtk.Box):
                             row.details_box.remove(row.details_box.get_first_child())
                         
                         for screen, wp_id in active_monitors.items():
-                            title = "Unknown"
+                            display_name = "Unknown"
+                            secondary_text = None
                             preview_path = None
                             clean_id = str(wp_id).strip()
                             
                             if hasattr(self.controller, 'wp_manager'):
                                 wp = self.controller.wp_manager.get_wallpaper(clean_id)
                                 if wp:
-                                    title = wp.get("title", "Untitled")
+                                    if hasattr(self.controller, 'nickname_manager'):
+                                        display_name, secondary_text = self.controller.nickname_manager.get_display_name(wp)
+                                    else:
+                                        display_name = wp.get("title", "Untitled")
                                     preview_path = wp.get("preview")
                             
                             s_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -474,11 +478,19 @@ class PerformancePage(Gtk.Box):
                             screen_lbl.add_css_class("heading")
                             info_box.append(screen_lbl)
                             
-                            title_lbl = Gtk.Label(label=title)
+                            title_lbl = Gtk.Label(label=display_name)
                             title_lbl.set_halign(Gtk.Align.START)
                             title_lbl.set_ellipsize(Pango.EllipsizeMode.END)
                             title_lbl.set_max_width_chars(40)
                             info_box.append(title_lbl)
+                            
+                            if secondary_text:
+                                subtitle_lbl = Gtk.Label(label=secondary_text)
+                                subtitle_lbl.add_css_class("text-muted")
+                                subtitle_lbl.set_halign(Gtk.Align.START)
+                                subtitle_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+                                subtitle_lbl.set_max_width_chars(40)
+                                info_box.append(subtitle_lbl)
                             
                             id_lbl = Gtk.Label(label=f"ID: {wp_id}")
                             id_lbl.add_css_class("text-muted")
@@ -551,13 +563,19 @@ class PerformancePage(Gtk.Box):
         
         wp_id = record.get("wp_id", "Unknown")
         output_path = record.get("output_path", "")
-        wp_title = None
+        display_name = None
+        secondary_text = None
         thumbnail_added = False
         
         if hasattr(self.controller, 'wp_manager'):
             wp = self.controller.wp_manager.get_wallpaper(str(wp_id))
             if wp:
-                wp_title = wp.get("title")
+                # Use nickname_manager to get display name
+                if hasattr(self.controller, 'nickname_manager'):
+                    display_name, secondary_text = self.controller.nickname_manager.get_display_name(wp)
+                else:
+                    display_name = wp.get("title")
+                
                 if wp.get("preview"):
                     texture = self.controller.wp_manager.get_texture(wp["preview"], size=48)
                     if texture:
@@ -580,7 +598,10 @@ class PerformancePage(Gtk.Box):
         timestamp = record.get("timestamp", 0)
         time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
         
-        display_name = wp_title if wp_title else f"Wallpaper {wp_id}"
+        # Use display_name from nickname_manager, or fallback
+        if not display_name:
+            display_name = f"Wallpaper {wp_id}"
+        
         title_lbl = Gtk.Label(label=display_name)
         title_lbl.add_css_class("list-title")
         title_lbl.set_halign(Gtk.Align.START)

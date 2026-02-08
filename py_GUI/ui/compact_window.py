@@ -11,7 +11,7 @@ from py_GUI.ui.components.animated_preview import AnimatedPreview
 
 class CompactWindow(Gtk.ApplicationWindow):
     def __init__(self, app, wp_manager, controller, config, log_manager, 
-                 screen_manager, show_toast: Callable[[str], None],
+                 screen_manager, nickname_manager, show_toast: Callable[[str], None],
                  on_compact_mode_toggled: Callable[[bool], None],
                  on_restart_app: Callable[[], None]):
         super().__init__(application=app)
@@ -22,6 +22,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.config = config
         self.log_manager = log_manager
         self.screen_manager = screen_manager
+        self.nickname_manager = nickname_manager
         self.show_toast = show_toast
         self.on_compact_mode_toggled_cb = on_compact_mode_toggled
         self.on_restart_app_cb = on_restart_app
@@ -399,7 +400,15 @@ class CompactWindow(Gtk.ApplicationWindow):
         path = wp.get('preview', '')
         self.preview_image.set_image_from_path(path, self.wp_manager)
         
-        self.lbl_title.set_markup(markdown_to_pango(wp.get('title', 'Unknown')))
+        display_name, original_title = self.nickname_manager.get_display_name(wp)
+        self.lbl_title.set_markup(markdown_to_pango(display_name))
+        
+        if original_title:
+            tooltip_text = f"{display_name}\n({original_title})"
+            self.lbl_title.set_tooltip_text(tooltip_text)
+        else:
+            self.lbl_title.set_tooltip_text(display_name)
+        
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
         
         self.lbl_id.set_label(str(wp_id))

@@ -12,6 +12,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.screen import ScreenManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
+from py_GUI.core.nickname import NicknameManager
 from py_GUI.utils import markdown_to_pango
 
 from py_GUI.ui.components.navbar import NavBar
@@ -34,8 +35,10 @@ class WallpaperApp(Adw.Application):
         self.wp_manager = WallpaperManager(workshop_path)
         self.prop_manager = PropertiesManager(self.config)
         self.screen_manager = ScreenManager()
+        self.nickname_manager = NicknameManager(self.config)
         self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager, self.screen_manager)
         self.controller.wp_manager = self.wp_manager
+        self.controller.nickname_manager = self.nickname_manager
 
         self.start_hidden = False
         self.cli_actions = []
@@ -147,7 +150,7 @@ class WallpaperApp(Adw.Application):
         self.wallpapers_page = WallpapersPage(
             self.win, self.config, self.wp_manager, 
             self.prop_manager, self.controller, self.log_manager,
-            self.screen_manager, self.show_toast
+            self.screen_manager, self.nickname_manager, self.show_toast
         )
         self.stack.add_named(self.wallpapers_page, "wallpapers")
 
@@ -157,7 +160,7 @@ class WallpaperApp(Adw.Application):
 
         self.settings_page = SettingsPage(
             self.config, self.screen_manager, self.log_manager, 
-            self.controller, self.wp_manager,
+            self.controller, self.wp_manager, self.nickname_manager,
             on_cycle_changed=self.setup_cycle_timer,
             show_toast=self.show_toast
         )
@@ -172,6 +175,7 @@ class WallpaperApp(Adw.Application):
             config=self.config,
             log_manager=self.log_manager,
             screen_manager=self.screen_manager,
+            nickname_manager=self.nickname_manager,
             show_toast=self.show_toast,
             on_compact_mode_toggled=self.on_compact_mode_toggled,
             on_restart_app=self.restart_app
@@ -179,6 +183,7 @@ class WallpaperApp(Adw.Application):
         self.compact_win.set_icon_name("GUI")
 
         self.wp_manager.scan()
+        self.nickname_manager.cleanup(list(self.wp_manager._wallpapers.keys()))
         self.wallpapers_page.refresh_wallpaper_grid()
         
         if self.wp_manager.last_scan_error:
