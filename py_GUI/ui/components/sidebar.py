@@ -32,6 +32,8 @@ class Sidebar(Gtk.Box):
         self.set_size_request(320, -1)
         self.set_hexpand(False)
         
+        self._compact_mode = False
+        
         self.build_ui()
 
     def set_available_screens(self, screens: List[str]):
@@ -145,41 +147,41 @@ class Sidebar(Gtk.Box):
         self.lbl_folder.add_controller(folder_click)
 
         # Type
-        type_header = Gtk.Label(label="Type")
-        type_header.add_css_class("sidebar-section")
-        type_header.set_halign(Gtk.Align.START)
-        content.append(type_header)
+        self.type_header = Gtk.Label(label="Type")
+        self.type_header.add_css_class("sidebar-section")
+        self.type_header.set_halign(Gtk.Align.START)
+        content.append(self.type_header)
 
-        type_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        type_container.set_margin_start(20)
-        content.append(type_container)
+        self.type_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.type_container.set_margin_start(20)
+        content.append(self.type_container)
 
         self.lbl_type = Gtk.Label(label="-")
         self.lbl_type.add_css_class("tag-chip")
         self.lbl_type.set_halign(Gtk.Align.START)
-        type_container.append(self.lbl_type)
+        self.type_container.append(self.lbl_type)
 
         # Tags
-        tags_header = Gtk.Label(label="Tags")
-        tags_header.add_css_class("sidebar-section")
-        tags_header.set_halign(Gtk.Align.START)
-        content.append(tags_header)
+        self.tags_header = Gtk.Label(label="Tags")
+        self.tags_header.add_css_class("sidebar-section")
+        self.tags_header.set_halign(Gtk.Align.START)
+        content.append(self.tags_header)
 
-        tags_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        tags_container.set_hexpand(False)
-        content.append(tags_container)
+        self.tags_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.tags_container.set_hexpand(False)
+        content.append(self.tags_container)
 
         self.tags_flow = Gtk.FlowBox()
         self.tags_flow.set_selection_mode(Gtk.SelectionMode.NONE)
         self.tags_flow.set_max_children_per_line(4)
         self.tags_flow.set_hexpand(False)
-        tags_container.append(self.tags_flow)
+        self.tags_container.append(self.tags_flow)
 
         # Description
-        desc_header = Gtk.Label(label="Description")
-        desc_header.add_css_class("sidebar-section")
-        desc_header.set_halign(Gtk.Align.START)
-        content.append(desc_header)
+        self.desc_header = Gtk.Label(label="Description")
+        self.desc_header.add_css_class("sidebar-section")
+        self.desc_header.set_halign(Gtk.Align.START)
+        content.append(self.desc_header)
 
         self.lbl_desc = Gtk.Label(label="No description.")
         self.lbl_desc.add_css_class("sidebar-desc")
@@ -237,6 +239,48 @@ class Sidebar(Gtk.Box):
         self.btn_workshop.add_css_class("secondary")
         self.btn_workshop.connect("clicked", self.on_workshop_clicked)
         btn_box.append(self.btn_workshop)
+
+        self.thumb_grid = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.thumb_grid.set_halign(Gtk.Align.CENTER)
+        self.thumb_grid.set_margin_top(10)
+        self.thumb_grid.set_margin_bottom(10)
+        self.thumb_grid.set_visible(False)
+        self.append(self.thumb_grid)
+        
+        self.compact_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.compact_actions.set_halign(Gtk.Align.CENTER)
+        self.compact_actions.set_margin_bottom(10)
+        self.compact_actions.set_visible(False)
+        self.append(self.compact_actions)
+        
+        self.btn_compact_stop = Gtk.Button()
+        self.btn_compact_stop.set_icon_name("media-playback-stop-symbolic")
+        self.btn_compact_stop.add_css_class("circular")
+        self.btn_compact_stop.set_tooltip_text("Stop Wallpaper")
+        self.compact_actions.append(self.btn_compact_stop)
+        
+        self.btn_compact_lucky = Gtk.Button()
+        self.btn_compact_lucky.set_icon_name("media-playlist-shuffle-symbolic")
+        self.btn_compact_lucky.add_css_class("circular")
+        self.btn_compact_lucky.set_tooltip_text("I'm feeling lucky")
+        self.compact_actions.append(self.btn_compact_lucky)
+        
+        self.btn_compact_jump = Gtk.Button()
+        self.btn_compact_jump.set_icon_name("go-home-symbolic")
+        self.btn_compact_jump.add_css_class("circular")
+        self.btn_compact_jump.set_tooltip_text("Jump to current wallpaper")
+        self.compact_actions.append(self.btn_compact_jump)
+        
+        self._thumb_cache = {}
+        self._wallpaper_ids = []
+        self._on_thumb_clicked_cb = None
+        self._on_stop_cb = None
+        self._on_lucky_cb = None
+        self._on_jump_cb = None
+        
+        self.btn_compact_stop.connect("clicked", lambda b: self._on_stop_cb() if callable(self._on_stop_cb) else None)
+        self.btn_compact_lucky.connect("clicked", lambda b: self._on_lucky_cb() if callable(self._on_lucky_cb) else None)
+        self.btn_compact_jump.connect("clicked", lambda b: self._on_jump_cb() if callable(self._on_jump_cb) else None)
 
     def on_popover_map(self, popover):
         while True:
@@ -597,3 +641,77 @@ class Sidebar(Gtk.Box):
                 return False
                 
             GLib.timeout_add(2000, reset_tooltip)
+
+    def set_compact_mode(self, enabled: bool):
+        self._compact_mode = enabled
+        self.lbl_folder.set_visible(not enabled)
+        self.desc_header.set_visible(not enabled)
+        self.lbl_desc.set_visible(not enabled)
+        self.btn_workshop.set_visible(not enabled)
+        self.thumb_grid.set_visible(enabled)
+        self.compact_actions.set_visible(enabled)
+        if enabled:
+            self._update_thumb_grid()
+
+    def set_wallpaper_ids(self, ids: list):
+        self._wallpaper_ids = ids
+
+    def set_thumb_clicked_callback(self, cb):
+        self._on_thumb_clicked_cb = cb
+
+    def set_compact_callbacks(self, on_stop=None, on_lucky=None, on_jump=None):
+        self._on_stop_cb = on_stop
+        self._on_lucky_cb = on_lucky
+        self._on_jump_cb = on_jump
+
+    def _update_thumb_grid(self):
+        while True:
+            child = self.thumb_grid.get_first_child()
+            if child is None:
+                break
+            self.thumb_grid.remove(child)
+
+        if not self.selected_wp or not self._wallpaper_ids:
+            return
+
+        try:
+            current_idx = self._wallpaper_ids.index(self.selected_wp)
+        except ValueError:
+            return
+
+        start_idx = max(0, current_idx - 2)
+        end_idx = min(len(self._wallpaper_ids), current_idx + 3)
+        
+        for idx in range(start_idx, end_idx):
+            wp_id = self._wallpaper_ids[idx]
+            thumb = self._create_thumbnail(wp_id, is_current=(idx == current_idx))
+            self.thumb_grid.append(thumb)
+
+    def _create_thumbnail(self, wp_id: str, is_current: bool) -> Gtk.Widget:
+        btn = Gtk.Button()
+        btn.set_size_request(50, 50)
+        btn.set_has_frame(False)
+        
+        wp = self.wp_manager._wallpapers.get(wp_id)
+        if wp:
+            if wp_id in self._thumb_cache:
+                texture = self._thumb_cache[wp_id]
+            else:
+                texture = self.wp_manager.get_texture(wp['preview'], 50)
+                self._thumb_cache[wp_id] = texture
+            
+            picture = Gtk.Picture()
+            picture.set_paintable(texture)
+            picture.set_content_fit(Gtk.ContentFit.COVER)
+            picture.set_size_request(50, 50)
+            btn.set_child(picture)
+        
+        if is_current:
+            btn.add_css_class("suggested-action")
+        
+        btn.connect("clicked", lambda b, wid=wp_id: self._on_thumb_click(wid))
+        return btn
+
+    def _on_thumb_click(self, wp_id: str):
+        if callable(self._on_thumb_clicked_cb):
+            self._on_thumb_clicked_cb(wp_id)

@@ -47,7 +47,10 @@ class WallpapersPage(Gtk.Box):
         self.selected_screen = self.config.get("lastScreen", "eDP-1")
         self.apply_mode = self.config.get("apply_mode", "diff")
 
+        self._current_wp_ids = []
+
         self.build_ui()
+        self._setup_key_controller()
 
     def build_ui(self):
         # Toolbar
@@ -55,24 +58,24 @@ class WallpapersPage(Gtk.Box):
         self.append(self.toolbar)
 
         # Content Box
-        content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        content_box.set_vexpand(True)
-        content_box.set_hexpand(True)
-        self.append(content_box)
+        self.content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.content_box.set_vexpand(True)
+        self.content_box.set_hexpand(True)
+        self.append(self.content_box)
 
         # Left Area
-        left_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        left_area.set_hexpand(True)
-        content_box.append(left_area)
+        self.left_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.left_area.set_hexpand(True)
+        self.content_box.append(self.left_area)
 
         # Status Panel
-        self.build_status_panel(left_area)
+        self.build_status_panel(self.left_area)
 
         # Scroll Area
         self.wallpaper_scroll = Gtk.ScrolledWindow()
         self.wallpaper_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.wallpaper_scroll.set_vexpand(True)
-        left_area.append(self.wallpaper_scroll)
+        self.left_area.append(self.wallpaper_scroll)
 
         # Containers
         self.flowbox = Gtk.FlowBox()
@@ -102,8 +105,14 @@ class WallpapersPage(Gtk.Box):
         self.sidebar.set_available_screens(screens)
         self.sidebar.set_current_screen_callback(lambda: self.selected_screen)
         self.sidebar.set_apply_mode_callback(lambda: getattr(self, 'apply_mode', 'diff'))
+        self.sidebar.set_thumb_clicked_callback(self.select_wallpaper)
+        self.sidebar.set_compact_callbacks(
+            on_stop=self.on_stop_clicked,
+            on_lucky=lambda: self.on_feeling_lucky(None),
+            on_jump=lambda: self.on_currently_using_clicked()
+        )
         
-        content_box.append(self.sidebar)
+        self.content_box.append(self.sidebar)
 
     def build_toolbar(self):
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
@@ -565,6 +574,9 @@ class WallpapersPage(Gtk.Box):
             show_error_dialog(self.window, "Screenshot Error", f"Failed to start process: {e}")
 
     def refresh_wallpaper_grid(self):
+        self._current_wp_ids = list(self.filter_wallpapers().keys())
+        self.sidebar.set_wallpaper_ids(self._current_wp_ids)
+        
         if self.view_mode == "grid":
             self.wallpaper_scroll.set_child(self.flowbox)
             self.populate_grid()
@@ -773,6 +785,9 @@ class WallpapersPage(Gtk.Box):
             self.sidebar.update(folder_id, index, total)
         else:
             self.sidebar.update(folder_id)
+        
+        if self.sidebar._compact_mode:
+            self.sidebar._update_thumb_grid()
 
     def apply_wallpaper(self, wp_id: str):
         self.controller.apply(wp_id, self.selected_screen)
@@ -893,3 +908,37 @@ class WallpapersPage(Gtk.Box):
                     subprocess.Popen(['xdg-open', folder_path])
                 except Exception as e:
                     self.log_manager.add_error(f"Failed to open folder: {e}", "GUI")
+
+    def set_compact_mode(self, enabled: bool):
+        self.left_area.set_visible(not enabled)
+        self.toolbar.set_visible(not enabled)
+        self.content_box.set_hexpand(not enabled)
+        self.sidebar.set_compact_mode(enabled)
+        if enabled:
+            self.sidebar.grab_focus()
+
+    def _setup_key_controller(self):
+        key_ctrl = Gtk.EventControllerKey.new()
+        key_ctrl.connect("key-pressed", self._on_key_pressed)
+        self.add_controller(key_ctrl)
+
+    def _on_key_pressed(self, controller, keyval, keycode, state):
+        if keyval == Gdk.KEY_Left:
+            self._navigate_wallpaper(-1)
+            return True
+        elif keyval == Gdk.KEY_Right:
+            self._navigate_wallpaper(1)
+            return True
+        return False
+
+    def _navigate_wallpaper(self, direction: int):
+        if not self._current_wp_ids or not self.selected_wp:
+            return
+        try:
+            current_idx = self._current_wp_ids.index(self.selected_wp)
+            new_idx = current_idx + direction
+            if 0 <= new_idx < len(self._current_wp_ids):
+                new_wp_id = self._current_wp_ids[new_idx]
+                self.select_wallpaper(new_wp_id)
+        except ValueError:
+            pass

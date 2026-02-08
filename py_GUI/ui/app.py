@@ -19,6 +19,7 @@ from py_GUI.ui.pages.wallpapers import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
 from py_GUI.ui.pages.performance import PerformancePage
 from py_GUI.ui.tray import TrayIcon
+from py_GUI.ui.compact_window import CompactWindow
 
 class WallpaperApp(Adw.Application):
     def __init__(self):
@@ -125,6 +126,7 @@ class WallpaperApp(Adw.Application):
         screens = self.screen_manager.get_screens()
         selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
         initial_link_state = (self.config.get("apply_mode", "diff") == "same")
+        initial_compact_state = bool(self.config.get("compact_mode", False))
         
         self.navbar = NavBar(
             self.stack, 
@@ -134,7 +136,9 @@ class WallpaperApp(Adw.Application):
             on_screen_changed=self.on_navbar_screen_changed,
             on_link_toggled=self.on_navbar_link_toggled,
             on_restart_app=self.restart_app,
-            initial_link_state=initial_link_state
+            on_compact_mode_toggled=self.on_compact_mode_toggled,
+            initial_link_state=initial_link_state,
+            initial_compact_state=initial_compact_state
         )
         main_box.append(self.navbar)
         main_box.append(self.stack)
@@ -161,7 +165,19 @@ class WallpaperApp(Adw.Application):
 
         self.controller.set_toast_callback(self.show_toast)
 
-        # Initial Load
+        self.compact_win = CompactWindow(
+            app=self,
+            wp_manager=self.wp_manager,
+            controller=self.controller,
+            config=self.config,
+            log_manager=self.log_manager,
+            screen_manager=self.screen_manager,
+            show_toast=self.show_toast,
+            on_compact_mode_toggled=self.on_compact_mode_toggled,
+            on_restart_app=self.restart_app
+        )
+        self.compact_win.set_icon_name("GUI")
+
         self.wp_manager.scan()
         self.wallpapers_page.refresh_wallpaper_grid()
         
@@ -200,8 +216,18 @@ class WallpaperApp(Adw.Application):
 
         if self.start_hidden:
             self.win.set_visible(False)
+            self.compact_win.set_visible(False)
+        elif initial_compact_state:
+            self.win.set_visible(False)
+            wp_ids = self.wallpapers_page._current_wp_ids
+            self.compact_win.sync_from_main(wp_ids, None)
+            self.compact_win.set_visible(True)
+            self.compact_win.present()
+            GLib.timeout_add(100, lambda: self.compact_win.present() or False)
         else:
+            self.win.set_visible(True)
             self.win.present()
+            GLib.timeout_add(100, lambda: self.win.present() or False)
         self.start_hidden = False
         
         self.initialized = True
@@ -229,7 +255,11 @@ class WallpaperApp(Adw.Application):
         return True
 
     def show_window(self):
-        if self.win:
+        is_compact = self.config.get("compact_mode", False)
+        if is_compact:
+            self.compact_win.set_visible(True)
+            self.compact_win.present()
+        else:
             self.win.set_visible(True)
             self.win.present()
 
@@ -240,11 +270,18 @@ class WallpaperApp(Adw.Application):
             self.toast_overlay.add_toast(toast)
 
     def hide_window(self):
-        if self.win:
-            self.win.set_visible(False)
+        self.win.set_visible(False)
+        if hasattr(self, 'compact_win'):
+            self.compact_win.set_visible(False)
 
     def toggle_window(self):
-        if self.win:
+        is_compact = self.config.get("compact_mode", False)
+        if is_compact:
+            if self.compact_win.get_visible():
+                self.hide_window()
+            else:
+                self.show_window()
+        else:
             if self.win.get_visible():
                 self.hide_window()
             else:
@@ -269,6 +306,24 @@ class WallpaperApp(Adw.Application):
         if hasattr(self, 'wallpapers_page'):
             self.wallpapers_page.apply_mode = mode
             self.log_manager.add_info(f"Apply mode changed to: {mode}", "App")
+
+    def on_compact_mode_toggled(self, is_compact: bool):
+        self.config.set("compact_mode", is_compact)
+        
+        if is_compact:
+            self.win.set_visible(False)
+            wp_ids = self.wallpapers_page._current_wp_ids
+            selected_wp = self.wallpapers_page.selected_wp
+            self.compact_win.sync_from_main(wp_ids, selected_wp)
+            self.compact_win.set_visible(True)
+            self.compact_win.present()
+        else:
+            self.compact_win.set_visible(False)
+            self.win.set_visible(True)
+            self.win.present()
+            self.navbar.set_compact_active(False)
+        
+        self.log_manager.add_info(f"Compact mode: {'enabled' if is_compact else 'disabled'}", "App")
 
     def refresh_from_cli(self):
         self.wallpapers_page.on_reload_wallpapers(None)
