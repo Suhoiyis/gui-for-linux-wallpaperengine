@@ -94,11 +94,28 @@ class CompactWindow(Gtk.ApplicationWindow):
         content.set_margin_bottom(10)
         scroll.set_child(content)
         
+        top_section = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        top_section.set_halign(Gtk.Align.CENTER)
+        content.append(top_section)
+
         preview_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         preview_container.set_size_request(200, 200)
-        preview_container.set_halign(Gtk.Align.CENTER)
         preview_container.add_css_class("sidebar-preview")
-        content.append(preview_container)
+        top_section.append(preview_container)
+        
+        jump_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        jump_box.set_valign(Gtk.Align.START)
+        top_section.append(jump_box)
+        
+        self.entry_jump = Gtk.Entry()
+        self.entry_jump.set_placeholder_text("#")
+        self.entry_jump.set_max_length(5)
+        self.entry_jump.set_width_chars(2)
+        self.entry_jump.set_max_width_chars(3)
+        self.entry_jump.set_alignment(0.5)
+        self.entry_jump.set_tooltip_text("Jump to Index")
+        self.entry_jump.connect("activate", self._on_jump_entry_activate)
+        jump_box.append(self.entry_jump)
         
         preview_scroll = Gtk.ScrolledWindow()
         preview_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -241,6 +258,34 @@ class CompactWindow(Gtk.ApplicationWindow):
         btn_next.connect("clicked", lambda _: self._navigate_wallpaper(1))
         nav_container.append(btn_next)
     
+    def _on_jump_entry_activate(self, entry):
+        text = entry.get_text().strip()
+        if not text:
+            return
+            
+        try:
+            idx = int(text)
+            total = len(self._wallpaper_ids)
+            if total == 0:
+                return
+                
+            if idx < 1: idx = 1
+            if idx > total: idx = total
+            
+            entry.set_text(str(idx))
+            
+            wp_id = self._wallpaper_ids[idx - 1]
+            self.select_wallpaper(wp_id)
+            
+            entry.set_position(-1)
+            
+        except ValueError:
+            if self.selected_wp and self.selected_wp in self._wallpaper_ids:
+                current = self._wallpaper_ids.index(self.selected_wp) + 1
+                entry.set_text(str(current))
+            else:
+                entry.set_text("")
+
     def _on_close_request(self, win):
         self.on_compact_mode_toggled_cb(False)
         return True
@@ -350,8 +395,10 @@ class CompactWindow(Gtk.ApplicationWindow):
             idx = self._wallpaper_ids.index(wp_id) + 1
             total = len(self._wallpaper_ids)
             self.lbl_index.set_label(f"{idx}/{total}")
+            self.entry_jump.set_text(str(idx))
         else:
             self.lbl_index.set_label("")
+            self.entry_jump.set_text("")
         
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         
