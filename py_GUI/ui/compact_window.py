@@ -6,6 +6,7 @@ from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 from typing import Callable, Optional, List
 
 from py_GUI.utils import markdown_to_pango, format_size
+from py_GUI.ui.components.animated_preview import AnimatedPreview
 
 
 class CompactWindow(Gtk.ApplicationWindow):
@@ -28,6 +29,8 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.selected_wp: Optional[str] = None
         self._wallpaper_ids: List[str] = []
         self._thumb_cache = {}
+        self.thumb_buttons: List[Gtk.Button] = []
+        self.target_screen = self.config.get("lastScreen", "eDP-1")
         
         self.set_title("Wallpaper Preview")
         self.set_default_size(300, 800)
@@ -35,6 +38,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.connect("close-request", self._on_close_request)
         
         self._build_ui()
+        self._setup_key_controller()
     
     def _build_ui(self):
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -52,6 +56,23 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.btn_toggle.add_css_class("nav-btn")
         self.btn_toggle.connect("clicked", self._on_toggle_clicked)
         navbar.append(self.btn_toggle)
+        
+        self.btn_screen = Gtk.MenuButton()
+        self.btn_screen.set_icon_name("display-symbolic")
+        self.btn_screen.set_tooltip_text(f"Monitor: {self.target_screen}")
+        self.btn_screen.add_css_class("nav-btn")
+        navbar.append(self.btn_screen)
+        
+        popover = Gtk.Popover()
+        self.screen_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.screen_list_box.set_margin_top(6)
+        self.screen_list_box.set_margin_bottom(6)
+        self.screen_list_box.set_margin_start(6)
+        self.screen_list_box.set_margin_end(6)
+        popover.set_child(self.screen_list_box)
+        self.btn_screen.set_popover(popover)
+        
+        self._update_screen_list()
         
         spacer = Gtk.Box()
         spacer.set_hexpand(True)
@@ -82,9 +103,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         preview_container.add_css_class("sidebar-preview")
         content.append(preview_container)
         
-        self.preview_image = Gtk.Picture()
-        self.preview_image.set_content_fit(Gtk.ContentFit.COVER)
-        self.preview_image.set_size_request(200, 200)
+        self.preview_image = AnimatedPreview(size_request=(200, 200))
         preview_container.append(self.preview_image)
         
         self.lbl_title = Gtk.Label(label="Select a Wallpaper")
@@ -198,6 +217,20 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.thumb_grid = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         nav_container.append(self.thumb_grid)
         
+        for _ in range(5):
+            btn = Gtk.Button()
+            btn.set_size_request(40, 40)
+            btn.set_has_frame(False)
+            
+            pic = Gtk.Picture()
+            pic.set_content_fit(Gtk.ContentFit.COVER)
+            pic.set_size_request(40, 40)
+            btn.set_child(pic)
+            
+            btn.connect("clicked", self._on_thumb_clicked)
+            self.thumb_grid.append(btn)
+            self.thumb_buttons.append(btn)
+        
         btn_next = Gtk.Button()
         btn_next.set_size_request(30, 30)
         btn_next.set_icon_name("go-next-symbolic")
@@ -205,10 +238,6 @@ class CompactWindow(Gtk.ApplicationWindow):
         btn_next.set_tooltip_text("Next Wallpaper (Right Arrow)")
         btn_next.connect("clicked", lambda _: self._navigate_wallpaper(1))
         nav_container.append(btn_next)
-        
-        self.anim = None
-        self.anim_iter = None
-        self.anim_timer = None
     
     def _on_close_request(self, win):
         self.on_compact_mode_toggled_cb(False)
@@ -219,18 +248,11 @@ class CompactWindow(Gtk.ApplicationWindow):
     
     def _on_apply_clicked(self, btn):
         if self.selected_wp:
-            screen = self.config.get("lastScreen", "eDP-1")
-            apply_mode = self.config.get("apply_mode", "diff")
-            screens = self.screen_manager.get_screens()
-            
-            if apply_mode == "same" and screens:
-                self.controller.apply(self.selected_wp, screens=screens)
-            else:
-                self.controller.apply(self.selected_wp, screen=screen)
+            self.controller.apply(self.selected_wp, screen=self.target_screen)
+            self.config.set("lastScreen", self.target_screen)
     
     def _on_stop_clicked(self, btn):
-        screen = self.config.get("lastScreen", "eDP-1")
-        self.controller.stop_screen(screen)
+        self.controller.stop_screen(self.target_screen)
     
     def _on_lucky_clicked(self, btn):
         import random
@@ -240,9 +262,8 @@ class CompactWindow(Gtk.ApplicationWindow):
             self._on_apply_clicked(None)
     
     def _on_jump_clicked(self, btn):
-        screen = self.config.get("lastScreen", "eDP-1")
         active_monitors = self.config.get("active_monitors", {})
-        current_wp_id = active_monitors.get(screen)
+        current_wp_id = active_monitors.get(self.target_screen)
         
         if current_wp_id:
             self.select_wallpaper(current_wp_id)
@@ -250,6 +271,35 @@ class CompactWindow(Gtk.ApplicationWindow):
             last_wp = self.config.get("lastWallpaper")
             if last_wp:
                 self.select_wallpaper(last_wp)
+    
+    def _update_screen_list(self):
+        while True:
+            child = self.screen_list_box.get_first_child()
+            if child is None: break
+            self.screen_list_box.remove(child)
+            
+        screens = self.screen_manager.get_screens()
+        for screen in screens:
+            btn = Gtk.Button(label=screen)
+            btn.add_css_class("flat")
+            btn.set_halign(Gtk.Align.FILL)
+            if screen == self.target_screen:
+                btn.add_css_class("suggested-action")
+            
+            btn.connect("clicked", lambda b, s=screen: self._on_screen_selected(s))
+            self.screen_list_box.append(btn)
+
+    def _on_screen_selected(self, screen):
+        self.target_screen = screen
+        self.btn_screen.set_tooltip_text(f"Monitor: {screen}")
+        self.btn_screen.popdown()
+        self._update_screen_list()
+        
+        active_monitors = self.config.get("active_monitors", {})
+        current_wp_id = active_monitors.get(screen)
+        
+        if current_wp_id:
+            self.select_wallpaper(current_wp_id)
     
     def _on_id_clicked(self):
         if self.selected_wp:
@@ -292,7 +342,6 @@ class CompactWindow(Gtk.ApplicationWindow):
             self._update_thumb_grid()
     
     def select_wallpaper(self, wp_id: str):
-        self.stop_animation()
         self.selected_wp = wp_id
         
         if not wp_id:
@@ -305,18 +354,7 @@ class CompactWindow(Gtk.ApplicationWindow):
             return
         
         path = wp.get('preview', '')
-        loaded_anim = False
-        
-        if path.lower().endswith('.gif'):
-            try:
-                self._start_animation(path)
-                loaded_anim = True
-            except Exception:
-                loaded_anim = False
-        
-        if not loaded_anim:
-            texture = self.wp_manager.get_texture(path, 500)
-            self.preview_image.set_paintable(texture)
+        self.preview_image.set_image_from_path(path, self.wp_manager)
         
         self.lbl_title.set_markup(markdown_to_pango(wp.get('title', 'Unknown')))
         self.lbl_size.set_label(format_size(wp.get('size', 0)))
@@ -355,9 +393,8 @@ class CompactWindow(Gtk.ApplicationWindow):
         self._update_thumb_grid()
     
     def _clear(self):
-        self.stop_animation()
         self.selected_wp = None
-        self.preview_image.set_paintable(None)
+        self.preview_image.set_image_from_path(None, None)
         self.lbl_title.set_label("Select a Wallpaper")
         self.lbl_size.set_label("")
         self.lbl_index.set_label("")
@@ -370,60 +407,12 @@ class CompactWindow(Gtk.ApplicationWindow):
                 break
             self.tags_flow.remove(child)
         
-        while True:
-            child = self.thumb_grid.get_first_child()
-            if child is None:
-                break
-            self.thumb_grid.remove(child)
-    
-    def _start_animation(self, path):
-        self.anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
-        self.anim_iter = self.anim.get_iter(None)
-        
-        pixbuf = self.anim_iter.get_pixbuf()
-        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        self.preview_image.set_paintable(texture)
-        
-        if not self.anim.is_static_image():
-            self.anim_timer = GLib.timeout_add(
-                self.anim_iter.get_delay_time(),
-                self._on_animation_frame
-            )
-    
-    def _on_animation_frame(self):
-        if not hasattr(self, 'anim_iter') or not self.anim_iter:
-            return False
-        
-        try:
-            self.anim_iter.advance(None)
-        except:
-            return False
-        
-        pixbuf = self.anim_iter.get_pixbuf()
-        texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-        self.preview_image.set_paintable(texture)
-        
-        delay = self.anim_iter.get_delay_time()
-        if delay <= 0:
-            delay = 100
-        
-        self.anim_timer = GLib.timeout_add(delay, self._on_animation_frame)
-        return False
-    
-    def stop_animation(self):
-        if hasattr(self, 'anim_timer') and self.anim_timer:
-            GLib.source_remove(self.anim_timer)
-            self.anim_timer = None
-        self.anim = None
-        self.anim_iter = None
+        for btn in self.thumb_buttons:
+            btn.set_child(None)
+            if hasattr(btn, 'wp_id'):
+                del btn.wp_id
     
     def _update_thumb_grid(self):
-        while True:
-            child = self.thumb_grid.get_first_child()
-            if child is None:
-                break
-            self.thumb_grid.remove(child)
-        
         if not self.selected_wp or not self._wallpaper_ids:
             return
         
@@ -435,37 +424,40 @@ class CompactWindow(Gtk.ApplicationWindow):
         total = len(self._wallpaper_ids)
         if total == 0: return
         
-        for offset in range(-2, 3):
+        for i, offset in enumerate(range(-2, 3)):
+            if i >= len(self.thumb_buttons): break
+            
             idx = (current_idx + offset) % total
             wp_id = self._wallpaper_ids[idx]
+            btn = self.thumb_buttons[i]
             
-            thumb = self._create_thumbnail(wp_id, is_current=(offset == 0))
-            self.thumb_grid.append(thumb)
-    
-    def _create_thumbnail(self, wp_id: str, is_current: bool) -> Gtk.Widget:
-        btn = Gtk.Button()
-        btn.set_size_request(40, 40)
-        btn.set_has_frame(False)
-        
-        wp = self.wp_manager._wallpapers.get(wp_id)
-        if wp:
-            if wp_id in self._thumb_cache:
-                texture = self._thumb_cache[wp_id]
+            btn.wp_id = wp_id
+            
+            if offset == 0:
+                btn.add_css_class("suggested-action")
             else:
-                texture = self.wp_manager.get_texture(wp.get('preview', ''), 40)
-                self._thumb_cache[wp_id] = texture
+                btn.remove_css_class("suggested-action")
             
-            picture = Gtk.Picture()
-            picture.set_paintable(texture)
-            picture.set_content_fit(Gtk.ContentFit.COVER)
-            picture.set_size_request(40, 40)
-            btn.set_child(picture)
-        
-        if is_current:
-            btn.add_css_class("suggested-action")
-        
-        btn.connect("clicked", lambda b, wid=wp_id: self.select_wallpaper(wid))
-        return btn
+            wp = self.wp_manager._wallpapers.get(wp_id)
+            if wp:
+                if wp_id in self._thumb_cache:
+                    texture = self._thumb_cache[wp_id]
+                else:
+                    texture = self.wp_manager.get_texture(wp.get('preview', ''), 40)
+                    self._thumb_cache[wp_id] = texture
+                
+                child = btn.get_child()
+                if not isinstance(child, Gtk.Picture):
+                    child = Gtk.Picture()
+                    child.set_content_fit(Gtk.ContentFit.COVER)
+                    child.set_size_request(40, 40)
+                    btn.set_child(child)
+                
+                child.set_paintable(texture)
+
+    def _on_thumb_clicked(self, btn):
+        if hasattr(btn, 'wp_id') and btn.wp_id:
+            self.select_wallpaper(btn.wp_id)
     
     def sync_from_main(self, wallpaper_ids: List[str], selected_wp: Optional[str]):
         self._wallpaper_ids = wallpaper_ids
