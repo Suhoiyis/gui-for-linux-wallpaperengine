@@ -107,15 +107,23 @@ class CompactWindow(Gtk.ApplicationWindow):
         jump_box.set_valign(Gtk.Align.START)
         top_section.append(jump_box)
         
+        jump_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        jump_box.append(jump_row)
+        
         self.entry_jump = Gtk.Entry()
+        self.entry_jump.set_has_frame(False)
         self.entry_jump.set_placeholder_text("#")
         self.entry_jump.set_max_length(5)
-        self.entry_jump.set_width_chars(2)
-        self.entry_jump.set_max_width_chars(3)
-        self.entry_jump.set_alignment(0.5)
+        self.entry_jump.set_width_chars(1)
+        self.entry_jump.set_max_width_chars(4)
+        self.entry_jump.set_alignment(1.0)
         self.entry_jump.set_tooltip_text("Jump to Index")
         self.entry_jump.connect("activate", self._on_jump_entry_activate)
-        jump_box.append(self.entry_jump)
+        jump_row.append(self.entry_jump)
+        
+        self.lbl_jump_total = Gtk.Label(label="/0")
+        self.lbl_jump_total.add_css_class("dim-label")
+        jump_row.append(self.lbl_jump_total)
         
         preview_scroll = Gtk.ScrolledWindow()
         preview_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
@@ -272,10 +280,11 @@ class CompactWindow(Gtk.ApplicationWindow):
             if idx < 1: idx = 1
             if idx > total: idx = total
             
-            entry.set_text(str(idx))
-            
-            wp_id = self._wallpaper_ids[idx - 1]
-            self.select_wallpaper(wp_id)
+            self.select_wallpaper(self._wallpaper_ids[idx - 1])
+        except ValueError:
+            if self.selected_wp and self.selected_wp in self._wallpaper_ids:
+                curr_idx = self._wallpaper_ids.index(self.selected_wp) + 1
+                entry.set_text(str(curr_idx))
             
             entry.set_position(-1)
             
@@ -396,9 +405,11 @@ class CompactWindow(Gtk.ApplicationWindow):
             total = len(self._wallpaper_ids)
             self.lbl_index.set_label(f"{idx}/{total}")
             self.entry_jump.set_text(str(idx))
+            self.lbl_jump_total.set_label(f"/{total}")
         else:
             self.lbl_index.set_label("")
             self.entry_jump.set_text("")
+            self.lbl_jump_total.set_label("")
         
         self.lbl_type.set_label(wp.get('type', 'Unknown'))
         
@@ -432,6 +443,8 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.lbl_index.set_label("")
         self.lbl_id.set_label("")
         self.lbl_type.set_label("-")
+        self.entry_jump.set_text("")
+        self.lbl_jump_total.set_label("")
         
         while True:
             child = self.tags_flow.get_first_child()
