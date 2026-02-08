@@ -57,26 +57,23 @@ class CompactWindow(Gtk.ApplicationWindow):
         self.btn_toggle.connect("clicked", self._on_toggle_clicked)
         navbar.append(self.btn_toggle)
         
-        self.btn_screen = Gtk.MenuButton()
-        self.btn_screen.set_icon_name("display-symbolic")
-        self.btn_screen.set_tooltip_text(f"Monitor: {self.target_screen}")
-        self.btn_screen.add_css_class("nav-btn")
-        navbar.append(self.btn_screen)
+        spacer_left = Gtk.Box()
+        spacer_left.set_hexpand(True)
+        navbar.append(spacer_left)
         
-        popover = Gtk.Popover()
-        self.screen_list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        self.screen_list_box.set_margin_top(6)
-        self.screen_list_box.set_margin_bottom(6)
-        self.screen_list_box.set_margin_start(6)
-        self.screen_list_box.set_margin_end(6)
-        popover.set_child(self.screen_list_box)
-        self.btn_screen.set_popover(popover)
+        self.screen_dd = Gtk.DropDown.new_from_strings(self.screen_manager.get_screens())
+        self.screen_dd.set_tooltip_text("Select Monitor")
         
-        self._update_screen_list()
+        screens = self.screen_manager.get_screens()
+        if self.target_screen in screens:
+            self.screen_dd.set_selected(screens.index(self.target_screen))
         
-        spacer = Gtk.Box()
-        spacer.set_hexpand(True)
-        navbar.append(spacer)
+        self.screen_dd.connect("notify::selected", self._on_screen_changed)
+        navbar.append(self.screen_dd)
+        
+        spacer_right = Gtk.Box()
+        spacer_right.set_hexpand(True)
+        navbar.append(spacer_right)
         
         btn_restart = Gtk.Button()
         btn_restart.set_icon_name("system-reboot-symbolic")
@@ -277,34 +274,17 @@ class CompactWindow(Gtk.ApplicationWindow):
             if last_wp:
                 self.select_wallpaper(last_wp)
     
-    def _update_screen_list(self):
-        while True:
-            child = self.screen_list_box.get_first_child()
-            if child is None: break
-            self.screen_list_box.remove(child)
+    def _on_screen_changed(self, dd, pspec):
+        selected_item = dd.get_selected_item()
+        if selected_item:
+            screen = selected_item.get_string()
+            self.target_screen = screen
             
-        screens = self.screen_manager.get_screens()
-        for screen in screens:
-            btn = Gtk.Button(label=screen)
-            btn.add_css_class("flat")
-            btn.set_halign(Gtk.Align.FILL)
-            if screen == self.target_screen:
-                btn.add_css_class("suggested-action")
+            active_monitors = self.config.get("active_monitors", {})
+            current_wp_id = active_monitors.get(screen)
             
-            btn.connect("clicked", lambda b, s=screen: self._on_screen_selected(s))
-            self.screen_list_box.append(btn)
-
-    def _on_screen_selected(self, screen):
-        self.target_screen = screen
-        self.btn_screen.set_tooltip_text(f"Monitor: {screen}")
-        self.btn_screen.popdown()
-        self._update_screen_list()
-        
-        active_monitors = self.config.get("active_monitors", {})
-        current_wp_id = active_monitors.get(screen)
-        
-        if current_wp_id:
-            self.select_wallpaper(current_wp_id)
+            if current_wp_id:
+                self.select_wallpaper(current_wp_id)
     
     def _on_id_clicked(self):
         if self.selected_wp:
