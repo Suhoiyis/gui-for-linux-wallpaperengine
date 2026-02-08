@@ -1002,6 +1002,9 @@ class WallpapersPage(Gtk.Box):
         current_nickname = self.nickname_manager.get(wp_id) if self.nickname_manager else None
         preview_path = wp.get('preview')
         
+        # Get texture for GIF support
+        texture = self.wp_manager.get_texture(preview_path, 100) if preview_path else None
+        
         def on_confirm(new_nick: str):
             if self.nickname_manager:
                 self.nickname_manager.set(wp_id, new_nick)
@@ -1009,7 +1012,7 @@ class WallpapersPage(Gtk.Box):
                 self.update_sidebar_index()
                 self.update_active_wallpaper_label()
         
-        show_nickname_dialog(self.window, wp_id, title, preview_path, current_nickname, on_confirm)
+        show_nickname_dialog(self.window, wp_id, title, preview_path, current_nickname, on_confirm, texture=texture)
 
     def set_compact_mode(self, enabled: bool):
         self.left_area.set_visible(not enabled)

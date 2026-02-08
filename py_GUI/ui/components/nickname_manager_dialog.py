@@ -7,7 +7,7 @@ from py_GUI.core.nickname import NicknameManager
 from py_GUI.core.wallpaper import WallpaperManager
 
 class NicknameManagerDialog(Gtk.Window):
-    def __init__(self, parent, nickname_manager: NicknameManager, wp_manager: WallpaperManager):
+    def __init__(self, parent, nickname_manager: NicknameManager, wp_manager: WallpaperManager, on_saved=None):
         super().__init__(modal=True)
         self.set_transient_for(parent)
         self.set_default_size(600, 500)
@@ -15,6 +15,7 @@ class NicknameManagerDialog(Gtk.Window):
         
         self.nickname_manager = nickname_manager
         self.wp_manager = wp_manager
+        self.on_saved_callback = on_saved
         self.rows: List[Tuple[str, Gtk.CheckButton, Gtk.Entry]] = [] 
         
         self.build_ui()
@@ -70,7 +71,10 @@ class NicknameManagerDialog(Gtk.Window):
         scrolled.set_child(self.list_box)
         
         bottom_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        bottom_bar.set_margin_all(16)
+        bottom_bar.set_margin_start(16)
+        bottom_bar.set_margin_end(16)
+        bottom_bar.set_margin_top(16)
+        bottom_bar.set_margin_bottom(16)
         bottom_bar.set_halign(Gtk.Align.END)
         main_box.append(bottom_bar)
         
@@ -91,7 +95,10 @@ class NicknameManagerDialog(Gtk.Window):
             row = Gtk.ListBoxRow()
             row.set_activatable(False)
             lbl = Gtk.Label(label="No nicknames set.")
-            lbl.set_margin_all(20)
+            lbl.set_margin_start(20)
+            lbl.set_margin_end(20)
+            lbl.set_margin_top(20)
+            lbl.set_margin_bottom(20)
             lbl.add_css_class("dim-label")
             row.set_child(lbl)
             self.list_box.append(row)
@@ -104,7 +111,10 @@ class NicknameManagerDialog(Gtk.Window):
             row.set_activatable(False)
             
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-            box.set_margin_all(8)
+            box.set_margin_start(8)
+            box.set_margin_end(8)
+            box.set_margin_top(8)
+            box.set_margin_bottom(8)
             row.set_child(box)
             
             check = Gtk.CheckButton()
@@ -181,4 +191,8 @@ class NicknameManagerDialog(Gtk.Window):
         for wp_id, _, entry in self.rows:
             new_nick = entry.get_text()
             self.nickname_manager.set(wp_id, new_nick)
+        
+        if self.on_saved_callback:
+            self.on_saved_callback()
+            
         self.close()

@@ -14,12 +14,13 @@ from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.integrations import AppIntegrator
 
 class SettingsPage(Gtk.Box):
-    def __init__(self, config: ConfigManager, screen_manager: ScreenManager, 
+    def __init__(self, window, config: ConfigManager, screen_manager: ScreenManager, 
                  log_manager: LogManager, controller: WallpaperController,
                  wp_manager: WallpaperManager, nickname_manager, on_cycle_changed=None,
                  show_toast: Callable[[str], None] = None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         
+        self.window = window
         self.config = config
         self.screen_manager = screen_manager
         self.log_manager = log_manager
@@ -753,14 +754,16 @@ class SettingsPage(Gtk.Box):
     def on_manage_nicknames(self, btn):
         try:
             from py_GUI.ui.components.nickname_manager_dialog import NicknameManagerDialog
-            root = self.get_root()
-            if not root:
-                app = Gio.Application.get_default()
-                if app:
-                    root = app.get_active_window()
+            root = self.window
             
             if root:
-                dialog = NicknameManagerDialog(root, self.nickname_manager, self.wp_manager)
+                def on_nicknames_saved():
+                    app = Gio.Application.get_default()
+                    if app and hasattr(app, 'wallpapers_page'):
+                        app.wallpapers_page.refresh_wallpaper_grid()
+                        app.wallpapers_page.update_active_wallpaper_label()
+
+                dialog = NicknameManagerDialog(root, self.nickname_manager, self.wp_manager, on_saved=on_nicknames_saved)
                 dialog.present()
             else:
                 print("[ERROR] Nickname Manager: Could not find parent window.")

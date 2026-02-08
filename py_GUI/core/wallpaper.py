@@ -215,34 +215,18 @@ class WallpaperManager:
         if not os.path.exists(path):
             return None
 
-        if HAS_PIL and path.lower().endswith('.gif'):
+        if path.lower().endswith('.gif'):
             try:
-                with Image.open(path) as img:
-                    if getattr(img, "is_animated", False) and img.n_frames > 1:
-                        target = min(15, img.n_frames - 1)
-                        img.seek(target)
-                    
-                    img.thumbnail((size, size), Image.Resampling.LANCZOS)
-                    
-                    if img.mode != 'RGBA':
-                        img = img.convert('RGBA')
-                        
-                    w, h = img.size
-                    stride = w * 4
-                    data = GLib.Bytes.new(img.tobytes())
-                    
-                    pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
-                        data, GdkPixbuf.Colorspace.RGB, True, 8, w, h, stride
-                    )
-                    
-                    texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-                    
-                    if len(self._texture_cache) >= self._cache_max_size:
-                        keys = list(self._texture_cache.keys())[:self._cache_max_size // 2]
-                        for k in keys:
-                            del self._texture_cache[k]
-                        gc.collect()
-
+                anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
+                pixbuf = None
+                if anim.is_static_image():
+                    pixbuf = anim.get_static_image()
+                else:
+                    pixbuf = anim.get_static_image() 
+                
+                if pixbuf:
+                    scaled = pixbuf.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
+                    texture = Gdk.Texture.new_for_pixbuf(scaled)
                     self._texture_cache[cache_key] = texture
                     return texture
             except Exception:

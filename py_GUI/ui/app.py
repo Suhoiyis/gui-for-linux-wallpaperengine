@@ -159,7 +159,7 @@ class WallpaperApp(Adw.Application):
         self.stack.add_named(self.performance_page, "performance")
 
         self.settings_page = SettingsPage(
-            self.config, self.screen_manager, self.log_manager, 
+            self.win, self.config, self.screen_manager, self.log_manager, 
             self.controller, self.wp_manager, self.nickname_manager,
             on_cycle_changed=self.setup_cycle_timer,
             show_toast=self.show_toast
