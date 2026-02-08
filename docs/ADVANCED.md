@@ -244,7 +244,26 @@ Exec=/usr/bin/python3 /home/user/suw/run_gui.py --hidden
 
 ### 窗口管理器集成示例
 
-#### Niri (config.kdl)
+#### Compact Mode 窗口管理配置
+
+由于 Wayland 协议限制，应用无法强制控制平铺窗口管理器（如 Niri/Hyprland）下的窗口大小。为了获得最佳体验（浮窗模式），请在您的 WM 配置文件中添加以下规则：
+
+##### Niri (config.kdl)
+```kdl
+window-rule {
+    match title="Wallpaper Preview"
+    open-floating true
+}
+```
+
+##### Hyprland (hyprland.conf)
+```ini
+windowrulev2 = float,title:^(Wallpaper Preview)$
+windowrulev2 = size 300 600,title:^(Wallpaper Preview)$
+windowrulev2 = center,title:^(Wallpaper Preview)$
+```
+
+#### Niri (常规启动)
 
 ```kdl
 spawn-at-startup "python3" "/home/user/suw/run_gui.py" "--hidden"
