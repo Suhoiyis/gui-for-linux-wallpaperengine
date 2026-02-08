@@ -51,7 +51,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         main_box.append(navbar)
         
         self.btn_toggle = Gtk.Button()
-        self.btn_toggle.set_icon_name("view-restore-symbolic")
+        self.btn_toggle.set_icon_name("view-fullscreen-symbolic")
         self.btn_toggle.set_tooltip_text("Exit Compact Mode")
         self.btn_toggle.add_css_class("nav-btn")
         self.btn_toggle.connect("clicked", self._on_toggle_clicked)

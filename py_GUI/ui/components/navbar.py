@@ -84,15 +84,15 @@ class NavBar(Gtk.Box):
         self.spacer_right = Gtk.Box()
         self.spacer_right.set_hexpand(True)
         self.append(self.spacer_right)
-
+        
         self.btn_compact = Gtk.ToggleButton()
-        self.btn_compact.set_icon_name("view-fullscreen-symbolic")
+        self.btn_compact.set_icon_name("view-restore-symbolic")
         self.btn_compact.set_tooltip_text("Compact Preview Mode")
         self.btn_compact.add_css_class("nav-btn")
         self.btn_compact.set_active(self.is_compact)
         self.btn_compact.connect("toggled", self._on_compact_toggled)
         self.append(self.btn_compact)
-
+        
         if self.on_restart_app:
             self.btn_restart = Gtk.Button()
             self.btn_restart.set_icon_name("system-reboot-symbolic")

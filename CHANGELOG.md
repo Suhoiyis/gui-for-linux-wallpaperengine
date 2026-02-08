@@ -2,6 +2,7 @@
 
 ## 最新更新 (尚未提交版号)
 
+- **UX 细节优化 (UX Polish)**：交换了“切换紧凑模式”的图标，以逻辑上反映目标状态。普通模式现在显示 `view-restore`（缩小），紧凑模式显示 `view-fullscreen`（展开）。
 - **UI 优化 (UI Optimization)**：
   - **预览图尺寸修复**：修复了大尺寸壁纸预览可能撑开布局的问题。通过实施严格的 `Gtk.ScrolledWindow` 约束并为 `AnimatedPreview` 启用缩小功能，确保所有缩略图无论源分辨率如何，都能保持一致的固定尺寸（200x200 / 280x280）。
 - **侧边栏优化 (Sidebar Optimization)**：
