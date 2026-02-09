@@ -522,10 +522,13 @@ class WallpaperApp(Adw.Application):
         try:
             dialog = Adw.AboutWindow()
             dialog.set_application_name("Linux Wallpaper Engine GUI")
+            dialog.set_application_icon("GUI_rounded")
             dialog.set_version(VERSION)
             dialog.set_developer_name("Suhoiyis")
             dialog.set_license_type(Gtk.License.GPL_3_0)
             dialog.set_website("https://github.com/Suhoiyis/gui-for-linux-wallpaperengine")
+            dialog.set_issue_url("https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues")
+            dialog.set_copyright("© 2026 Suhoiyis")
             dialog.set_transient_for(self.win)
             dialog.present()
         except Exception as e:
