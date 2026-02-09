@@ -480,6 +480,10 @@ class WallpaperApp(Adw.Application):
         action_refresh.connect("activate", self.on_action_refresh)
         self.win.add_action(action_refresh)
         
+        action_restart = Gio.SimpleAction.new("restart", None)
+        action_restart.connect("activate", self.on_action_restart)
+        self.win.add_action(action_restart)
+        
         action_about = Gio.SimpleAction.new("about", None)
         action_about.connect("activate", self.on_action_about)
         self.win.add_action(action_about)
@@ -510,6 +514,9 @@ class WallpaperApp(Adw.Application):
 
     def on_action_refresh(self, action, param):
         self.refresh_from_cli()
+
+    def on_action_restart(self, action, param):
+        self.restart_app()
 
     def on_action_about(self, action, param):
         try:

@@ -596,4 +596,23 @@ dropdown button {
     color: rgba(255, 255, 255, 0.7);
     margin: 0 20px 5px 20px;
 }
+
+/* Popover Menu Buttons */
+.popover-btn {
+    padding: 8px 12px;
+    margin: 2px 4px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transition: background 0.2s;
+}
+
+.popover-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.popover-btn label {
+    margin: 0;
+}
 """

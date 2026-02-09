@@ -175,13 +175,6 @@ class WallpapersPage(Gtk.Box):
         stop_btn.connect("clicked", lambda _: self.on_stop_clicked())
         actions_box.append(stop_btn)
 
-        refresh_btn = Gtk.Button()
-        refresh_btn.set_icon_name("view-refresh-symbolic")
-        refresh_btn.add_css_class("mode-btn")
-        refresh_btn.set_tooltip_text("Refresh Wallpapers")
-        refresh_btn.connect("clicked", self.on_reload_wallpapers)
-        actions_box.append(refresh_btn)
-
         lucky_btn = Gtk.Button()
         lucky_btn.set_icon_name("media-playlist-shuffle-symbolic")
         lucky_btn.add_css_class("mode-btn")

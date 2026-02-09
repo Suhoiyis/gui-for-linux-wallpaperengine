@@ -93,33 +93,63 @@ class NavBar(Gtk.Box):
         self.btn_compact.connect("toggled", self._on_compact_toggled)
         self.append(self.btn_compact)
         
-        if self.on_restart_app:
-            self.btn_restart = Gtk.Button()
-            self.btn_restart.set_icon_name("system-reboot-symbolic")
-            self.btn_restart.set_tooltip_text("Restart Application")
-            self.btn_restart.add_css_class("nav-btn")
-            self.btn_restart.set_margin_end(6)
-            self.btn_restart.connect("clicked", lambda _: self.on_restart_app())
-            self.append(self.btn_restart)
-
-        menu = Gio.Menu()
-        
-        sec1 = Gio.Menu()
-        sec1.append("Refresh Library", "win.refresh")
-        sec1.append("About", "win.about")
-        menu.append_section(None, sec1)
-        
-        sec2 = Gio.Menu()
-        sec2.append("Quit Application", "win.quit_app")
-        menu.append_section(None, sec2)
-        
         self.btn_menu = Gtk.MenuButton()
         self.btn_menu.set_icon_name("open-menu-symbolic")
         self.btn_menu.set_tooltip_text("Menu")
         self.btn_menu.add_css_class("nav-btn")
-        self.btn_menu.set_menu_model(menu)
         self.btn_menu.set_margin_end(15)
+        
+        self.menu_popover = Gtk.Popover()
+        self.menu_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.menu_content.set_margin_start(2)
+        self.menu_content.set_margin_end(2)
+        self.menu_content.set_margin_top(4)
+        self.menu_content.set_margin_bottom(4)
+        self.menu_popover.set_child(self.menu_content)
+        self.btn_menu.set_popover(self.menu_popover)
+        
+        self._add_menu_btn("Refresh Library", "win.refresh")
+        self._add_menu_btn("About", "win.about")
+        
+        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        sep.set_margin_top(4)
+        sep.set_margin_bottom(4)
+        self.menu_content.append(sep)
+        
+        self._add_menu_btn("Restart Application", "win.restart", bold=True)
+        self._add_menu_btn("Quit Application", "win.quit_app", bold=True, destructive=True)
+
         self.append(self.btn_menu)
+
+    def _add_menu_btn(self, label_text, action_name, bold=False, destructive=False):
+        btn = Gtk.Button()
+        btn.add_css_class("flat")
+        btn.add_css_class("popover-btn")
+        btn.set_halign(Gtk.Align.FILL)
+        
+        lbl = Gtk.Label(xalign=0)
+        
+        weight = "bold" if bold else "normal"
+        color_span_start = f"<span foreground='#ef4444'>" if destructive else ""
+        color_span_end = "</span>" if destructive else ""
+        
+        markup = f"<span weight='{weight}'>{color_span_start}{label_text}{color_span_end}</span>"
+        
+        lbl.set_markup(markup)
+        
+        btn.set_child(lbl)
+        
+        def on_clicked(b):
+            self.menu_popover.popdown()
+            root = self.get_native()
+            if root and hasattr(root, 'activate_action'):
+                root.activate_action(action_name, None)
+            else:
+                print(f"[ERROR] NavBar: Could not find root window to activate {action_name}")
+        
+        btn.connect("clicked", on_clicked)
+        self.menu_content.append(btn)
+        return btn
 
     def on_link_toggled(self, btn):
         self.is_linked = btn.get_active()
