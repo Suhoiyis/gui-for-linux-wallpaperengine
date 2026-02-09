@@ -106,7 +106,7 @@ class WallpaperApp(Adw.Application):
 
         self.win = Gtk.ApplicationWindow(application=self)
         self.win.set_title("Linux Wallpaper Engine GUI")
-        self.win.set_icon_name("GUI") # Matches GUI.png in pic/
+        self.win.set_icon_name("GUI") # Matches GUI_rounded.png in pic/
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)
