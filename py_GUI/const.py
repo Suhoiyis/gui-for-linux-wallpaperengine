@@ -107,6 +107,18 @@ togglebutton:focus {
     box-shadow: none;
 }
 
+/* Fix for MenuButton double-layer look */
+menubutton.nav-btn > button {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    min-height: inherit;
+    border-radius: inherit;
+}
+
 /* Toolbar */
 .toolbar {
     background: rgba(0, 0, 0, 0.3);
@@ -599,8 +611,8 @@ dropdown button {
 
 /* Popover Menu Buttons */
 .popover-btn {
-    padding: 8px 12px;
-    margin: 2px 4px;
+    padding: 4px 8px;
+    margin: 0px;
     border-radius: 6px;
     background: transparent;
     border: none;

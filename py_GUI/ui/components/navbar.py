@@ -91,6 +91,7 @@ class NavBar(Gtk.Box):
         self.btn_compact.add_css_class("nav-btn")
         self.btn_compact.set_active(self.is_compact)
         self.btn_compact.connect("toggled", self._on_compact_toggled)
+        self.btn_compact.set_margin_end(6)
         self.append(self.btn_compact)
         
         self.btn_menu = Gtk.MenuButton()
