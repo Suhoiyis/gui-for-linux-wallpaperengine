@@ -1,5 +1,7 @@
 import sys
 import os
+import platform
+import shutil
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -21,6 +23,109 @@ from py_GUI.ui.pages.settings import SettingsPage
 from py_GUI.ui.pages.performance import PerformancePage
 from py_GUI.ui.tray import TrayIcon
 from py_GUI.ui.compact_window import CompactWindow
+
+
+def get_debug_info():
+    import platform, sys, shutil, os
+    from gi.repository import Gtk, Adw
+    
+    info = []
+    info.append("System Environment")
+    info.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    
+    try:
+        os_info = f"{platform.system()} {platform.release()}"
+        info.append(f"OS: {os_info}")
+    except Exception:
+        info.append("OS: Unknown")
+    
+    try:
+        py_version = sys.version.split()[0]
+        info.append(f"Python: {py_version}")
+    except Exception:
+        info.append("Python: Unknown")
+    
+    try:
+        gtk_version = f"{Gtk.get_major_version()}.{Gtk.get_minor_version()}.{Gtk.get_micro_version()}"
+        info.append(f"GTK: {gtk_version}")
+    except Exception:
+        info.append("GTK: Unknown")
+    
+    try:
+        adw_version = f"{Adw.get_major_version()}.{Adw.get_minor_version()}.{Adw.get_micro_version()}"
+        info.append(f"Libadwaita: {adw_version}")
+    except Exception:
+        info.append("Libadwaita: Unknown")
+    
+    try:
+        display_server = os.environ.get('XDG_SESSION_TYPE', 'unknown').capitalize()
+        info.append(f"Display Server: {display_server}")
+    except Exception:
+        info.append("Display Server: Unknown")
+    
+    try:
+        backend_found = shutil.which('linux-wallpaperengine') is not None
+        backend_status = "✓ Found" if backend_found else "✗ Not found"
+        info.append(f"Backend (linux-wallpaperengine): {backend_status}")
+    except Exception:
+        info.append("Backend: Unknown")
+    
+    return "\n".join(info)
+
+def get_latest_changelog():
+    import os
+    changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+    if not os.path.exists(changelog_path):
+        return "<p>No changelog found.</p>"
+    
+    try:
+        with open(changelog_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        import re
+        sections = re.split(r'\n## ', content)
+        for section in sections:
+            if section.startswith('v'):
+                lines = section.split('\n')
+                header = lines[0].strip()
+                body_lines = lines[1:]
+                
+                # We want everything up to the next horizontal rule
+                processed_lines = []
+                in_list = False
+                
+                for line in body_lines:
+                    line = line.strip()
+                    if not line or line.startswith('---'):
+                        break
+                    
+                    if line.startswith('###'):
+                        if in_list:
+                            processed_lines.append("</ul>")
+                            in_list = False
+                        processed_lines.append(f"<p><b>{line.replace('###', '').strip()}</b></p>")
+                    elif line.startswith('-'):
+                        if not in_list:
+                            processed_lines.append("<ul>")
+                            in_list = True
+                        item_text = line.replace('-', '', 1).strip()
+                        item_text = item_text.replace('**', '<em>', 1).replace('**', '</em>', 1)
+                        processed_lines.append(f"  <li>{item_text}</li>")
+                    else:
+                        if in_list:
+                            processed_lines.append("</ul>")
+                            in_list = False
+                        processed_lines.append(f"<p>{line}</p>")
+                
+                if in_list:
+                    processed_lines.append("</ul>")
+                
+                return f"<p><b>Version {header}</b></p>" + "\n".join(processed_lines)
+    except Exception as e:
+        return f"<p>Error reading changelog: {str(e)}</p>"
+    
+    return "<p>Check CHANGELOG.md for details.</p>"
+
 
 class WallpaperApp(Adw.Application):
     def __init__(self):
@@ -525,14 +630,19 @@ class WallpaperApp(Adw.Application):
                 application_icon="GUI_rounded",
                 version=VERSION,
                 developer_name="Suhoiyis",
+                comments="A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux, based on linux-wallpaperengine.",
                 license_type=Gtk.License.GPL_3_0,
                 website="https://github.com/Suhoiyis/gui-for-linux-wallpaperengine",
                 issue_url="https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues",
-                copyright="© 2026 Suhoiyis"
+                copyright="© 2026 Suhoiyis",
+                release_notes=get_latest_changelog(),
+                debug_info=get_debug_info(),
+                debug_info_filename="wallpaperengine-gui-debug.txt"
             )
             dialog.present(self.win)
         except Exception as e:
             self.show_toast(f"Error opening About dialog: {str(e)}")
+
 
     def on_action_quit_request(self, action, param):
         dialog = Adw.MessageDialog.new(self.win)
