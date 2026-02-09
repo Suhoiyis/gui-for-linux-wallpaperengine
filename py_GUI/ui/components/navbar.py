@@ -1,6 +1,6 @@
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gio
 from typing import Callable, Optional, List
 
 class NavBar(Gtk.Box):
@@ -98,9 +98,28 @@ class NavBar(Gtk.Box):
             self.btn_restart.set_icon_name("system-reboot-symbolic")
             self.btn_restart.set_tooltip_text("Restart Application")
             self.btn_restart.add_css_class("nav-btn")
-            self.btn_restart.set_margin_end(15)
+            self.btn_restart.set_margin_end(6)
             self.btn_restart.connect("clicked", lambda _: self.on_restart_app())
             self.append(self.btn_restart)
+
+        menu = Gio.Menu()
+        
+        sec1 = Gio.Menu()
+        sec1.append("Refresh Library", "win.refresh")
+        sec1.append("About", "win.about")
+        menu.append_section(None, sec1)
+        
+        sec2 = Gio.Menu()
+        sec2.append("Quit Application", "win.quit_app")
+        menu.append_section(None, sec2)
+        
+        self.btn_menu = Gtk.MenuButton()
+        self.btn_menu.set_icon_name("open-menu-symbolic")
+        self.btn_menu.set_tooltip_text("Menu")
+        self.btn_menu.add_css_class("nav-btn")
+        self.btn_menu.set_menu_model(menu)
+        self.btn_menu.set_margin_end(15)
+        self.append(self.btn_menu)
 
     def on_link_toggled(self, btn):
         self.is_linked = btn.get_active()

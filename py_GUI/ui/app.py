@@ -5,7 +5,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, Gio, Gdk, GLib
 
-from py_GUI.const import CSS_STYLE, APP_ID, WORKSHOP_PATH
+from py_GUI.const import CSS_STYLE, APP_ID, WORKSHOP_PATH, VERSION
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
@@ -456,32 +456,37 @@ class WallpaperApp(Adw.Application):
         import os
         import sys
         
-        # Filter out hidden/minimized flags so the app shows up after restart
-        # The user clicked Restart in the GUI, so they expect the window to reappear
         args = [arg for arg in sys.argv if arg not in ("--hidden", "--minimized")]
-        
         os.execv(sys.executable, [sys.executable] + args)
 
     def setup_actions(self):
-        # Apply Wallpaper Action
         action_apply = Gio.SimpleAction.new("apply", GLib.VariantType.new("s"))
         action_apply.connect("activate", self.on_action_apply)
         self.win.add_action(action_apply)
 
-        # Stop Wallpaper Action
         action_stop = Gio.SimpleAction.new("stop", None)
         action_stop.connect("activate", self.on_action_stop)
         self.win.add_action(action_stop)
 
-        # Delete Wallpaper Action
         action_delete = Gio.SimpleAction.new("delete", GLib.VariantType.new("s"))
         action_delete.connect("activate", self.on_action_delete)
         self.win.add_action(action_delete)
         
-        # Open Folder Action
         action_open_folder = Gio.SimpleAction.new("open_folder", GLib.VariantType.new("s"))
         action_open_folder.connect("activate", self.on_action_open_folder)
         self.win.add_action(action_open_folder)
+        
+        action_refresh = Gio.SimpleAction.new("refresh", None)
+        action_refresh.connect("activate", self.on_action_refresh)
+        self.win.add_action(action_refresh)
+        
+        action_about = Gio.SimpleAction.new("about", None)
+        action_about.connect("activate", self.on_action_about)
+        self.win.add_action(action_about)
+        
+        action_quit_app = Gio.SimpleAction.new("quit_app", None)
+        action_quit_app.connect("activate", self.on_action_quit_request)
+        self.win.add_action(action_quit_app)
 
     def on_action_apply(self, action, param):
         wp_id = param.get_string()
@@ -502,6 +507,38 @@ class WallpaperApp(Adw.Application):
         wp_id = param.get_string()
         if wp_id:
             self.wallpapers_page.open_wallpaper_folder(wp_id)
+
+    def on_action_refresh(self, action, param):
+        self.refresh_from_cli()
+
+    def on_action_about(self, action, param):
+        try:
+            dialog = Adw.AboutWindow()
+            dialog.set_application_name("Linux Wallpaper Engine GUI")
+            dialog.set_version(VERSION)
+            dialog.set_developer_name("Suhoiyis")
+            dialog.set_license_type(Gtk.License.GPL_3_0)
+            dialog.set_website("https://github.com/Suhoiyis/gui-for-linux-wallpaperengine")
+            dialog.set_transient_for(self.win)
+            dialog.present()
+        except Exception as e:
+            self.show_toast(f"Error opening About window: {str(e)}")
+
+    def on_action_quit_request(self, action, param):
+        dialog = Adw.MessageDialog.new(self.win)
+        dialog.set_heading("Quit Application?")
+        dialog.set_body("This will stop all running wallpapers and exit the application.")
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("quit", "Quit")
+        dialog.set_response_appearance("quit", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.connect("response", self.on_quit_dialog_response)
+        dialog.present()
+
+    def on_quit_dialog_response(self, dialog, response):
+        if response == "quit":
+             self.quit_app()
+
+
 
 def main():
     # Set program name for WM class matching - must match the .desktop filename
