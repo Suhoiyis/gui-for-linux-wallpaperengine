@@ -2,6 +2,7 @@ import sys
 import os
 import platform
 import shutil
+import html
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -73,58 +74,79 @@ def get_debug_info():
     return "\n".join(info)
 
 def get_latest_changelog():
-    import os
-    changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
-    if not os.path.exists(changelog_path):
-        return "<p>No changelog found.</p>"
-    
-    try:
-        with open(changelog_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        import re
-        sections = re.split(r'\n## ', content)
-        for section in sections:
-            if section.startswith('v'):
-                lines = section.split('\n')
-                header = lines[0].strip()
-                body_lines = lines[1:]
-                
-                # We want everything up to the next horizontal rule
-                processed_lines = []
-                in_list = False
-                
-                for line in body_lines:
-                    line = line.strip()
-                    if not line or line.startswith('---'):
-                        break
-                    
-                    if line.startswith('###'):
-                        if in_list:
-                            processed_lines.append("</ul>")
-                            in_list = False
-                        processed_lines.append(f"<p><b>{line.replace('###', '').strip()}</b></p>")
-                    elif line.startswith('-'):
-                        if not in_list:
-                            processed_lines.append("<ul>")
-                            in_list = True
-                        item_text = line.replace('-', '', 1).strip()
-                        item_text = item_text.replace('**', '<em>', 1).replace('**', '</em>', 1)
-                        processed_lines.append(f"  <li>{item_text}</li>")
-                    else:
-                        if in_list:
-                            processed_lines.append("</ul>")
-                            in_list = False
-                        processed_lines.append(f"<p>{line}</p>")
-                
-                if in_list:
-                    processed_lines.append("</ul>")
-                
-                return f"<p><b>Version {header}</b></p>" + "\n".join(processed_lines)
-    except Exception as e:
-        return f"<p>Error reading changelog: {str(e)}</p>"
-    
-    return "<p>Check CHANGELOG.md for details.</p>"
+     import os
+     import re
+     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+     if not os.path.exists(changelog_path):
+         return "<p>No changelog found.</p>"
+     
+     try:
+         with open(changelog_path, "r", encoding="utf-8") as f:
+             content = f.read()
+             
+         sections = re.split(r'\n## ', content)
+         for section in sections:
+             section = section.strip()
+             if not section:
+                 continue
+                 
+             is_version = section.startswith('v')
+             is_latest = "最新更新" in section
+             
+             if is_version or is_latest:
+                 lines = section.split('\n')
+                 header = lines[0].strip()
+                 body_lines = lines[1:]
+                 
+                 processed_lines = []
+                 in_list = False
+                 
+                 for line in body_lines:
+                     line = line.strip()
+                     if line.startswith('---'):
+                         break
+                     
+                     if not line:
+                         continue
+                     
+                     if line.startswith('###'):
+                         if in_list:
+                             processed_lines.append("</ul>")
+                             in_list = False
+                         # Escape the text content before wrapping in tags
+                         section_title = html.escape(line.replace('###', '').strip())
+                         processed_lines.append(f"<p><em>{section_title}</em></p>")
+                     elif line.startswith('-'):
+                         if not in_list:
+                             processed_lines.append("<ul>")
+                             in_list = True
+                         item_text = line.replace('-', '', 1).strip()
+                         # Escape raw text first, then apply formatting
+                         item_text = html.escape(item_text)
+                         item_text = item_text.replace('**', '<em>', 1).replace('**', '</em>', 1)
+                         processed_lines.append(f"  <li>{item_text}</li>")
+                     else:
+                         if in_list:
+                             processed_lines.append("</ul>")
+                             in_list = False
+                         # Escape the paragraph text
+                         escaped_line = html.escape(line)
+                         processed_lines.append(f"<p>{escaped_line}</p>")
+                 
+                 if in_list:
+                     processed_lines.append("</ul>")
+                 
+                 content_html = "\n".join(processed_lines)
+                 if not content_html.strip() or content_html.strip() == "(暂无)":
+                     continue
+                 
+                 # Escape header before wrapping in tags
+                 escaped_header = html.escape(header)
+                 return f"<p><em>{escaped_header}</em></p>" + content_html
+     except Exception as e:
+         return f"<p>Error reading changelog: {str(e)}</p>"
+     
+     return "<p>Check CHANGELOG.md for details.</p>"
 
 
 class WallpaperApp(Adw.Application):
