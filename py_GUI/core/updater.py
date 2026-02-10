@@ -2,7 +2,7 @@ import json
 import threading
 import urllib.request
 import urllib.error
-from typing import Callable
+from typing import Callable, Optional
 
 
 class UpdateChecker:
@@ -11,7 +11,7 @@ class UpdateChecker:
     GITHUB_API_URL = "https://api.github.com/repos/Suhoiyis/gui-for-linux-wallpaperengine/releases/latest"
     TIMEOUT = 5
     
-    def check_update(self, current_version: str, callback: Callable[[str, str, bool], None]) -> None:
+    def check_update(self, current_version: str, callback: Callable[[Optional[str], Optional[str], bool], None]) -> None:
         """
         Check for updates in a background thread.
         
@@ -29,36 +29,32 @@ class UpdateChecker:
         )
         thread.start()
     
-    def _check_update_thread(self, current_version: str, callback: Callable[[str, str, bool], None]) -> None:
+    def _check_update_thread(self, current_version: str, callback: Callable[[Optional[str], Optional[str], bool], None]) -> None:
         """Background thread worker for checking updates."""
         try:
-            # Fetch latest release data
-            req = urllib.request.Request(self.GITHUB_API_URL)
+            req = urllib.request.Request(
+                self.GITHUB_API_URL,
+                headers={'User-Agent': 'Linux-Wallpaper-Engine-GUI/UpdateChecker'}
+            )
             with urllib.request.urlopen(req, timeout=self.TIMEOUT) as response:
                 data = json.loads(response.read().decode('utf-8'))
             
-            # Extract version and URL
             tag_name = data.get('tag_name', '')
             release_url = data.get('html_url', '')
             
-            # Normalize versions for comparison (remove 'v' prefix)
             latest_version = self._normalize_version(tag_name)
             current_normalized = self._normalize_version(current_version)
             
-            # Compare versions
             has_update = self._compare_versions(current_normalized, latest_version)
             
-            # Call callback with results
             callback(latest_version, release_url, has_update)
             
-        except urllib.error.URLError as e:
-            # Network error (timeout, connection error, etc.)
-            callback(None, None, False)
-        except json.JSONDecodeError:
-            # Invalid JSON response
-            callback(None, None, False)
-        except Exception as e:
-            # Any other unexpected error
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                callback("0.0.0", "", False)
+            else:
+                callback(None, None, False)
+        except (urllib.error.URLError, json.JSONDecodeError, Exception):
             callback(None, None, False)
     
     @staticmethod
@@ -70,33 +66,24 @@ class UpdateChecker:
     
     @staticmethod
     def _compare_versions(current: str, latest: str) -> bool:
-        """
-        Compare two semantic versions.
-        
-        Args:
-            current: Current version (e.g., "0.10.3")
-            latest: Latest version (e.g., "0.10.4")
-        
-        Returns:
-            True if latest > current, False otherwise
-        """
         try:
-            current_parts = [int(x) for x in current.split('.')]
-            latest_parts = [int(x) for x in latest.split('.')]
+            def parse_numeric_parts(version_str):
+                base_version = version_str.split('-')[0].split('+')[0]
+                return [int(part) for part in base_version.split('.')]
             
-            # Pad with zeros to match length
+            current_parts = parse_numeric_parts(current)
+            latest_parts = parse_numeric_parts(latest)
+            
             max_len = max(len(current_parts), len(latest_parts))
             current_parts.extend([0] * (max_len - len(current_parts)))
             latest_parts.extend([0] * (max_len - len(latest_parts)))
             
-            # Compare each part
-            for curr, lat in zip(current_parts, latest_parts):
-                if lat > curr:
+            for curr_val, lat_val in zip(current_parts, latest_parts):
+                if lat_val > curr_val:
                     return True
-                elif lat < curr:
+                elif lat_val < curr_val:
                     return False
             
-            return False  # Versions are equal
-        except (ValueError, AttributeError):
-            # Invalid version format, assume no update
+            return False
+        except (ValueError, AttributeError, IndexError):
             return False
