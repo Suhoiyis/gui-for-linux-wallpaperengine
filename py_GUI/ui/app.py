@@ -16,14 +16,19 @@ from py_GUI.core.screen import ScreenManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
 from py_GUI.core.nickname import NicknameManager
+from py_GUI.core.history import HistoryManager
 from py_GUI.utils import markdown_to_pango
 
 from py_GUI.ui.components.navbar import NavBar
+from py_GUI.ui.components.history_dialog import HistoryDialog
+from py_GUI.ui.components.welcome_dialog import WelcomeDialog
 from py_GUI.ui.pages.wallpapers import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
 from py_GUI.ui.pages.performance import PerformancePage
 from py_GUI.ui.tray import TrayIcon
 from py_GUI.ui.compact_window import CompactWindow
+from py_GUI.core.updater import UpdateChecker
+from py_GUI.core.integrations import AppIntegrator
 
 
 def get_debug_info():
@@ -157,6 +162,7 @@ class WallpaperApp(Adw.Application):
         )
         self.config = ConfigManager()
         self.log_manager = LogManager()
+        self.history_manager = HistoryManager(self.config)
         
         workshop_path = self.config.get("workshopPath", WORKSHOP_PATH)
         self.wp_manager = WallpaperManager(workshop_path)
@@ -166,12 +172,16 @@ class WallpaperApp(Adw.Application):
         self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager, self.screen_manager)
         self.controller.wp_manager = self.wp_manager
         self.controller.nickname_manager = self.nickname_manager
+        self.controller.history_manager = self.history_manager
 
         self.start_hidden = False
         self.cli_actions = []
         self.initialized = False
         self._is_first_activation = True
         self.cycle_timer_id = None
+        
+        self.app_integrator = AppIntegrator()
+        self.update_checker = UpdateChecker()
         
         self.tray = TrayIcon(self)
 
@@ -251,7 +261,7 @@ class WallpaperApp(Adw.Application):
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_vexpand(True)
-
+        
         # Navbar
         screens = self.screen_manager.get_screens()
         selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
@@ -272,10 +282,10 @@ class WallpaperApp(Adw.Application):
         )
         main_box.append(self.navbar)
         main_box.append(self.stack)
-
+        
         # Pages
         self.wallpapers_page = WallpapersPage(
-            self.win, self.config, self.wp_manager, 
+            self.win, self.config, self.wp_manager,
             self.prop_manager, self.controller, self.log_manager,
             self.screen_manager, self.nickname_manager, self.show_toast
         )
@@ -364,6 +374,7 @@ class WallpaperApp(Adw.Application):
         
         self.initialized = True
         self._is_first_activation = False
+        self.check_onboarding()
         self.setup_cycle_timer()
         self.tray.start()
         
@@ -570,6 +581,11 @@ class WallpaperApp(Adw.Application):
         else:
             self.log_manager.add_info("Wallpaper cycling disabled", "App")
 
+    def check_onboarding(self):
+        needs_onboarding = not self.config.get("onboarding_completed", False) and not self.history_manager.has_history()
+        if needs_onboarding:
+            self.show_welcome_wizard()
+
     def quit_app(self):
         self.controller.stop()
         self.tray.stop()
@@ -618,6 +634,18 @@ class WallpaperApp(Adw.Application):
         action_quit_app = Gio.SimpleAction.new("quit_app", None)
         action_quit_app.connect("activate", self.on_action_quit_request)
         self.win.add_action(action_quit_app)
+        
+        action_show_history = Gio.SimpleAction.new("show_history", None)
+        action_show_history.connect("activate", self.on_action_show_history)
+        self.win.add_action(action_show_history)
+        
+        action_welcome = Gio.SimpleAction.new("welcome", None)
+        action_welcome.connect("activate", self.on_action_welcome)
+        self.win.add_action(action_welcome)
+        
+        action_check_update = Gio.SimpleAction.new("check_update", None)
+        action_check_update.connect("activate", self.on_action_check_update)
+        self.win.add_action(action_check_update)
 
     def on_action_apply(self, action, param):
         wp_id = param.get_string()
@@ -664,6 +692,57 @@ class WallpaperApp(Adw.Application):
             dialog.present(self.win)
         except Exception as e:
             self.show_toast(f"Error opening About dialog: {str(e)}")
+
+    def on_action_show_history(self, action, param):
+        try:
+            dialog = HistoryDialog(self.win, self.history_manager, self.wp_manager, self.controller, self.nickname_manager)
+            dialog.present()
+        except Exception as e:
+            self.show_toast(f"Error opening history: {str(e)}")
+    
+    def on_action_welcome(self, action, param):
+        try:
+            dialog = WelcomeDialog(self.win, self.config, self.app_integrator)
+            dialog.present()
+        except Exception as e:
+            self.show_toast(f"Error opening welcome dialog: {str(e)}")
+    
+    def on_action_check_update(self, action, param):
+        try:
+            def on_update_callback(latest_version, release_url, has_update):
+                GLib.idle_add(lambda: self._handle_update_result(latest_version, release_url, has_update))
+                
+            self.update_checker.check_update(VERSION, on_update_callback)
+            self.show_toast("Checking for updates...")
+        except Exception as e:
+            self.show_toast(f"Error checking for updates: {str(e)}")
+
+    def _handle_update_result(self, latest_version, release_url, has_update):
+        if has_update and latest_version:
+            dialog = Adw.MessageDialog(
+                transient_for=self.win,
+                heading="Update Available",
+                body=f"A new version ({latest_version}) is available on GitHub."
+            )
+            dialog.add_response("cancel", "Cancel")
+            dialog.add_response("download", "Download")
+            dialog.set_response_appearance("download", Adw.ResponseAppearance.SUGGESTED)
+            
+            def on_response(d, response):
+                if response == "download":
+                    import webbrowser
+                    webbrowser.open(release_url)
+                d.close()
+                
+            dialog.connect("response", on_response)
+            dialog.present()
+        elif latest_version is None:
+            self.show_toast("Failed to check for updates. Please check your connection.")
+        else:
+            self.show_toast(f"You are up to date (v{VERSION})")
+
+    def show_welcome_wizard(self):
+        self.on_action_welcome(None, None)
 
 
     def on_action_quit_request(self, action, param):
