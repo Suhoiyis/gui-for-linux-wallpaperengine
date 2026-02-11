@@ -183,21 +183,9 @@ class WallpapersPage(Gtk.Box):
         actions_box.append(lucky_btn)
 
         self.btn_screenshot = Gtk.Button()
+        self.btn_screenshot.set_icon_name("camera-photo-symbolic")
         self.btn_screenshot.add_css_class("mode-btn")
         self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
-        
-        self.screenshot_stack = Gtk.Stack()
-        self.screenshot_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        
-        icon = Gtk.Image.new_from_icon_name("camera-photo-symbolic")
-        self.screenshot_stack.add_named(icon, "icon")
-        
-        self.screenshot_spinner = Gtk.Spinner()
-        self.screenshot_stack.add_named(self.screenshot_spinner, "spinner")
-        
-        self.screenshot_stack.set_visible_child_name("icon")
-        self.btn_screenshot.set_child(self.screenshot_stack)
-        
         self.btn_screenshot.connect("clicked", lambda _: self.on_screenshot_clicked())
         actions_box.append(self.btn_screenshot)
 
@@ -465,13 +453,11 @@ class WallpapersPage(Gtk.Box):
 
         # UI Feedback: Busy state
         self.btn_screenshot.set_sensitive(False)
-        self.screenshot_stack.set_visible_child_name("spinner")
-        self.screenshot_spinner.start()
+        self.btn_screenshot.set_icon_name("process-working-symbolic")
         self.btn_screenshot.set_tooltip_text("Capturing... please wait")
 
         def reset_ui():
-            self.screenshot_spinner.stop()
-            self.screenshot_stack.set_visible_child_name("icon")
+            self.btn_screenshot.set_icon_name("camera-photo-symbolic")
             self.btn_screenshot.set_sensitive(True)
             self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
 
