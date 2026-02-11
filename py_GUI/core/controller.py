@@ -42,7 +42,7 @@ class WallpaperController:
         else:
             last = self.config.get("lastScreen")
             if not last or last == "None":
-                last = "eDP-1"
+                last = self.screen_manager.get_primary_screen() or self.screen_manager.get_first_screen() or "eDP-1"
             target_screens = [last]
 
         active_monitors = self.config.get("active_monitors", {})

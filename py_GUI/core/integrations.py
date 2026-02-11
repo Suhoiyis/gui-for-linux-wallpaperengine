@@ -19,7 +19,16 @@ class AppIntegrator:
         self.desktop_filename = f"{APP_ID}.desktop"
 
     def _generate_content(self, hidden=False):
-        exec_cmd = f"{self.python_exe} \"{self.script_path}\""
+        # Check if running inside AppImage
+        appimage_path = os.environ.get("APPIMAGE")
+        
+        if appimage_path:
+            # Running inside AppImage - use the AppImage executable itself
+            exec_cmd = f"\"{appimage_path}\""
+        else:
+            # Running from source - use Python to execute run_gui.py
+            exec_cmd = f"{self.python_exe} \"{self.script_path}\""
+        
         if hidden:
             exec_cmd += " --hidden"
             
@@ -67,6 +76,45 @@ X-GNOME-Autostart-enabled=true
     def is_autostart_enabled(self) -> bool:
         path = os.path.join(self.autostart_dir, self.desktop_filename)
         return os.path.exists(path)
+
+    def check_and_update_shortcut(self):
+        """
+        Check if the desktop shortcut exists and update it if content differs.
+        
+        Returns:
+            bool: True if file was updated, False if file missing or content matches.
+        """
+        path = os.path.join(self.app_dir, self.desktop_filename)
+        
+        # File doesn't exist
+        if not os.path.exists(path):
+            print(f"Shortcut file not found: {path}")
+            return False
+        
+        # Read existing content
+        try:
+            with open(path, "r") as f:
+                existing_content = f.read()
+        except Exception as e:
+            print(f"Error reading shortcut file {path}: {str(e)}")
+            return False
+        
+        # Generate expected content
+        expected_content = self._generate_content(hidden=False)
+        
+        # Compare content
+        if existing_content == expected_content:
+            print(f"Shortcut file is up to date: {path}")
+            return False
+        
+        # Content differs, update the file
+        try:
+            self._write_file(path, expected_content)
+            print(f"Shortcut file updated: {path}")
+            return True
+        except Exception as e:
+            print(f"Error updating shortcut file {path}: {str(e)}")
+            return False
 
     def _write_file(self, path, content):
         with open(path, "w") as f:

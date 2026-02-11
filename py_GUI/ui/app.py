@@ -264,7 +264,7 @@ class WallpaperApp(Adw.Application):
         
         # Navbar
         screens = self.screen_manager.get_screens()
-        selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+        selected_screen = self.config.get("lastScreen", self.screen_manager.get_primary_screen() or "eDP-1")
         initial_link_state = (self.config.get("apply_mode", "diff") == "same")
         initial_compact_state = bool(self.config.get("compact_mode", False))
         
@@ -333,7 +333,7 @@ class WallpaperApp(Adw.Application):
         # Ensure lastScreen always points to a connected screen (fallback to first/primary)
         last_screen = self.config.get("lastScreen")
         if not last_screen or last_screen not in screens:
-            last_screen = screens[0] if screens else "eDP-1"
+            last_screen = self.screen_manager.get_primary_screen() or (screens[0] if screens else "eDP-1")
             self.config.set("lastScreen", last_screen)
 
         if active_monitors:
@@ -375,6 +375,7 @@ class WallpaperApp(Adw.Application):
         self.initialized = True
         self._is_first_activation = False
         self.check_onboarding()
+        self._check_shortcut_updates()
         self.setup_cycle_timer()
         self.tray.start()
         
@@ -504,10 +505,10 @@ class WallpaperApp(Adw.Application):
         
         active_monitors = self.config.get("active_monitors", {})
         screens = self.screen_manager.get_screens()
-        
+         
         # If no monitors active, activate on the last used screen or first available
         if not active_monitors:
-            target = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+            target = self.config.get("lastScreen", self.screen_manager.get_primary_screen() or (screens[0] if screens else "eDP-1"))
             active_monitors[target] = None # Placeholder
             
         all_wps = list(self.wp_manager._wallpapers.keys())
@@ -585,6 +586,13 @@ class WallpaperApp(Adw.Application):
         needs_onboarding = not self.config.get("onboarding_completed", False) and not self.history_manager.has_history()
         if needs_onboarding:
             self.show_welcome_wizard()
+
+    def _check_shortcut_updates(self):
+        try:
+            self.app_integrator.check_and_update_shortcut()
+            self.log_manager.add_info("App shortcuts updated", "App")
+        except Exception as e:
+            self.log_manager.add_info(f"Shortcut update check skipped: {str(e)}", "App")
 
     def quit_app(self):
         self.controller.stop()

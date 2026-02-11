@@ -2,7 +2,7 @@ import os
 
 # Application constants
 APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.10.3'
+VERSION = '0.10.4'
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -107,16 +107,44 @@ togglebutton:focus {
     box-shadow: none;
 }
 
-/* Fix for MenuButton double-layer look */
-menubutton.nav-btn > button {
+/* Fix for MenuButton double-layer look and hit-box */
+menubutton.nav-btn {
     background: transparent;
     border: none;
     box-shadow: none;
     outline: none;
     padding: 0;
     margin: 0;
-    min-height: inherit;
     border-radius: inherit;
+}
+
+menubutton.nav-btn > button {
+    background: alpha(@theme_fg_color, 0.08);
+    color: @theme_fg_color;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight: 600;
+    border: none;
+    min-height: 36px;
+    transition: all 0.2s;
+    box-shadow: none;
+    outline: none;
+    margin: 0;
+}
+
+menubutton.nav-btn > button:hover {
+    background: alpha(@theme_fg_color, 0.12);
+    border: none;
+    border-bottom: none;
+}
+
+menubutton.nav-btn > button:active,
+menubutton.nav-btn > button:checked {
+    background: @accent_bg_color;
+    color: @accent_fg_color;
+    box-shadow: 0 4px 12px alpha(@accent_bg_color, 0.3);
+    border: none;
+    border-bottom: none;
 }
 
 /* Toolbar */
