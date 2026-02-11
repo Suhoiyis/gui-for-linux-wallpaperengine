@@ -23,3 +23,7 @@ screen*.png
 .sisyphus/
 .opencode/
 scripts/
+
+issues/
+tools/
+docs/reference_doc/
