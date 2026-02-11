@@ -52,6 +52,8 @@ class UpdateChecker:
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 callback("0.0.0", "", False)
+            elif e.code == 403:
+                callback("ERROR:RATE_LIMIT", None, False)
             else:
                 callback(None, None, False)
         except (urllib.error.URLError, json.JSONDecodeError, Exception):

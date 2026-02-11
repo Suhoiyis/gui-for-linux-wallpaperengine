@@ -736,6 +736,8 @@ class WallpaperApp(Adw.Application):
                 
             dialog.connect("response", on_response)
             dialog.present()
+        elif latest_version == "ERROR:RATE_LIMIT":
+            self.show_toast("GitHub API rate limit exceeded. Please try again later.")
         elif latest_version is None:
             self.show_toast("Failed to check for updates. Please check your connection.")
         else:
