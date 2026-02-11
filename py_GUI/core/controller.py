@@ -19,6 +19,7 @@ class WallpaperController:
         self.current_proc: Optional[subprocess.Popen] = None
         self.show_toast: Callable[[str], None] = lambda msg: None
         self._last_command: List[str] = []
+        self.history_manager = None
         
         self.perf_monitor = PerformanceMonitor(config=config)
         
@@ -56,6 +57,18 @@ class WallpaperController:
             self.config.set("lastScreen", target_screens[0])
 
         self.log_manager.add_info(f"Applying wallpaper {wp_id} to {target_screens}", "Controller")
+        
+        # Record wallpaper in history if HistoryManager is available
+        if self.history_manager:
+            try:
+                wp_details = self.wp_manager.get_wallpaper(wp_id)
+                if wp_details:
+                    title = wp_details.get('title', 'Unknown')
+                    preview = wp_details.get('preview', '')
+                    self.history_manager.add(wp_id, title, preview)
+            except Exception as e:
+                self.log_manager.add_error(f"Failed to record wallpaper in history: {e}", "Controller")
+        
         self.restart_wallpapers()
 
     def stop_screen(self, screen: str):

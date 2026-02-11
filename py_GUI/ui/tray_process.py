@@ -51,7 +51,7 @@ class TrayProcess:
         
         # Show Window (First item, bold)
         item_show = Gtk.MenuItem()
-        label = Gtk.Label(label="<b>显示窗口</b>")
+        label = Gtk.Label(label="<b>Show Window</b>")
         label.set_use_markup(True)
         item_show.add(label)
         item_show.connect("activate", lambda _: self._cmd("--show"))
@@ -66,19 +66,19 @@ class TrayProcess:
         self.menu.append(Gtk.SeparatorMenuItem())
         
         # Play/Stop Toggle Button
-        item_toggle = Gtk.MenuItem(label="播放/停止")
+        item_toggle = Gtk.MenuItem(label="Play/Stop")
         item_toggle.connect("activate", self._on_toggle)
         self.menu.append(item_toggle)
         
         # Random Wallpaper
-        item_random = Gtk.MenuItem(label="随机切换壁纸")
+        item_random = Gtk.MenuItem(label="Random Wallpaper")
         item_random.connect("activate", lambda _: self._cmd("--random"))
         self.menu.append(item_random)
         
         self.menu.append(Gtk.SeparatorMenuItem())
         
         # Quit
-        item_quit = Gtk.MenuItem(label="退出程序")
+        item_quit = Gtk.MenuItem(label="Quit Application")
         item_quit.connect("activate", lambda _: self._cmd("--quit"))
         self.menu.append(item_quit)
         
