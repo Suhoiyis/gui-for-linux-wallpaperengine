@@ -137,6 +137,12 @@ python3 /path/to/run_gui.py --hidden
 - 代码贡献请遵循现有代码风格
 - 文档改进同样欢迎
 
+## 鸣谢
+
+> 部分界面设计灵感参考了 [AzPepoze/linux-wallpaperengine-gui](https://github.com/AzPepoze/linux-wallpaperengine-gui)。
+>
+> 这是一个比我的更加优秀的 GUI 窗口项目，推荐大家尝试和参考。
+
 ## 许可证
 
 GPLv3
