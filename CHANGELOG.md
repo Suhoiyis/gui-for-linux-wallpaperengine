@@ -1,7 +1,12 @@
 # 更新日志
 
 ## 最新更新 (尚未提交版号)
-**(暂无)**
+### 主题适配与视觉升级 (Theming & Visual Polish)
+- **浅色模式支持 (Light Mode Support)**:
+  - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。
+  - 全面引入 **GTK/Libadwaita 命名颜色**（如 `@window_bg_color`, `@theme_fg_color`），现在应用能完美自动适配系统的深色/浅色主题。
+  - 优化了半透明效果，使用 `alpha()` 函数替代固定透明度，确保在不同背景下的可读性。
+  - 解决了长期存在的 "仅适合深色模式使用" 问题 ([#2](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/2))。
 
 ---
 
@@ -11,7 +16,7 @@
 - - **特别注意，这两个功能只是基本完成，需要后续丰富完善**
 
 ### 更新检查器增强 (Update Checker Enhancements)
-- **智能错误处理**: 
+- **智能错误处理**:
   - **速率限制识别**: 专门优化了 GitHub API 403 错误处理。当触发速率限制时，现在会显示精准的 “Rate limit exceeded” 提示，而非模糊的网络错误。
   - **空发布处理**: 完美处理 404 状态（仓库无 Release），返回虚拟低版本以确保逻辑闭环。
 - **版本对比优化**: 增强了版本号解析逻辑，现已支持带后缀的语义化版本（如 `0.10.3-beta`），确保对比准确。
@@ -20,14 +25,6 @@
 ---
 
 ## v0.10.3-beta (2026-02-10)
-
-### 主题适配与视觉升级 (Theming & Visual Polish)
-- **浅色模式支持 (Light Mode Support)**:
-  - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。
-  - 全面引入 **GTK/Libadwaita 命名颜色**（如 `@window_bg_color`, `@theme_fg_color`），现在应用能完美自动适配系统的深色/浅色主题。
-  - 优化了半透明效果，使用 `alpha()` 函数替代固定透明度，确保在不同背景下的可读性。
-  - 解决了长期存在的 "仅适合深色模式使用" 问题 ([#2](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/2))。
-
 ### 播放历史系统 (Playback History System)
 - **核心功能**: 新增了播放历史记录功能，自动追踪最近 30 条壁纸播放记录。
 - **交互界面**: 
