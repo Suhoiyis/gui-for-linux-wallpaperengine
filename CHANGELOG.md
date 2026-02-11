@@ -5,6 +5,20 @@
 
 ---
 
+## v0.10.3 (2026-02-11)
+### 汉堡菜单进一步完善
+- **功能扩展**: 菜单中新增了 **Check for Updates**（检查更新）与 **Welcome Guide**（欢迎向导）入口。
+- - **特别注意，这两个功能只是基本完成，需要后续丰富完善**
+
+### 更新检查器增强 (Update Checker Enhancements)
+- **智能错误处理**: 
+  - **速率限制识别**: 专门优化了 GitHub API 403 错误处理。当触发速率限制时，现在会显示精准的 “Rate limit exceeded” 提示，而非模糊的网络错误。
+  - **空发布处理**: 完美处理 404 状态（仓库无 Release），返回虚拟低版本以确保逻辑闭环。
+- **版本对比优化**: 增强了版本号解析逻辑，现已支持带后缀的语义化版本（如 `0.10.3-beta`），确保对比准确。
+- **网络安全性**: 为 API 请求添加了必要的 `User-Agent` 头部，符合 GitHub API 调用规范。
+
+---
+
 ## v0.10.3-beta (2026-02-10)
 
 ### 播放历史系统 (Playback History System)
@@ -24,7 +38,7 @@
 ### 全局导航与菜单优化 (Global Navigation & Menu)
 - **汉堡菜单 (Hamburger Menu)**: 将顶栏右侧按钮组重构为自定义 Popover 菜单。
 - **视觉强化**: 菜单项 **Restart** 设为加粗，**Quit Application** 设为红色加粗。
-- **CSS 修复**: 移除了菜单按钮的“双层边框”阴影瑕疵，优化了顶栏按钮的对齐与间距。
+- **CSS 修复**: 移除了菜单按钮的“双层边框”阴影瑕疵，优化了顶栏按钮对齐与间距。
 
 ### 关于对话框现代化 (About Dialog Modernization)
 - **组件升级**: 从弃用的 `Adw.AboutWindow` 迁移至 `Adw.AboutDialog` (Libadwaita 1.5+)。
