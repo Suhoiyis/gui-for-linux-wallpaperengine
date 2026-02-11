@@ -31,7 +31,7 @@ class CompactWindow(Gtk.ApplicationWindow):
         self._wallpaper_ids: List[str] = []
         self._thumb_cache = {}
         self.thumb_buttons: List[Gtk.Button] = []
-        self.target_screen = self.config.get("lastScreen", "eDP-1")
+        self.target_screen = self.config.get("lastScreen") or self.screen_manager.get_primary_screen() or self.screen_manager.get_first_screen() or "eDP-1"
         
         self.set_title("Wallpaper Preview")
         self.set_default_size(300, 700)

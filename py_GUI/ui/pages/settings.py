@@ -443,7 +443,7 @@ class SettingsPage(Gtk.Box):
         box.append(r)
         
         screens = self.screen_manager.get_screens()
-        curr_screen = self.config.get("lastScreen", "eDP-1")
+        curr_screen = self.config.get("lastScreen") or self.screen_manager.get_primary_screen() or self.screen_manager.get_first_screen() or "eDP-1"
         if curr_screen not in screens:
             screens = screens + [curr_screen]
         
