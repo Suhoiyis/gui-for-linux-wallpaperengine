@@ -6,6 +6,13 @@
   - 优化了截图操作的交互反馈，现在点击截图时按钮会自动切换为动态旋转的加载圈 (`Gtk.Spinner`)。
   - 解决了之前截图时仅显示静态图标、用户无法确认是否正在处理的问题 ([#17](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/17))。
 
+### 桌面集成与部署 (Desktop Integration & Deployment)
+- **智能桌面快捷方式 (Smart Desktop Shortcut)**:
+  - 实现了 **启动自愈机制**：应用每次启动时会自动检查 `.desktop` 文件，若发现路径失效（如文件夹被移动），会自动修复为当前正确路径。
+  - **AppImage 深度适配 (Zero-Config AppImage Support)**:
+    - **全自动集成**：用户下载并运行 AppImage 后，无需任何手动操作，应用会自动检测并创建正确的系统级桌面快捷方式（`.desktop`），实现开箱即用的安装体验。
+    - **智能路径修正**：快捷方式会自动指向 AppImage 文件本身，而非内部临时路径，且能在文件移动或升级后自动自我修复 ([#18](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/18))。
+
 ### 主题适配与视觉升级 (Theming & Visual Polish)
 - **浅色模式支持 (Light Mode Support)**:
   - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。

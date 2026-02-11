@@ -375,6 +375,7 @@ class WallpaperApp(Adw.Application):
         self.initialized = True
         self._is_first_activation = False
         self.check_onboarding()
+        self._check_shortcut_updates()
         self.setup_cycle_timer()
         self.tray.start()
         
@@ -585,6 +586,13 @@ class WallpaperApp(Adw.Application):
         needs_onboarding = not self.config.get("onboarding_completed", False) and not self.history_manager.has_history()
         if needs_onboarding:
             self.show_welcome_wizard()
+
+    def _check_shortcut_updates(self):
+        try:
+            self.app_integrator.check_and_update_shortcut()
+            self.log_manager.add_info("App shortcuts updated", "App")
+        except Exception as e:
+            self.log_manager.add_info(f"Shortcut update check skipped: {str(e)}", "App")
 
     def quit_app(self):
         self.controller.stop()
