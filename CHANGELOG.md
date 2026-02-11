@@ -1,6 +1,11 @@
 # 更新日志
 
 ## 最新更新 (尚未提交版号)
+### 视觉反馈增强 (Visual Feedback)
+- **动态截图按钮 (Animated Screenshot Button)**:
+  - 优化了截图操作的交互反馈，现在点击截图时按钮会自动切换为动态旋转的加载圈 (`Gtk.Spinner`)。
+  - 解决了之前截图时仅显示静态图标、用户无法确认是否正在处理的问题 ([#17](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/17))。
+
 ### 主题适配与视觉升级 (Theming & Visual Polish)
 - **浅色模式支持 (Light Mode Support)**:
   - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。
