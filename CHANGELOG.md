@@ -19,6 +19,11 @@
   - 新增了智能屏幕识别算法，启动时会通过 `xrandr` 自动探测主显示器（Primary Display）。
   - **多屏兼容性**: 完美支持 HDMI、DisplayPort (DP)、虚拟机 (Virtual) 等各种非标准命名环境，解决了在台式机或外接显示器场景下默认屏幕识别错误的问题 ([#19](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/19))。
 
+### 界面与交互优化 (UI & Interaction Refinement)
+- **汉堡菜单点击区域修复**:
+  - 重构了 `MenuButton` 的 CSS 样式层级，解决了汉堡菜单按钮“看起来很大但只有中间能点”的交互问题。
+  - 现在整个按钮区域（包括内边距）均可响应点击，与其他导航按钮（Home/Settings）的交互体验保持完全一致。
+
 ### 主题适配与视觉升级 (Theming & Visual Polish)
 - **浅色模式支持 (Light Mode Support)**:
   - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。
