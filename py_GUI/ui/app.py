@@ -264,7 +264,7 @@ class WallpaperApp(Adw.Application):
         
         # Navbar
         screens = self.screen_manager.get_screens()
-        selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+        selected_screen = self.config.get("lastScreen", self.screen_manager.get_primary_screen() or "eDP-1")
         initial_link_state = (self.config.get("apply_mode", "diff") == "same")
         initial_compact_state = bool(self.config.get("compact_mode", False))
         
@@ -333,7 +333,7 @@ class WallpaperApp(Adw.Application):
         # Ensure lastScreen always points to a connected screen (fallback to first/primary)
         last_screen = self.config.get("lastScreen")
         if not last_screen or last_screen not in screens:
-            last_screen = screens[0] if screens else "eDP-1"
+            last_screen = self.screen_manager.get_primary_screen() or (screens[0] if screens else "eDP-1")
             self.config.set("lastScreen", last_screen)
 
         if active_monitors:
@@ -505,10 +505,10 @@ class WallpaperApp(Adw.Application):
         
         active_monitors = self.config.get("active_monitors", {})
         screens = self.screen_manager.get_screens()
-        
+         
         # If no monitors active, activate on the last used screen or first available
         if not active_monitors:
-            target = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
+            target = self.config.get("lastScreen", self.screen_manager.get_primary_screen() or (screens[0] if screens else "eDP-1"))
             active_monitors[target] = None # Placeholder
             
         all_wps = list(self.wp_manager._wallpapers.keys())
