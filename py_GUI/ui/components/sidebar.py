@@ -27,7 +27,7 @@ class Sidebar(Gtk.Box):
         self.selected_wp: Optional[str] = None
         
         self.available_screens: List[str] = []
-        self.get_current_screen: Callable[[], str] = lambda: "eDP-1"
+        self.get_current_screen: Callable[[], str] = lambda: ""
         self.get_apply_mode: Callable[[], str] = lambda: "diff"
         
         self.add_css_class("sidebar")

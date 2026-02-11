@@ -13,6 +13,12 @@
     - **全自动集成**：用户下载并运行 AppImage 后，无需任何手动操作，应用会自动检测并创建正确的系统级桌面快捷方式（`.desktop`），实现开箱即用的安装体验。
     - **智能路径修正**：快捷方式会自动指向 AppImage 文件本身，而非内部临时路径，且能在文件移动或升级后自动自我修复 ([#18](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/18))。
 
+### 硬件适配与底层优化 (Hardware Compatibility)
+- **动态屏幕检测 (Dynamic Screen Detection)**:
+  - 彻底移除了代码库中所有硬编码的 `"eDP-1"` 屏幕标识。
+  - 新增了智能屏幕识别算法，启动时会通过 `xrandr` 自动探测主显示器（Primary Display）。
+  - **多屏兼容性**: 完美支持 HDMI、DisplayPort (DP)、虚拟机 (Virtual) 等各种非标准命名环境，解决了在台式机或外接显示器场景下默认屏幕识别错误的问题 ([#19](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/19))。
+
 ### 主题适配与视觉升级 (Theming & Visual Polish)
 - **浅色模式支持 (Light Mode Support)**:
   - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。
