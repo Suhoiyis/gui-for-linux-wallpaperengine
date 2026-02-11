@@ -1,7 +1,7 @@
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Gio
-from typing import Callable, Optional, List
+from gi.repository import Gtk, Gio, GLib
+from typing import Callable, Optional, List, Dict
 
 class NavBar(Gtk.Box):
     def __init__(self, stack: Gtk.Stack, screens: List[str], selected_screen: str,
@@ -109,20 +109,26 @@ class NavBar(Gtk.Box):
         self.menu_popover.set_child(self.menu_content)
         self.btn_menu.set_popover(self.menu_popover)
         
+        self._add_menu_btn("Playback History", "win.show_history")
         self._add_menu_btn("Refresh Library", "win.refresh")
+        self._add_menu_btn("Welcome / Setup Wizard", "win.welcome")
+        self._add_menu_btn("Check for Updates", "win.check_update")
         self._add_menu_btn("About", "win.about")
         
-        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        sep.set_margin_top(4)
-        sep.set_margin_bottom(4)
-        self.menu_content.append(sep)
+        sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        sep2.set_margin_top(4)
+        sep2.set_margin_bottom(4)
+        self.menu_content.append(sep2)
         
         self._add_menu_btn("Restart Application", "win.restart", bold=True)
         self._add_menu_btn("Quit Application", "win.quit_app", bold=True, destructive=True)
 
         self.append(self.btn_menu)
 
-    def _add_menu_btn(self, label_text, action_name, bold=False, destructive=False):
+    def _add_menu_btn(self, label_text, action_name, param=None, bold=False, destructive=False, container=None):
+        if container is None:
+            container = self.menu_content
+
         btn = Gtk.Button()
         btn.add_css_class("flat")
         btn.add_css_class("popover-btn")
@@ -144,12 +150,12 @@ class NavBar(Gtk.Box):
             self.menu_popover.popdown()
             root = self.get_native()
             if root and hasattr(root, 'activate_action'):
-                root.activate_action(action_name, None)
+                root.activate_action(action_name, param)
             else:
                 print(f"[ERROR] NavBar: Could not find root window to activate {action_name}")
         
         btn.connect("clicked", on_clicked)
-        self.menu_content.append(btn)
+        container.append(btn)
         return btn
 
     def on_link_toggled(self, btn):
@@ -208,3 +214,5 @@ class NavBar(Gtk.Box):
         self.nav_box.set_visible(not enabled)
         self.spacer_left.set_visible(not enabled)
         self.spacer_right.set_visible(not enabled)
+
+

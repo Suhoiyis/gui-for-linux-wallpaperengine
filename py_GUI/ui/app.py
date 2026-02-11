@@ -1,5 +1,8 @@
 import sys
 import os
+import platform
+import shutil
+import html
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -13,14 +16,143 @@ from py_GUI.core.screen import ScreenManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.logger import LogManager
 from py_GUI.core.nickname import NicknameManager
+from py_GUI.core.history import HistoryManager
 from py_GUI.utils import markdown_to_pango
 
 from py_GUI.ui.components.navbar import NavBar
+from py_GUI.ui.components.history_dialog import HistoryDialog
+from py_GUI.ui.components.welcome_dialog import WelcomeDialog
 from py_GUI.ui.pages.wallpapers import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
 from py_GUI.ui.pages.performance import PerformancePage
 from py_GUI.ui.tray import TrayIcon
 from py_GUI.ui.compact_window import CompactWindow
+from py_GUI.core.updater import UpdateChecker
+from py_GUI.core.integrations import AppIntegrator
+
+
+def get_debug_info():
+    import platform, sys, shutil, os
+    from gi.repository import Gtk, Adw
+    
+    info = []
+    info.append("System Environment")
+    info.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    
+    try:
+        os_info = f"{platform.system()} {platform.release()}"
+        info.append(f"OS: {os_info}")
+    except Exception:
+        info.append("OS: Unknown")
+    
+    try:
+        py_version = sys.version.split()[0]
+        info.append(f"Python: {py_version}")
+    except Exception:
+        info.append("Python: Unknown")
+    
+    try:
+        gtk_version = f"{Gtk.get_major_version()}.{Gtk.get_minor_version()}.{Gtk.get_micro_version()}"
+        info.append(f"GTK: {gtk_version}")
+    except Exception:
+        info.append("GTK: Unknown")
+    
+    try:
+        adw_version = f"{Adw.get_major_version()}.{Adw.get_minor_version()}.{Adw.get_micro_version()}"
+        info.append(f"Libadwaita: {adw_version}")
+    except Exception:
+        info.append("Libadwaita: Unknown")
+    
+    try:
+        display_server = os.environ.get('XDG_SESSION_TYPE', 'unknown').capitalize()
+        info.append(f"Display Server: {display_server}")
+    except Exception:
+        info.append("Display Server: Unknown")
+    
+    try:
+        backend_found = shutil.which('linux-wallpaperengine') is not None
+        backend_status = "✓ Found" if backend_found else "✗ Not found"
+        info.append(f"Backend (linux-wallpaperengine): {backend_status}")
+    except Exception:
+        info.append("Backend: Unknown")
+    
+    return "\n".join(info)
+
+def get_latest_changelog():
+     import os
+     import re
+     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+     if not os.path.exists(changelog_path):
+         return "<p>No changelog found.</p>"
+     
+     try:
+         with open(changelog_path, "r", encoding="utf-8") as f:
+             content = f.read()
+             
+         sections = re.split(r'\n## ', content)
+         for section in sections:
+             section = section.strip()
+             if not section:
+                 continue
+                 
+             is_version = section.startswith('v')
+             is_latest = "最新更新" in section
+             
+             if is_version or is_latest:
+                 lines = section.split('\n')
+                 header = lines[0].strip()
+                 body_lines = lines[1:]
+                 
+                 processed_lines = []
+                 in_list = False
+                 
+                 for line in body_lines:
+                     line = line.strip()
+                     if line.startswith('---'):
+                         break
+                     
+                     if not line:
+                         continue
+                     
+                     if line.startswith('###'):
+                         if in_list:
+                             processed_lines.append("</ul>")
+                             in_list = False
+                         # Escape the text content before wrapping in tags
+                         section_title = html.escape(line.replace('###', '').strip())
+                         processed_lines.append(f"<p><em>{section_title}</em></p>")
+                     elif line.startswith('-'):
+                         if not in_list:
+                             processed_lines.append("<ul>")
+                             in_list = True
+                         item_text = line.replace('-', '', 1).strip()
+                         # Escape raw text first, then apply formatting
+                         item_text = html.escape(item_text)
+                         item_text = item_text.replace('**', '<em>', 1).replace('**', '</em>', 1)
+                         processed_lines.append(f"  <li>{item_text}</li>")
+                     else:
+                         if in_list:
+                             processed_lines.append("</ul>")
+                             in_list = False
+                         # Escape the paragraph text
+                         escaped_line = html.escape(line)
+                         processed_lines.append(f"<p>{escaped_line}</p>")
+                 
+                 if in_list:
+                     processed_lines.append("</ul>")
+                 
+                 content_html = "\n".join(processed_lines)
+                 if not content_html.strip() or content_html.strip() == "(暂无)":
+                     continue
+                 
+                 # Escape header before wrapping in tags
+                 escaped_header = html.escape(header)
+                 return f"<p><em>{escaped_header}</em></p>" + content_html
+     except Exception as e:
+         return f"<p>Error reading changelog: {str(e)}</p>"
+     
+     return "<p>Check CHANGELOG.md for details.</p>"
+
 
 class WallpaperApp(Adw.Application):
     def __init__(self):
@@ -30,6 +162,7 @@ class WallpaperApp(Adw.Application):
         )
         self.config = ConfigManager()
         self.log_manager = LogManager()
+        self.history_manager = HistoryManager(self.config)
         
         workshop_path = self.config.get("workshopPath", WORKSHOP_PATH)
         self.wp_manager = WallpaperManager(workshop_path)
@@ -39,12 +172,16 @@ class WallpaperApp(Adw.Application):
         self.controller = WallpaperController(self.config, self.prop_manager, self.log_manager, self.screen_manager)
         self.controller.wp_manager = self.wp_manager
         self.controller.nickname_manager = self.nickname_manager
+        self.controller.history_manager = self.history_manager
 
         self.start_hidden = False
         self.cli_actions = []
         self.initialized = False
         self._is_first_activation = True
         self.cycle_timer_id = None
+        
+        self.app_integrator = AppIntegrator()
+        self.update_checker = UpdateChecker()
         
         self.tray = TrayIcon(self)
 
@@ -124,7 +261,7 @@ class WallpaperApp(Adw.Application):
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_vexpand(True)
-
+        
         # Navbar
         screens = self.screen_manager.get_screens()
         selected_screen = self.config.get("lastScreen", screens[0] if screens else "eDP-1")
@@ -145,10 +282,10 @@ class WallpaperApp(Adw.Application):
         )
         main_box.append(self.navbar)
         main_box.append(self.stack)
-
+        
         # Pages
         self.wallpapers_page = WallpapersPage(
-            self.win, self.config, self.wp_manager, 
+            self.win, self.config, self.wp_manager,
             self.prop_manager, self.controller, self.log_manager,
             self.screen_manager, self.nickname_manager, self.show_toast
         )
@@ -237,6 +374,7 @@ class WallpaperApp(Adw.Application):
         
         self.initialized = True
         self._is_first_activation = False
+        self.check_onboarding()
         self.setup_cycle_timer()
         self.tray.start()
         
@@ -443,6 +581,11 @@ class WallpaperApp(Adw.Application):
         else:
             self.log_manager.add_info("Wallpaper cycling disabled", "App")
 
+    def check_onboarding(self):
+        needs_onboarding = not self.config.get("onboarding_completed", False) and not self.history_manager.has_history()
+        if needs_onboarding:
+            self.show_welcome_wizard()
+
     def quit_app(self):
         self.controller.stop()
         self.tray.stop()
@@ -491,6 +634,18 @@ class WallpaperApp(Adw.Application):
         action_quit_app = Gio.SimpleAction.new("quit_app", None)
         action_quit_app.connect("activate", self.on_action_quit_request)
         self.win.add_action(action_quit_app)
+        
+        action_show_history = Gio.SimpleAction.new("show_history", None)
+        action_show_history.connect("activate", self.on_action_show_history)
+        self.win.add_action(action_show_history)
+        
+        action_welcome = Gio.SimpleAction.new("welcome", None)
+        action_welcome.connect("activate", self.on_action_welcome)
+        self.win.add_action(action_welcome)
+        
+        action_check_update = Gio.SimpleAction.new("check_update", None)
+        action_check_update.connect("activate", self.on_action_check_update)
+        self.win.add_action(action_check_update)
 
     def on_action_apply(self, action, param):
         wp_id = param.get_string()
@@ -520,16 +675,77 @@ class WallpaperApp(Adw.Application):
 
     def on_action_about(self, action, param):
         try:
-            dialog = Adw.AboutWindow()
-            dialog.set_application_name("Linux Wallpaper Engine GUI")
-            dialog.set_version(VERSION)
-            dialog.set_developer_name("Suhoiyis")
-            dialog.set_license_type(Gtk.License.GPL_3_0)
-            dialog.set_website("https://github.com/Suhoiyis/gui-for-linux-wallpaperengine")
-            dialog.set_transient_for(self.win)
+            dialog = Adw.AboutDialog(
+                application_name="Linux Wallpaper Engine GUI",
+                application_icon="GUI_rounded",
+                version=VERSION,
+                developer_name="Suhoiyis",
+                comments="A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux, based on linux-wallpaperengine.",
+                license_type=Gtk.License.GPL_3_0,
+                website="https://github.com/Suhoiyis/gui-for-linux-wallpaperengine",
+                issue_url="https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues",
+                copyright="© 2026 Suhoiyis",
+                release_notes=get_latest_changelog(),
+                debug_info=get_debug_info(),
+                debug_info_filename="wallpaperengine-gui-debug.txt"
+            )
+            dialog.present(self.win)
+        except Exception as e:
+            self.show_toast(f"Error opening About dialog: {str(e)}")
+
+    def on_action_show_history(self, action, param):
+        try:
+            dialog = HistoryDialog(self.win, self.history_manager, self.wp_manager, self.controller, self.nickname_manager)
             dialog.present()
         except Exception as e:
-            self.show_toast(f"Error opening About window: {str(e)}")
+            self.show_toast(f"Error opening history: {str(e)}")
+    
+    def on_action_welcome(self, action, param):
+        try:
+            dialog = WelcomeDialog(self.win, self.config, self.app_integrator)
+            dialog.present()
+        except Exception as e:
+            self.show_toast(f"Error opening welcome dialog: {str(e)}")
+    
+    def on_action_check_update(self, action, param):
+        try:
+            def on_update_callback(latest_version, release_url, has_update):
+                GLib.idle_add(lambda: self._handle_update_result(latest_version, release_url, has_update))
+                
+            self.update_checker.check_update(VERSION, on_update_callback)
+            self.show_toast("Checking for updates...")
+        except Exception as e:
+            self.show_toast(f"Error checking for updates: {str(e)}")
+
+    def _handle_update_result(self, latest_version, release_url, has_update):
+        if has_update and latest_version:
+            dialog = Adw.MessageDialog(
+                transient_for=self.win,
+                heading="Update Available",
+                body=f"A new version ({latest_version}) is available on GitHub."
+            )
+            dialog.add_response("cancel", "Cancel")
+            dialog.add_response("download", "Download")
+            dialog.set_response_appearance("download", Adw.ResponseAppearance.SUGGESTED)
+            
+            def on_response(d, response):
+                if response == "download":
+                    import webbrowser
+                    webbrowser.open(release_url)
+                d.close()
+                
+            dialog.connect("response", on_response)
+            dialog.present()
+        elif latest_version == "ERROR:RATE_LIMIT":
+            self.show_toast("GitHub API rate limit exceeded. Please try again later.")
+        elif latest_version is None:
+            self.show_toast("Failed to check for updates. Please check your connection.")
+        else:
+            self.show_toast(f"You are up to date (v{VERSION})")
+
+    def show_welcome_wizard(self):
+        self.on_action_welcome(None, None)
+
 
     def on_action_quit_request(self, action, param):
         dialog = Adw.MessageDialog.new(self.win)
