@@ -112,8 +112,8 @@ togglebutton:focus-visible {
     box-shadow: 0 0 0 2px alpha(@accent_bg_color, 0.4);
 }
 
-/* Fix for MenuButton double-layer look and hit-box */
-menubutton.nav-btn {
+/* Fix for MenuButton & DropDown double-layer look and hit-box */
+menubutton.nav-btn, dropdown.nav-btn {
     background: transparent;
     border: none;
     box-shadow: none;
@@ -123,7 +123,7 @@ menubutton.nav-btn {
     border-radius: inherit;
 }
 
-menubutton.nav-btn > button {
+menubutton.nav-btn > button, dropdown.nav-btn > button {
     background: alpha(@theme_fg_color, 0.08);
     color: @theme_fg_color;
     border-radius: 10px;
@@ -136,19 +136,20 @@ menubutton.nav-btn > button {
     margin: 0;
 }
 
-menubutton.nav-btn > button:focus-visible {
+menubutton.nav-btn > button:focus-visible, dropdown.nav-btn > button:focus-visible {
     outline: 2px solid @accent_bg_color;
     outline-offset: 2px;
     box-shadow: 0 0 0 2px alpha(@accent_bg_color, 0.4);
 }
 
-menubutton.nav-btn > button:hover {
+menubutton.nav-btn > button:hover, dropdown.nav-btn > button:hover {
     background: alpha(@theme_fg_color, 0.12);
     border-color: alpha(@theme_fg_color, 0.2);
 }
 
 menubutton.nav-btn > button:active,
-menubutton.nav-btn > button:checked {
+menubutton.nav-btn > button:checked,
+dropdown.nav-btn > button:active {
     background: @accent_bg_color;
     color: @accent_fg_color;
     box-shadow: 0 4px 12px alpha(@accent_bg_color, 0.3);
