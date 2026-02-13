@@ -37,7 +37,7 @@ class NavBar(Gtk.Box):
             self.btn_link.set_icon_name("link-symbolic" if self.is_linked else "unlink-symbolic")
             self.btn_link.set_active(self.is_linked)
             self.btn_link.set_tooltip_text("Link screens (Apply to All)" if self.is_linked else "Unlink screens (Apply to Single)")
-            self.btn_link.add_css_class("flat")
+            self.btn_link.add_css_class("nav-btn")
             self.btn_link.connect("toggled", self.on_link_toggled)
             self.screen_box.append(self.btn_link)
 
@@ -46,6 +46,7 @@ class NavBar(Gtk.Box):
         self.screen_box.append(icon_screen)
 
         self.screen_dd = Gtk.DropDown.new_from_strings(self.screens)
+        self.screen_dd.add_css_class("nav-btn")
         if self.selected_screen in self.screens:
             self.screen_dd.set_selected(self.screens.index(self.selected_screen))
         self.screen_dd.connect("notify::selected", self._on_screen_changed)
