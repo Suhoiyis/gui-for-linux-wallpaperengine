@@ -27,6 +27,8 @@ class HistoryManager:
         self.history: List[Dict] = self._load()
     
     def add(self, wp_id: str, title: str, preview: str) -> None:
+        self.history = [e for e in self.history if e.get("id") != wp_id]
+        
         entry = {
             "id": wp_id,
             "title": title,

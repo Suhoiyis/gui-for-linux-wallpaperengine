@@ -190,7 +190,7 @@ class SettingsPage(Gtk.Box):
         self.fps_spin = Gtk.SpinButton()
         self.fps_spin.set_range(1, 144)
         self.fps_spin.set_increments(1, 10)
-        self.fps_spin.set_value(self.config.get("fps", 30))
+        self.fps_spin.set_value(self.config.get("fps") or 30)
         r.append(self.fps_spin)
 
         # Scaling
@@ -198,7 +198,7 @@ class SettingsPage(Gtk.Box):
         box.append(r)
         scaling_opts = ["default", "stretch", "fit", "fill"]
         self.scaling_dd = Gtk.DropDown.new_from_strings(scaling_opts)
-        curr = str(self.config.get("scaling", "default"))
+        curr = str(self.config.get("scaling") or "default")
         if curr in scaling_opts:
             self.scaling_dd.set_selected(scaling_opts.index(curr))
         r.append(self.scaling_dd)
@@ -266,7 +266,7 @@ class SettingsPage(Gtk.Box):
         self.cycle_spin = Gtk.SpinButton()
         self.cycle_spin.set_range(1, 1440) # 1 min to 24 hours
         self.cycle_spin.set_increments(5, 30)
-        self.cycle_spin.set_value(self.config.get("cycleInterval", 15))
+        self.cycle_spin.set_value(self.config.get("cycleInterval") or 15)
         r.append(self.cycle_spin)
 
         # Order
@@ -275,7 +275,7 @@ class SettingsPage(Gtk.Box):
         order_opts = ["Random", "Title", "Size ↑", "Size ↓", "Type", "ID"]
         self.cycle_order_dd = Gtk.DropDown.new_from_strings(order_opts)
         
-        curr_order = self.config.get("cycleOrder", "random").lower()
+        curr_order = (self.config.get("cycleOrder") or "random").lower()
         # Find index
         idx = 0
         if curr_order == "size": 
@@ -363,7 +363,7 @@ class SettingsPage(Gtk.Box):
         self.vol_spin = Gtk.SpinButton()
         self.vol_spin.set_range(0, 100)
         self.vol_spin.set_increments(5, 10)
-        self.vol_spin.set_value(self.config.get("volume", 50))
+        self.vol_spin.set_value(self.config.get("volume") or 50)
         r.append(self.vol_spin)
 
         # No Auto Mute
@@ -407,7 +407,7 @@ class SettingsPage(Gtk.Box):
         
         workshop_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.path_entry = Gtk.Entry()
-        self.path_entry.set_text(self.config.get("workshopPath", WORKSHOP_PATH))
+        self.path_entry.set_text(self.config.get("workshopPath") or WORKSHOP_PATH)
         self.path_entry.set_hexpand(True)
         workshop_box.append(self.path_entry)
         
@@ -507,14 +507,14 @@ class SettingsPage(Gtk.Box):
         self.screenshot_delay_spin = Gtk.SpinButton()
         self.screenshot_delay_spin.set_range(1, 600)
         self.screenshot_delay_spin.set_increments(5, 50)
-        self.screenshot_delay_spin.set_value(self.config.get("screenshotDelay", 20))
+        self.screenshot_delay_spin.set_value(self.config.get("screenshotDelay") or 20)
         r.append(self.screenshot_delay_spin)
 
         # Screenshot Resolution
         r = self.create_row("Screenshot Resolution", "Target resolution (e.g. 1920x1080, 3840x2160).")
         box.append(r)
         self.screenshot_res_entry = Gtk.Entry()
-        self.screenshot_res_entry.set_text(self.config.get("screenshotRes", "3840x2160"))
+        self.screenshot_res_entry.set_text(self.config.get("screenshotRes") or "3840x2160")
         self.screenshot_res_entry.set_hexpand(False)
         self.screenshot_res_entry.set_width_chars(15)
         r.append(self.screenshot_res_entry)
