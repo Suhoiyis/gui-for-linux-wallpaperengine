@@ -48,7 +48,7 @@ class WallpaperController:
                 last = self.screen_manager.get_primary_screen() or self.screen_manager.get_first_screen() or "eDP-1"
             target_screens = [last]
 
-        active_monitors = dict(self.config.get("active_monitors") or {})
+        active_monitors = dict(self.config.get("active_monitors", {}) or {})
         
         for s in target_screens:
             active_monitors[s] = wp_id
@@ -232,8 +232,8 @@ class WallpaperController:
         default_res = "3840x2160"
         res_raw = self.config.get("screenshotRes", default_res)
         res = res_raw if isinstance(res_raw, str) else default_res
-        res = res.strip().lower()
-        if not re.fullmatch(r"\d+x\d+", res):
+        res = res.strip()
+        if not re.fullmatch(r"\d+[xX]\d+", res):
             res = default_res
         
         # Check for xvfb-run dynamically and preference
