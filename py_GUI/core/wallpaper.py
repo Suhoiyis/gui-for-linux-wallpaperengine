@@ -219,7 +219,6 @@ class WallpaperManager:
             try:
                 pixbuf = None
                 if HAS_PIL:
-                    from PIL import Image
                     with Image.open(path) as img:
                         n_frames = getattr(img, 'n_frames', 1)
                         target_frame = min(15, n_frames - 1) if n_frames > 1 else 0
@@ -227,7 +226,7 @@ class WallpaperManager:
                         
                         import io
                         buf = io.BytesIO()
-                        img.convert("RGB").save(buf, format="PNG")
+                        img.convert("RGBA").save(buf, format="PNG")
                         data = buf.getvalue()
                         
                         loader = GdkPixbuf.PixbufLoader.new_with_type("png")

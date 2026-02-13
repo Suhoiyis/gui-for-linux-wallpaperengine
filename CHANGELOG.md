@@ -12,12 +12,16 @@
   - 为所有导航按钮和开关重新引入并优化了 `:focus-visible` 样式。现在使用键盘导航时，会有清晰的系统强调色边框提示。
 
 ### 核心稳定性与 PR 修正 (Core Stability & PR Refinements)
-- **配置系统“None 陷阱”修复**: 修复了全局范围内 `config.get()` 无法在值为 `None` 时回退到默认值的逻辑缺陷，显著提升了冷启动时的配置可靠性。
+- **配置系统“None 陷阱”与 Falsy 值修复**: 
+  - 修复了全局范围内 `config.get()` 无法在值为 `None` 时回退到默认值的逻辑缺陷。
+  - 特别修复了 `volume=0` (静音)、`fps=0`、`screenshotDelay=0` 时因 Python falsy 判断导致被强制回退到默认值的 Bug，确保用户设置的 0 值能正确生效。
 - **播放历史智能去重**: 优化了 `HistoryManager` 逻辑，重复应用同一壁纸时会将其记录置顶而非产生重复项。
-- **智能 GIF 缩略图恢复 (GIF Smart Thumbnails)**:
+- **智能 GIF 缩略图恢复与优化 (GIF Smart Thumbnails)**:
   - 修复了重构导致的 GIF 缩略图逻辑丢失问题。
+  - **透明度支持**: 修复了 Pillow 路径下透明度丢失的问题 (RGB -> RGBA)，确保透明 GIF 预览正常。
   - 现在若安装了 Pillow 库，程序会自动定位并截取 GIF 的 **第 15 帧** 作为静态缩略图，有效避开了开头可能出现的黑屏或渐入空帧。
 - **类型安全与监控优化**: 
+
   - 修复了 `PerformanceMonitor` 中 `TypedDict` 的字段访问一致性问题。
   - 增加了 CPU 采样数值的合理性上限校验，消除了短任务下的数学采样伪影。
 - **Markup 安全防护**: 为所有 Markdown/BBCode 转换逻辑增加了强制 XML 转义，彻底杜绝了因特殊字符导致的 Pango UI 渲染异常。
