@@ -1,6 +1,6 @@
 # 更新日志
 
-## 最新更新
+## v0.10.5(2026-02-13)
 
 ### 主题适配与视觉升级 (Theming & Visual Polish)
 - **浅色主题深度适配 (Deep Light Mode Compatibility)**:
