@@ -71,26 +71,21 @@ togglebutton:focus-visible {
 }
 
 .nav-btn {
-    background: alpha(@window_bg_color, 0.8);
+    background: alpha(@theme_fg_color, 0.08);
     color: @theme_fg_color;
     border-radius: 10px;
     padding: 8px 16px;
     font-weight: 600;
-    border: none;
+    border: 1px solid alpha(@theme_fg_color, 0.1);
     min-height: 36px;
     transition: all 0.2s;
     box-shadow: none;
     outline: none;
-    border-bottom: none;
-    border-top: none;
-    border-left: none;
-    border-right: none;
 }
 
 .nav-btn:hover {
-    background: alpha(@window_bg_color, 0.6);
-    border: none;
-    border-bottom: none;
+    background: alpha(@theme_fg_color, 0.12);
+    border-color: alpha(@theme_fg_color, 0.2);
 }
 
 .nav-btn.active, .nav-btn:checked {
@@ -124,7 +119,7 @@ menubutton.nav-btn > button {
     border-radius: 10px;
     padding: 8px 16px;
     font-weight: 600;
-    border: none;
+    border: 1px solid alpha(@theme_fg_color, 0.1);
     min-height: 36px;
     transition: all 0.2s;
     box-shadow: none;
@@ -139,8 +134,7 @@ menubutton.nav-btn > button:focus-visible {
 
 menubutton.nav-btn > button:hover {
     background: alpha(@theme_fg_color, 0.12);
-    border: none;
-    border-bottom: none;
+    border-color: alpha(@theme_fg_color, 0.2);
 }
 
 menubutton.nav-btn > button:active,
@@ -186,28 +180,31 @@ menubutton.nav-btn > button:checked {
 }
 
 .mode-btn {
-    background: alpha(@window_bg_color, 0.8);
+    background: alpha(@theme_fg_color, 0.08);
     color: @theme_fg_color;
     border-radius: 10px;
     padding: 6px 6px;
-    border: none;
+    border: 1px solid alpha(@theme_fg_color, 0.1);
     min-height: 36px;
     min-width: 36px;
     font-size: 1.2em;
 }
 
 .mode-btn:hover {
-    background: alpha(@window_bg_color, 0.6);
+    background: alpha(@theme_fg_color, 0.12);
+    border-color: alpha(@theme_fg_color, 0.2);
 }
 
 .mode-btn.active, .mode-btn:checked {
     background: @accent_bg_color;
     color: @accent_fg_color;
+    border-color: @accent_bg_color;
 }
 
 .stop-btn {
-    background: alpha(@window_bg_color, 0.8);
+    background: alpha(@theme_fg_color, 0.08);
     color: #ef4444;
+    border: 1px solid alpha(@theme_fg_color, 0.1);
 }
 
 .stop-btn image {
