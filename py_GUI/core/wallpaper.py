@@ -217,12 +217,26 @@ class WallpaperManager:
 
         if path.lower().endswith('.gif'):
             try:
-                anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
                 pixbuf = None
-                if anim.is_static_image():
-                    pixbuf = anim.get_static_image()
+                if HAS_PIL:
+                    from PIL import Image
+                    with Image.open(path) as img:
+                        n_frames = getattr(img, 'n_frames', 1)
+                        target_frame = min(15, n_frames - 1) if n_frames > 1 else 0
+                        img.seek(target_frame)
+                        
+                        import io
+                        buf = io.BytesIO()
+                        img.convert("RGB").save(buf, format="PNG")
+                        data = buf.getvalue()
+                        
+                        loader = GdkPixbuf.PixbufLoader.new_with_type("png")
+                        loader.write(data)
+                        loader.close()
+                        pixbuf = loader.get_pixbuf()
                 else:
-                    pixbuf = anim.get_static_image() 
+                    anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
+                    pixbuf = anim.get_static_image()
                 
                 if pixbuf:
                     scaled = pixbuf.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
