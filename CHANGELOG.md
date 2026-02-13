@@ -1,480 +1,482 @@
-# 更新日志
+# Changelog
 
-## v0.10.5(2026-02-13)
+[中文](CHANGELOG_ZH.md)
 
-### 主题适配与视觉升级 (Theming & Visual Polish)
-- **浅色主题深度适配 (Deep Light Mode Compatibility)**:
-  - 彻底重构了全应用的 CSS 样式表，系统性地替换了 70+ 处硬编码颜色值。
-  - 使用 `@window_bg_color` 和 `@theme_fg_color` 及其 alpha 变体替代了所有强制深色背景和白色文字。
-  - 应用现在能完美、无死角地自适应系统的深色/浅色主题，彻底解决了在浅色主题下文字不可见的问题。
-- **系统强调色同步 (System Accent Color Sync)**:
-  - 彻底移除了 CSS 中所有硬编码的蓝色 (`#007bff`)。
-  - 全面接入 GTK/Libadwaita 系统变量（如 `@accent_bg_color`, `@accent_fg_color`），现在应用的所有按键、选中态、开关和阴影均会自动跟随系统的“强调色”设置，实现完美的视觉统一。
-- **“胶囊光晕”名称显示 (Capsule Glow Design)**:
-  - 重新设计了网格视图中的壁纸名称框，采用半透明深灰色圆角胶囊造型。
-  - 使用 30% 透明度的极细描边配合 40% 透明度的外发光阴影替代了原有的粗实线边框，视觉效果更柔和、更具现代氛围感。
-- **可访问性增强 (Accessibility)**:
-  - 为所有导航按钮和开关重新引入并优化了 `:focus-visible` 样式。现在使用键盘导航时，会有清晰的系统强调色边框提示。
+## v0.10.5 (2026-02-13)
 
-### 核心稳定性与 PR 修正 (Core Stability & PR Refinements)
-- **配置系统底层架构升级 (Robust Config Fallback)**: 
-  - **从根源解决“None 陷阱”**: 重构了 `ConfigManager.get()` 底层逻辑。现在当配置文件中某个键的值被显式设为 `null` 时，它能智能识别并正确回退到开发者提供的 `default` 值。
-  - **Falsy 值全面兼容**: 彻底解决了 `volume=0` (静音)、`fps=0`、`screenshotDelay=0` 等合法数值因 Python falsy 判断被错误覆盖的问题。
-- **播放历史智能去重**: 优化了 `HistoryManager` 逻辑，重复应用同一壁纸时会将其记录置顶而非产生重复项。
-- **智能 GIF 缩略图恢复与优化 (GIF Smart Thumbnails)**:
-  - 修复了重构导致的 GIF 缩略图逻辑丢失问题。
-  - **透明度支持**: 修复了 Pillow 路径下透明度丢失的问题 (RGB -> RGBA)，确保透明 GIF 预览正常。
-  - 优化了帧采样逻辑，默认截取第 15 帧（0基索引）以有效避开开头可能出现的黑屏或渐入空帧。
+### Theming & Visual Polish
+- **Deep Light Mode Compatibility**:
+  - Completely refactored the application-wide CSS stylesheets, systematically replacing 70+ hardcoded color values.
+  - Replaced all forced dark backgrounds and white text with `@window_bg_color` and `@theme_fg_color` and their alpha variants.
+  - The application now perfectly adapts to the system's dark/light theme, completely resolving the issue of invisible text in light mode.
+- **System Accent Color Sync**:
+  - Completely removed all hardcoded blue (`#007bff`) from CSS.
+  - Fully integrated GTK/Libadwaita system variables (e.g., `@accent_bg_color`, `@accent_fg_color`). All buttons, selection states, switches, and shadows now automatically follow the system's "Accent Color" setting for perfect visual unity.
+- **Capsule Glow Design**:
+  - Redesigned the wallpaper name box in the grid view with a semi-transparent dark gray rounded capsule shape.
+  - Replaced the original thick solid border with a 30% transparent ultra-fine stroke and a 40% transparent outer glow shadow, creating a softer and more modern atmosphere.
+- **Accessibility**:
+  - Re-introduced and optimized `:focus-visible` styles for all navigation buttons and switches. Clear system accent color borders now provide visual feedback during keyboard navigation.
 
-### 监控与稳定性优化 (Monitoring & Stability)
-- **截图资源统计修复 (Screenshot Stats Fix)**:
-  - 解决了快速截图（如视频壁纸）时 CPU 占用率偶现显示为 0% 的竞态条件问题。
-  - **多阶段子进程轮询**: 引入了智能轮询机制，确保在 Xvfb 模式下能准确抓取到真实的 `linux-wallpaperengine` 进程。
-  - **高精度采样**: 针对极短任务增加了手动 CPU 时间差值计算 fallback，并动态提升监控频率至 0.1s ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10))。
-- **类型安全与监控优化**: 
-  - 修复了 `PerformanceMonitor` 中 `TypedDict` 的字段访问一致性问题。
-  - 增加了 CPU 采样数值的合理性上限校验，消除了短任务下的数学采样伪影。
-- **Markup 安全防护**: 为所有 Markdown/BBCode 转换逻辑增加了强制 XML 转义，彻底杜绝了因特殊字符导致的 Pango UI 渲染异常。
+### Core Stability & PR Refinements
+- **Robust Config Fallback**:
+  - **Solving the "None Trap" at the source**: Refactored the underlying logic of `ConfigManager.get()`. It now intelligently identifies when a key's value is explicitly set to `null` in the configuration file and correctly falls back to the developer-provided `default` value.
+  - **Full Falsy Value Compatibility**: Completely resolved the issue where valid values like `volume=0` (mute), `fps=0`, and `screenshotDelay=0` were incorrectly overridden due to Python's falsy evaluation.
+- **Intelligent Playback History De-duplication**: Optimized `HistoryManager` logic to move an existing entry to the top when the same wallpaper is reapplied, rather than creating a duplicate.
+- **GIF Smart Thumbnails**:
+  - Fixed the issue where GIF thumbnail logic was lost during refactoring.
+  - **Transparency Support**: Fixed transparency loss in the Pillow path (RGB -> RGBA), ensuring transparent GIF previews render correctly.
+  - Optimized frame sampling logic to default to the 15th frame (0-indexed), effectively avoiding potential black screens or empty fade-in frames at the beginning.
+
+### Monitoring & Stability
+- **Screenshot Stats Fix**:
+  - Resolved a race condition where CPU usage occasionally showed as 0% during fast screenshots (e.g., for video wallpapers).
+  - **Multi-stage Subprocess Polling**: Introduced an intelligent polling mechanism to ensure the actual `linux-wallpaperengine` process is accurately captured in Xvfb mode.
+  - **High-precision Sampling**: Added a manual CPU time difference calculation fallback for extremely short tasks and dynamically increased monitoring frequency to 0.1s ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10)).
+- **Type Safety & Monitoring Optimization**:
+  - Fixed field access consistency issues for `TypedDict` in `PerformanceMonitor`.
+  - Added a reasonable upper bound check for CPU sampling values to eliminate mathematical sampling artifacts in short tasks.
+- **Markup Security Protection**: Added mandatory XML escaping to all Markdown/BBCode conversion logic, completely preventing Pango UI rendering anomalies caused by special characters.
 
 ## v0.10.4 (2026-02-12)
 
-### 视觉反馈增强 (Visual Feedback)
-- **动态截图按钮 (Animated Screenshot Button)**:
-  - 优化了截图操作的交互反馈，现在点击截图时按钮会自动切换为动态旋转的加载圈 (`Gtk.Spinner`)。
-  - 解决了之前截图时仅显示静态图标、用户无法确认是否正在处理的问题 ([#17](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/17))。
+### Visual Feedback
+- **Animated Screenshot Button**:
+  - Optimized interaction feedback for screenshot operations. Clicking the screenshot button now automatically switches to a rotating loading spinner (`Gtk.Spinner`).
+  - Resolved the previous issue where only a static icon was shown during screenshots, leaving users unable to confirm if the process was running ([#17](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/17)).
 
-### 桌面集成与部署 (Desktop Integration & Deployment)
-- **智能桌面快捷方式 (Smart Desktop Shortcut)**:
-  - 实现了 **启动自愈机制**：应用每次启动时会自动检查 `.desktop` 文件，若发现路径失效（如文件夹被移动），会自动修复为当前正确路径。
-  - **AppImage 深度适配 (Zero-Config AppImage Support)**:
-    - **全自动集成**：用户下载并运行 AppImage 后，无需任何手动操作，应用会自动检测并创建正确的系统级桌面快捷方式（`.desktop`），实现开箱即用的安装体验。
-    - **智能路径修正**：快捷方式会自动指向 AppImage 文件本身，而非内部临时路径，且能在文件移动或升级后自动自我修复 ([#18](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/18))。
+### Desktop Integration & Deployment
+- **Smart Desktop Shortcut**:
+  - Implemented a **startup self-healing mechanism**: the application automatically checks the `.desktop` file on every launch. If the path is invalid (e.g., the folder was moved), it automatically repairs it to the correct current path.
+- **Zero-Config AppImage Support**:
+  - **Full Automatic Integration**: After downloading and running the AppImage, no manual action is required. The application automatically detects and creates the correct system-level desktop shortcut (`.desktop`), providing an out-of-the-box installation experience.
+  - **Smart Path Correction**: The shortcut automatically points to the AppImage file itself rather than an internal temporary path, and can self-repair after the file is moved or upgraded ([#18](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/18)).
 
-### 硬件适配与底层优化 (Hardware Compatibility)
-- **动态屏幕检测 (Dynamic Screen Detection)**:
-  - 彻底移除了代码库中所有硬编码的 `"eDP-1"` 屏幕标识。
-  - 新增了智能屏幕识别算法，启动时会通过 `xrandr` 自动探测主显示器（Primary Display）。
-  - **多屏兼容性**: 完美支持 HDMI、DisplayPort (DP)、虚拟机 (Virtual) 等各种非标准命名环境，解决了在台式机或外接显示器场景下默认屏幕识别错误的问题 ([#19](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/19))。
+### Hardware Compatibility
+- **Dynamic Screen Detection**:
+  - Completely removed all hardcoded `"eDP-1"` screen identifiers from the codebase.
+  - Added a smart screen recognition algorithm that automatically detects the Primary Display via `xrandr` at startup.
+  - **Multi-monitor Compatibility**: Perfectly supports various non-standard naming environments such as HDMI, DisplayPort (DP), and Virtual machines, resolving default screen recognition errors on desktops or external monitor setups ([#19](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/19)).
 
-### 界面与交互优化 (UI & Interaction Refinement)
-- **汉堡菜单点击区域修复**:
-  - 重构了 `MenuButton` 的 CSS 样式层级，解决了汉堡菜单按钮“看起来很大但只有中间能点”的交互问题。
-  - 现在整个按钮区域（包括内边距）均可响应点击，与其他导航按钮（Home/Settings）的交互体验保持完全一致。
+### UI & Interaction Refinement
+- **Hamburger Menu Click Area Fix**:
+  - Refactored the CSS style hierarchy of the `MenuButton`, resolving the interaction issue where the hamburger menu button "looked large but was only clickable in the center."
+  - The entire button area (including padding) now responds to clicks, maintaining a consistent interaction experience with other navigation buttons (Home/Settings).
 
-### 主题适配与视觉升级 (Theming & Visual Polish)
-- **浅色模式支持 (Light Mode Support)**:
-  - 彻底重构了应用的 CSS 样式表，移除了所有硬编码的深色背景色（如 `#1d1d1d`）和白色文字。
-  - 全面引入 **GTK/Libadwaita 命名颜色**（如 `@window_bg_color`, `@theme_fg_color`），现在应用能完美自动适配系统的深色/浅色主题。
-  - 优化了半透明效果，使用 `alpha()` 函数替代固定透明度，确保在不同背景下的可读性。
-  - 解决了长期存在的 "仅适合深色模式使用" 问题 ([#2](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/2))。
+### Theming & Visual Polish
+- **Light Mode Support**:
+  - Completely refactored the application's CSS stylesheets, removing all hardcoded dark background colors (e.g., `#1d1d1d`) and white text.
+  - Fully introduced **GTK/Libadwaita Named Colors** (e.g., `@window_bg_color`, `@theme_fg_color`). The application now perfectly adapts to the system's dark/light theme automatically.
+  - Optimized translucency effects by using the `alpha()` function instead of fixed opacity, ensuring readability across different backgrounds.
+  - Resolved the long-standing "suitable for dark mode only" issue ([#2](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/2)).
 
 ---
 
 ## v0.10.3 (2026-02-11)
-### 汉堡菜单进一步完善
-- **功能扩展**: 菜单中新增了 **Check for Updates**（检查更新）与 **Welcome Guide**（欢迎向导）入口。
-- - **特别注意，这两个功能只是基本完成，需要后续丰富完善**
+### Hamburger Menu Refinement
+- **Feature Expansion**: Added **Check for Updates** and **Welcome Guide** entries to the menu.
+- **Note: These two features are only basically completed and will be further enriched in the future.**
 
-### 更新检查器增强 (Update Checker Enhancements)
-- **智能错误处理**: 
-  - **速率限制识别**: 专门优化了 GitHub API 403 错误处理。当触发速率限制时，现在会显示精准的 “Rate limit exceeded” 提示，而非模糊的网络错误。
-  - **空发布处理**: 完美处理 404 状态（仓库无 Release），返回虚拟低版本以确保逻辑闭环。
-- **版本对比优化**: 增强了版本号解析逻辑，现已支持带后缀的语义化版本（如 `0.10.3-beta`），确保对比准确。
-- **网络安全性**: 为 API 请求添加了必要的 `User-Agent` 头部，符合 GitHub API 调用规范。
+### Update Checker Enhancements
+- **Smart Error Handling**:
+  - **Rate Limit Recognition**: Specifically optimized GitHub API 403 error handling. When a rate limit is triggered, a precise "Rate limit exceeded" message is now displayed instead of a vague network error.
+  - **Empty Release Handling**: Gracefully handles 404 status (no releases in repository) by returning a virtual low version to ensure logic closure.
+- **Version Comparison Optimization**: Enhanced version number parsing logic to support semantic versioning with suffixes (e.g., `0.10.3-beta`), ensuring accurate comparisons.
+- **Network Security**: Added the necessary `User-Agent` header to API requests, complying with GitHub API calling specifications.
 
 ---
 
 ## v0.10.3-beta (2026-02-10)
 
-### 播放历史系统 (Playback History System)
-- **核心功能**: 新增了播放历史记录功能，自动追踪最近 30 条壁纸播放记录。
-- **交互界面**: 
-  - 实现了专用的 **HistoryDialog**，展示壁纸缩略图、别名（斜体）、原始 ID 及播放时间（MM-DD HH:MM）。
-  - **同步逻辑**: 历史记录中的播放按钮现已与主窗口完美同步，点击后会实时更新顶栏状态、侧边栏预览及当前壁纸标识。
-  - **空状态优化**: 使用 `Gtk.Stack` 重构了空状态逻辑，当无记录时显示居中的 "No Recent Playback History" 提示，解决了占位符偶尔不显示的稳定性问题。
-  - **管理功能**: 支持一键清除历史记录，并实时显示“当前记录/30”的容量统计。
-- **入口集成**: 在全局汉堡菜单中新增了 **Playback History** 入口。
+### Playback History System
+- **Core Feature**: Added a playback history feature that automatically tracks the last 30 wallpaper playback records.
+- **Interaction Interface**:
+  - Implemented a dedicated **HistoryDialog** showing wallpaper thumbnails, nicknames (italic), original IDs, and playback time (MM-DD HH:MM).
+  - **Sync Logic**: The play button in the history record is now perfectly synchronized with the main window. Clicking it updates the top bar status, sidebar preview, and current wallpaper identifier in real-time.
+  - **Empty State Optimization**: Refactored empty state logic using `Gtk.Stack`. When there are no records, a centered "No Recent Playback History" prompt is displayed, resolving stability issues where the placeholder occasionally failed to show.
+  - **Management Features**: Supports one-click clearing of history and displays real-time capacity statistics (current records/30).
+- **Entry Integration**: Added a **Playback History** entry to the global hamburger menu.
 
-### 别名系统深度集成 (Nickname System Integration)
-- **数据持久化**: 建立了 `NicknameManager` 核心模块，支持 `nicknames.json` 独立持久化与自动管理。
-- **全局适配**: 历史记录列表、搜索结果及侧边栏现在均优先显示用户设置的别名。
-- **交互闭环**: 实现了右键菜单、侧边栏编辑按钮及设置页面“管理别名”弹窗的完整交互逻辑。
+### Nickname System Integration
+- **Data Persistence**: Established the `NicknameManager` core module, supporting independent persistence and automatic management of `nicknames.json`.
+- **Global Adaptation**: The history list, search results, and sidebar now prioritize displaying user-set nicknames.
+- **Interaction Closure**: Implemented full interaction logic for the right-click menu, sidebar edit button, and the "Manage Nicknames" popup on the Settings page.
 
-### 全局导航与菜单优化 (Global Navigation & Menu)
-- **汉堡菜单 (Hamburger Menu)**: 将顶栏右侧按钮组重构为自定义 Popover 菜单。
-- **视觉强化**: 菜单项 **Restart** 设为加粗，**Quit Application** 设为红色加粗。
-- **CSS 修复**: 移除了菜单按钮的“双层边框”阴影瑕疵，优化了顶栏按钮对齐与间距。
+### Global Navigation & Menu
+- **Hamburger Menu**: Refactored the button group on the right side of the top bar into a custom Popover menu.
+- **Visual Reinforcement**: Set the **Restart** menu item to bold and **Quit Application** to red bold.
+- **CSS Fixes**: Removed "double border" shadow artifacts from the menu button and optimized top bar button alignment and spacing.
 
-### 关于对话框现代化 (About Dialog Modernization)
-- **组件升级**: 从弃用的 `Adw.AboutWindow` 迁移至 `Adw.AboutDialog` (Libadwaita 1.5+)。
-- **动态日志同步**: 实现了自动从 `CHANGELOG.md` 提取最新版本内容并转换为 AppStream HTML 的功能，支持中文完美显示。
-- **专业化提升**: 窗口现在可以展示带有圆角效果的应用图标 (`GUI_rounded.png`)，并提供一键复制系统环境调试信息的功能。
-- **稳定性增强**: 修复了由于 `&` 等特殊字符及 `<b>` 标签导致的 XML 解析崩溃。
+### About Dialog Modernization
+- **Component Upgrade**: Migrated from the deprecated `Adw.AboutWindow` to `Adw.AboutDialog` (Libadwaita 1.5+).
+- **Dynamic Log Sync**: Implemented automatic extraction of the latest version content from `CHANGELOG.md` and conversion to AppStream HTML, with perfect support for Chinese display.
+- **Professionalism Boost**: The window now displays the application icon with rounded corners (`GUI_rounded.png`) and provides a one-click function to copy system environment debugging information.
+- **Stability Enhancement**: Fixed XML parsing crashes caused by special characters like `&` and `<b>` tags.
 
 ---
 
 ## v0.10.3-alpha (2026-02-09)
 
-### 全局导航增强 (Global Navigation)
-- **全局应用菜单 (Hamburger Menu)**: 在顶栏最右侧新增了标准的“汉堡菜单” (☰)，整合了应用级全局操作，使界面逻辑更加清晰。
-- **优雅退出机制 (Graceful Quit)**:
-  - 在全局菜单中提供了红色的 **Quit Application** 选项，解决了无托盘环境下无法方便退出程序的问题。
-  - **安全确认**: 点击退出时会弹出红色的二次确认对话框，防止用户误操作导致壁纸意外停止。
-- **关于窗口 (About Window)**: 新增了标准的 About 对话框，展示应用版本、作者信息及 GitHub 仓库链接。
-- **布局微调**: 优化了顶栏右侧按钮组的间距，使重启按钮与菜单按钮视觉上更加协调。
+### Global Navigation
+- **Global Application Menu (Hamburger Menu)**: Added a standard "Hamburger Menu" (☰) to the far right of the top bar, consolidating application-level global operations for clearer interface logic.
+- **Graceful Quit**:
+  - Provided a red **Quit Application** option in the global menu, resolving the issue of being unable to easily exit the program in environments without a system tray.
+  - **Security Confirmation**: A red secondary confirmation dialog pops up when clicking exit to prevent accidental wallpaper stops.
+- **About Window**: Added a standard About dialog showing the application version, author information, and GitHub repository link.
+- **Layout Tweaks**: Optimized the spacing of the button group on the right side of the top bar to make the restart and menu buttons more visually harmonious.
 
-**特别注意！！！！**:“汉堡菜单” (☰)中除了**Quit Application**其他的并不完善，正在推进中....
+**Note: Except for "Quit Application", other items in the "Hamburger Menu" (☰) are not yet fully functional and are being progressed...**
 
 ---
 
 ## v0.10.2 (2026-02-08)
 
-### 界面与样式优化 (UI & Style Improvements)
-- **右侧侧边栏深度重构 (Sidebar Overhaul)**:
-  - **布局 Scheme A 实现**: 将“昵称编辑按钮”从标题行下移至信息胶囊行，彻底释放标题空间，解决长标题频繁换行导致的排版混乱问题。
-  - **全员垂直对齐**: 实现了侧边栏所有组件（标题、原名、胶囊行、类型、标签、描述）像素级的左边距对齐（统一 20px），显著提升视觉精致感。
-  - **宽度永久锁定**: 将侧边栏宽度固定为 **370px**，彻底消除了切换壁纸或文本长度变化时界面产生的横向“抖动”现象。
-  - **智能文本截断**: 为文件夹 ID 胶囊增加了 `Ellipsize`（末尾省略）处理，配合 `hexpand` 弹簧垫片，确保编辑按钮始终稳定靠右对齐。
-  - **标签流间距修正**: 显式设置了 `tags_flow` 的行列间距，使其紧凑度与 Type 类型胶囊保持一致，解决了标签之间缝隙过大的视觉问题。
-- **编辑交互优化**: 编辑按钮现在位于信息行的最右侧，既保持了功能可达性，又不干扰标题阅读。
-- **代码库清理**: 移除了 `sidebar.py` 中遗留的大量过时注释和冗余逻辑，提升了代码的可维护性。
+### UI & Style Improvements
+- **Sidebar Overhaul**:
+  - **Layout Scheme A Implementation**: Moved the "Nickname Edit Button" from the title row to the information capsule row, completely freeing up title space and resolving layout chaos caused by frequent line breaks in long titles.
+  - **Vertical Alignment**: Achieved pixel-level left margin alignment (unified 20px) for all sidebar components (title, original name, capsule row, type, tags, description), significantly enhancing visual refinement.
+  - **Width Lock**: Fixed the sidebar width at **370px**, completely eliminating horizontal "jitter" when switching wallpapers or when text length changes.
+  - **Smart Text Truncation**: Added `Ellipsize` (end ellipsis) to the Folder ID capsule, combined with `hexpand` spring spacers to ensure the edit button is always stably right-aligned.
+  - **Tag Flow Spacing Correction**: Explicitly set the row and column spacing of `tags_flow` to match the compactness of the Type capsule, resolving visual issues with excessive gaps between tags.
+- **Edit Interaction Optimization**: The edit button is now located on the far right of the information row, maintaining functional accessibility without interfering with title reading.
+- **Codebase Cleanup**: Removed a large number of legacy comments and redundant logic from `sidebar.py`, improving code maintainability.
 
-### 功能增强 (Feature Enhancement)
-- **壁纸昵称全局支持 (Full Nickname Support)**:
-  - 核心逻辑：新增 `NicknameManager` 实现别名的持久化存储与自动清理，提供统一的 `get_display_name` 接口。
-  - 交互升级：在详情栏新增 ✏️ 编辑按钮，并在右键菜单中增加“设置别名”选项。
-  - 批量管理：在 Settings 页面新增“管理别名”入口，支持通过弹窗批量勾选、删除或修改别名。
-  - 视觉优化：左侧 Grid 视图别名显示为 **斜体加粗**；侧边栏显示“别名 + 原名（小灰字）”双行结构。
-  - 搜索增强：搜索框现在会同时匹配壁纸的别名和原始标题，提升查找效率。
+### Feature Enhancement
+- **Full Nickname Support**:
+  - Core Logic: Added `NicknameManager` to implement persistent storage and automatic cleanup of nicknames, providing a unified `get_display_name` interface.
+  - Interaction Upgrade: Added a ✏️ edit button to the details bar and a "Set Nickname" option to the right-click menu.
+  - Batch Management: Added a "Manage Nicknames" entry to the Settings page, supporting batch selection, deletion, or modification of nicknames via a popup.
+  - Visual Optimization: Nicknames are displayed in **italic bold** in the left Grid view; the sidebar shows a double-line structure of "Nickname + Original Name (small gray text)".
+  - Search Enhancement: The search box now matches both nicknames and original titles of wallpapers, improving search efficiency.
 
-### 修复 (Bug Fixes)
-- **渲染稳定性修复**: 修复了由于 `get_display_name` 返回元组导致 `markdown_to_pango` 崩溃，进而引发右侧栏内容变空的回归问题。
-- **分页序号同步**: 修复了设置别名后侧边栏黄色胶囊中的“序号/总数”变为 0/0 的逻辑错误。
-- **管理弹窗优化**: 增强了父窗口获取的健壮性，显式传递主窗口引用，并修复了 `set_margin_all` API 误用及 `Gio` 导入缺失，解决了管理按钮无反应的问题。
-- **动态预览兼容性**: 重构了 GIF 缩略图加载逻辑，通过 `GdkPixbufAnimation` 确保动态壁纸在弹窗和列表中的预览不再显示为空白。
+### Bug Fixes
+- **Rendering Stability Fix**: Fixed a regression where `markdown_to_pango` crashed due to `get_display_name` returning a tuple, causing the right sidebar content to become empty.
+- **Page Index Sync**: Fixed a logic error where the "Index/Total" in the yellow capsule of the sidebar became 0/0 after setting a nickname.
+- **Management Popup Optimization**: Enhanced the robustness of parent window retrieval, explicitly passed the main window reference, and fixed `set_margin_all` API misuse and missing `Gio` import, resolving the issue where the management button was unresponsive.
+- **Dynamic Preview Compatibility**: Refactored GIF thumbnail loading logic using `GdkPixbufAnimation` to ensure live wallpaper previews in popups and lists no longer appear blank.
 
 ---
 
 ## v0.10.1 (2026-02-08)
 
-### 布局与视觉优化 (UI/UX Refinement)
-- **布局一致性优化 (Visual Alignment Refactoring)**: 针对紧凑模式执行了深度对齐重构，统一重置了标题、ID 胶囊及详情网格的边距属性，消除了 20px 的样式冲突，实现了整体视觉的整齐对齐。
-- **紧凑模式侧边工具栏**: 将“停止”、“随机”和“跳转当前”按钮移动至预览图右侧的垂直工具栏，优化空间利用率，使下方信息展示更完整。
-- **停止按钮视觉强化**: 优化 CSS 规则，确保所有模式下的“停止”按钮图标显示为红色。
-- **预览图尺寸修复**: 修复了大尺寸壁纸预览可能撑开布局的问题，通过严格的 `Gtk.ScrolledWindow` 约束确保缩略图尺寸一致。
-- **屏幕选择器优化**: 将精简模式的屏幕选择器替换为原生 `Gtk.DropDown` 并居中显示，提升视觉平衡与一致性。
-- **交互细节优化**: 优化了切换紧凑模式的图标逻辑，使其更直观地反映目标状态。
+### UI/UX Refinement
+- **Visual Alignment Refactoring**: Performed a deep alignment refactoring for compact mode, unifying margins for titles, ID capsules, and detail grids, eliminating 20px style conflicts and achieving overall visual alignment.
+- **Compact Mode Side Toolbar**: Moved the "Stop", "Random", and "Jump to Current" buttons to a vertical toolbar on the right side of the preview image, optimizing space utilization and allowing for more complete information display below.
+- **Stop Button Visual Reinforcement**: Optimized CSS rules to ensure the "Stop" button icon is displayed in red in all modes.
+- **Preview Image Size Fix**: Fixed the issue where large wallpaper previews could stretch the layout, ensuring consistent thumbnail sizes through strict `Gtk.ScrolledWindow` constraints.
+- **Screen Selector Optimization**: Replaced the screen selector in compact mode with a native `Gtk.DropDown` and centered it to improve visual balance and consistency.
+- **Interaction Detail Optimization**: Optimized the icon logic for switching to compact mode to more intuitively reflect the target state.
 
-### 功能增强 (Feature Enhancement)
-- **全局数字跳转**: 在普通模式和紧凑模式中统一引入了数字索引跳转功能，支持通过输入框快速定位壁纸，并实现多端自动同步。
-- **多显示器控制增强**: 紧凑模式新增目标屏幕选择器，所有操作（应用、停止、跳转）均针对选定显示器生效，并支持预览图自动同步。
+### Feature Enhancement
+- **Global Numeric Jump**: Introduced a numeric index jump feature in both normal and compact modes, supporting quick wallpaper positioning via an input box and achieving automatic synchronization across modes.
+- **Multi-monitor Control Enhancement**: Added a target screen selector to compact mode. All operations (Apply, Stop, Jump) now take effect on the selected display, with automatic preview image synchronization.
 
-### 架构与性能重构 (Architecture & Performance)
-- **侧边栏组件迁移**: 将主窗口侧边栏迁移至全新的 `AnimatedPreview` 组件，统一了图像渲染逻辑并移除了冗余代码。
-- **性能优化**: 为紧凑模式缩略图栏实现了 **对象池 (Object Pooling)** 技术，彻底消除了滚动过程中的界面闪烁和卡顿感。
+### Architecture & Performance
+- **Sidebar Component Migration**: Migrated the main window sidebar to the new `AnimatedPreview` component, unifying image rendering logic and removing redundant code.
+- **Performance Optimization**: Implemented **Object Pooling** for the compact mode thumbnail bar, completely eliminating interface flickering and stuttering during scrolling.
 
-### 修复 (Bug Fixes)
-- **重启逻辑修复**: 修复了带 `--hidden` 参数启动后通过 GUI 重启仍处于隐藏模式的问题。
+### Bug Fixes
+- **Restart Logic Fix**: Fixed the issue where restarting via the GUI after starting with the `--hidden` parameter still resulted in hidden mode.
 
 ---
 
 ## v0.10.0 (2026-02-08)
 
-### 全新功能
-- **紧凑预览模式 (Compact Mode)**：
-  - 专为 **平铺窗口管理器** (Niri, Hyprland, Sway) 设计的独立迷你窗口模式
-  - **双窗口架构**：与主窗口分离，互斥显示，解决平铺布局下主窗口过宽的问题
-  - **精简布局**：默认尺寸 **300x700**，专注于壁纸预览与快速切换
-  - **核心交互**：
-    - 顶部大图预览（支持 GIF 动画播放）
-    - 底部 **5 缩略图循环导航**，支持首尾相接无限滚动
-    - 键盘 `←` `→` 快捷键切换，界面两侧提供显式导航按钮
-  - **信息展示**：保留关键信息（标题、大小、序号），采用经典的 **蓝色胶囊 ID** 样式（支持点击复制）
-  - **功能完整**：包含应用壁纸、停止、手气不错 (Lucky)、跳转当前壁纸 (Jump) 等核心功能
+### New Features
+- **Compact Preview Mode**:
+  - An independent mini-window mode designed specifically for **Tiling Window Managers** (Niri, Hyprland, Sway).
+  - **Dual-window Architecture**: Separated from the main window and mutually exclusive, resolving the issue of the main window being too wide in tiling layouts.
+  - **Streamlined Layout**: Default size of **300x700**, focusing on wallpaper preview and quick switching.
+  - **Core Interaction**:
+    - Large top image preview (supports GIF animation playback).
+    - Bottom **5-thumbnail circular navigation**, supporting infinite scrolling.
+    - Keyboard `←` `→` shortcuts for switching, with explicit navigation buttons on both sides of the interface.
+  - **Information Display**: Retains key information (Title, Size, Index) using the classic **blue capsule ID** style (supports click-to-copy).
+  - **Full Functionality**: Includes core features such as Apply Wallpaper, Stop, Lucky (random), and Jump to Current Wallpaper.
 
-### 改进
-- **Wayland 兼容性**：修复了在 Wayland (Niri) 环境下重启应用后窗口可能不可见的问题
-- **视觉优化**：全面调整了小窗模式的控件尺寸（缩略图 40px，按钮 30px），最大程度节省屏幕空间
-- **配置集成**：在高级文档中增加了针对 Niri 和 Hyprland 的窗口规则配置指南
+### Improvements
+- **Wayland Compatibility**: Fixed the issue where the window might be invisible after restarting the application in a Wayland (Niri) environment.
+- **Visual Optimization**: Comprehensively adjusted control sizes in mini-window mode (thumbnails 40px, buttons 30px) to maximize screen space savings.
+- **Configuration Integration**: Added window rule configuration guides for Niri and Hyprland in the advanced documentation.
 
 ---
 
 ## v0.9.2 (2026-02-07)
 
-### 新功能
-- **截图历史记录**：在 Performance 页面新增截图历史面板，记录最近 10 次截图的详细信息（时间、壁纸、耗时、CPU/内存峰值）。支持查看缩略图，一键打开截图文件或所在文件夹，并提供清除历史记录功能
-- **截图体验增强**：截图成功后的弹窗现在会显示对应壁纸的缩略图，并将“打开图片”设为默认推荐操作，字体和布局也进行了优化，更加美观易读
+### New Features
+- **Screenshot History**: Added a screenshot history panel to the Performance page, recording detailed information for the last 10 screenshots (time, wallpaper, duration, peak CPU/memory). Supports viewing thumbnails, one-click opening of screenshot files or their folders, and provides a clear history function.
+- **Screenshot Experience Enhancement**: The popup after a successful screenshot now displays the thumbnail of the corresponding wallpaper, sets "Open Image" as the default recommended action, and optimizes fonts and layout for better aesthetics and readability.
 
-### 改进
-- **监控布局重构**：将 Performance 页面顶部的全局线程列表拆分，分别整合到 Process Details 下各自的进程卡片中。每个进程现在都有独立的 "Thread Details" 下拉抽屉，并为所有抽屉添加了精致的边框样式，使界面结构更清晰、逻辑更内聚
-- **线程命名优化**：优化了 Performance 页面的线程列表显示。将内部监控线程显式命名为 "PerfMonitor"，避免显示系统自动生成的截断名称（如 "Thread-1(_moni..."）；同时保留了对后端引擎截断线程名（如 "linux-w:disk$0"）的智能还原，提升了可读性
-- **滚动条样式优化**：滚动条改为更细的 3px 宽度、半透明白色，并添加淡入淡出过渡动画，视觉更优雅低调
+### Improvements
+- **Monitoring Layout Overhaul**: Split the global thread list at the top of the Performance page and integrated them into individual process cards under Process Details. Each process now has an independent "Thread Details" dropdown drawer with refined border styles, making the interface structure clearer and more cohesive.
+- **Thread Naming Optimization**: Optimized the thread list display on the Performance page. Internal monitoring threads are explicitly named "PerfMonitor" to avoid displaying system-generated truncated names (e.g., "Thread-1(_moni..."); while maintaining smart restoration of truncated thread names from the backend engine (e.g., "linux-w:disk$0"), improving readability.
+- **Scrollbar Style Optimization**: Changed the scrollbar to a thinner 3px width, semi-transparent white, and added fade-in/fade-out transition animations for a more elegant and low-profile look.
 
-### Bug 修复
-- **图标显示**：修复了应用在 Dock/任务栏中显示默认图标的问题。通过将 `pic/` 目录注册到图标主题、设置程序运行名（prgname）以及优化 `.desktop` 文件生成逻辑（增加 `StartupWMClass` 并同步 ID 命名），实现了窗口与自定义图标的完美关联
-- **历史记录刷新**：修复了截图历史记录超过 10 条后，新截图无法在列表中实时刷新的问题
-- **CPU 监控**：修复了在 Xvfb 环境下快速截图（如视频壁纸）时，因进程生命周期过短导致 CPU 占用率无法被采集（显示 0%）的问题
-- **性能监控**：修复了 CPU 占用率显示过高的问题。之前显示的是单核占用率（可能超过100%），现在已标准化为全系统总占用率（0-100%），与系统监视器（如 GNOME System Monitor）保持一致
-- **配置保存**：修复了保存 Workshop 路径和 Autostart 设置时因方法名错误导致的程序崩溃。现在修改路径或切换自启选项时不再报错，且无需重启即可生效
+### Bug Fixes
+- **Icon Display**: Fixed the issue where the application displayed a default icon in the Dock/taskbar. By registering the `pic/` directory with the icon theme, setting the program run name (prgname), and optimizing `.desktop` file generation logic (adding `StartupWMClass` and synchronizing ID naming), perfect association between the window and custom icon was achieved.
+- **History Refresh**: Fixed the issue where new screenshots failed to refresh in the list in real-time after the screenshot history exceeded 10 entries.
+- **CPU Monitoring**: Fixed the issue where CPU usage could not be collected (showing 0%) due to the short process lifecycle when taking fast screenshots (e.g., for video wallpapers) in an Xvfb environment.
+- **Performance Monitoring**: Fixed the issue where CPU usage was displayed too high. Previously, it showed single-core usage (which could exceed 100%), but it has now been standardized to total system usage (0-100%), consistent with system monitors (e.g., GNOME System Monitor).
+- **Config Saving**: Fixed program crashes caused by incorrect method names when saving Workshop paths and Autostart settings. Modifying paths or toggling autostart options no longer reports errors and takes effect without a restart.
 
 ---
 
 ## v0.9.1 (2026-02-07)
 
-### 新功能
-- **日志过滤**：Settings 页面的日志查看器新增过滤器，可按 "All", "Controller", "Engine", "GUI" 分类查看，方便快速定位问题
-- **UI 优化**：~~在右侧壁纸详情栏新增红色的 "Stop Wallpaper" 按钮，方便快速停止当前屏幕的壁纸~~-----已取消
+### New Features
+- **Log Filter**: Added a filter to the log viewer on the Settings page, allowing categorization by "All", "Controller", "Engine", and "GUI" for quick problem localization.
+- **UI Optimization**: ~~Added a red "Stop Wallpaper" button to the right wallpaper details bar for quickly stopping the wallpaper on the current screen~~ ----- Cancelled.
 
-### Bug 修复
-- **系统集成**：修复了在设置页面点击 "Create Desktop Shortcut" 时因方法缺失导致的崩溃问题。现在可以正常创建或更新桌面快捷方式
+### Bug Fixes
+- **System Integration**: Fixed a crash caused by a missing method when clicking "Create Desktop Shortcut" on the settings page. Desktop shortcuts can now be created or updated normally.
 
-### 改进
-- **Performance 页面**：优化了截图历史记录面板的布局，减小了标题与说明文字的行距，使界面更紧凑；移除了 Clear 按钮的扁平化样式，增加边框使其更显眼
-- **弹窗体验**：统一优化了所有弹窗的字体大小和布局，提升可读性
-- **日志管理**：优化了日志刷新机制，切换过滤条件时会自动刷新视图
-- **复制功能**：Copy Logs 按钮现在仅复制当前过滤视图下的日志内容，方便精准分享调试信息
+### Improvements
+- **Performance Page**: Optimized the layout of the screenshot history panel, reducing line spacing between titles and description text for a more compact interface; removed the flat style of the Clear button and added a border to make it more prominent.
+- **Popup Experience**: Uniformly optimized font sizes and layouts for all popups to improve readability.
+- **Log Management**: Optimized the log refresh mechanism; the view automatically refreshes when switching filter conditions.
+- **Copy Feature**: The Copy Logs button now only copies the log content under the current filtered view, facilitating precise sharing of debugging information.
 
 ---
 
 ## v0.9.0 (2026-02-06)
 
-### 新功能
-- **性能监控页面**：全新的 System Monitor 页面，实时监控壁纸引擎资源占用
-  - **总览卡片**：显示 Total CPU、Total Memory、Active Threads 三项核心指标
-  - **历史曲线图**：基于 Cairo 的 Sparkline 组件，显示最近 60 秒的 CPU/内存变化趋势
-  - **进程详情**：分别显示 Frontend（GUI）、Backend（渲染引擎）、Tray（托盘）三个进程的独立指标
-  - **动态着色**：CPU 占用根据负载自动变色（绿色 <20%、橙色 <40%、红色 ≥40%），内存使用蓝色
-  - **线程列表**：可展开查看各进程的详细线程名称（3列布局）
-  - **壁纸详情**：Backend 进程可展开显示当前各显示器运行的壁纸缩略图、标题和 ID
+### New Features
+- **Performance Monitor Page**: A brand new System Monitor page for real-time monitoring of wallpaper engine resource usage.
+  - **Overview Cards**: Displays three core metrics: Total CPU, Total Memory, and Active Threads.
+  - **History Charts**: Cairo-based Sparkline components showing CPU/memory trends for the last 60 seconds.
+  - **Process Details**: Displays independent metrics for Frontend (GUI), Backend (rendering engine), and Tray (tray) processes.
+  - **Dynamic Coloring**: CPU usage automatically changes color based on load (green <20%, orange <40%, red ≥40%), and memory uses blue.
+  - **Thread List**: Expandable to view detailed thread names for each process (3-column layout).
+  - **Wallpaper Details**: The Backend process can be expanded to show thumbnails, titles, and IDs of wallpapers currently running on each monitor.
 
-### 改进
-- **壁纸管理**：新增 `WallpaperManager.get_wallpaper()` 方法，支持按 ID 快速查询壁纸信息
+### Improvements
+- **Wallpaper Management**: Added the `WallpaperManager.get_wallpaper()` method to support quick wallpaper information queries by ID.
 
-### Bug 修复
-- **Tray 监控稳定性**：修复切换壁纸时 Tray 进程从监控列表消失的问题
+### Bug Fixes
+- **Tray Monitoring Stability**: Fixed the issue where the Tray process disappeared from the monitoring list when switching wallpapers.
 
 ---
 
 ## v0.8.11 (2026-02-03)
 
-### 新功能
-- **顺序壁纸轮换**：壁纸自动切换现在支持多种顺序模式。除了默认的“随机”外，还可以选择按照 **标题 (Title)**、**文件大小 (Size)**、**类型 (Type)** 或 **文件夹ID (ID)** 的顺序进行循环播放。你可以在 `Settings > Automation` 中找到新的 "Cycle Order" 选项。
+### New Features
+- **Ordered Wallpaper Rotation**: Automatic wallpaper switching now supports multiple order modes. In addition to the default "Random", you can choose to cycle by **Title**, **Size**, **Type**, or **Folder ID**. You can find the new "Cycle Order" option in `Settings > Automation`.
 
-### Bug 修复
-- **配置稳定性增强**：修复了在壁纸循环切换过程中，静音设置 (`silence`) 可能因配置读取异常而失效的问题。增加了对配置值的严格类型检查和默认值回退机制。
-- **日志诊断**：增强了壁纸切换控制器的调试日志，现在可以详细追踪音频模式和属性应用状态。
+### Bug Fixes
+- **Config Stability Enhancement**: Fixed the issue where the mute setting (`silence`) might fail during wallpaper cycling due to abnormal configuration reading. Added strict type checking and default value fallback mechanisms for configuration values.
+- **Log Diagnostics**: Enhanced debug logs for the wallpaper switch controller, now allowing detailed tracking of audio modes and property application status.
 
 ---
 
 ## v0.8.10 (2026-02-02)
 
-### 新功能
-- **Wayland 高级控制 (P3-15)**：
-  - 新增 **Wayland Tweaks** 设置面板，自动检测当前会话类型
-  - 支持 **仅活动时暂停** (`--fullscreen-pause-only-active`)：仅当全屏窗口处于前台焦点时才暂停壁纸
-  - 支持 **忽略应用列表** (`--fullscreen-pause-ignore-appid`)：可指定不触发暂停的应用程序 ID（如 Dock、Bar），解决部分桌面环境下壁纸误暂停的问题
+### New Features
+- **Wayland Advanced Tweaks (P3-15)**:
+  - Added a **Wayland Tweaks** settings panel that automatically detects the current session type.
+  - Supports **Pause Only Active** (`--fullscreen-pause-only-active`): Pauses the wallpaper only when the fullscreen window is in the foreground focus.
+  - Supports **Ignore App ID List** (`--fullscreen-pause-ignore-appid`): Allows specifying application IDs (e.g., Docks, Bars) that do not trigger a pause, resolving issues with incorrect wallpaper pausing in some desktop environments.
 
 ---
 
 ## v0.8.9 (2026-02-02)
 
-### 界面现代化 (UI/UX)
-- **原生图标替换**：全面将界面中的 Emoji 图标替换为 GTK 标准符号图标 (Adwaita Symbolic Icons)，提升了在不同 Linux 发行版上的显示一致性和美观度
-- **列表视图重构**：
-  - 重新设计了壁纸列表项布局，增加了 **文件大小** 和 **序号/总数** 显示
-  - 优化了信息层级和配色方案（Tags紫色、Index黄色、Size绿色），移除多余的胶囊背景，使界面更清爽
-- **视觉一致性**：统一了顶栏和侧边栏的状态显示样式
+### UI Modernization (UI/UX)
+- **Native Icon Replacement**: Comprehensively replaced Emoji icons in the interface with GTK standard symbolic icons (Adwaita Symbolic Icons), improving display consistency and aesthetics across different Linux distributions.
+- **List View Overhaul**:
+  - Redesigned the wallpaper list item layout, adding **File Size** and **Index/Total** displays.
+  - Optimized information hierarchy and color schemes (Tags purple, Index yellow, Size green), removing redundant capsule backgrounds for a cleaner interface.
+- **Visual Consistency**: Unified the status display styles of the top bar and sidebar.
 
 ---
 
 ## v0.8.8 (2026-02-02)
 
-### 开发工具
-- **应用内重启**：在顶栏最右侧新增 🔄 重启按钮，点击可快速重启 GUI 应用，方便应用开发迭代和配置重载
+### Developer Tools
+- **In-app Restart**: Added a 🔄 restart button to the far right of the top bar. Clicking it quickly restarts the GUI application, facilitating development iterations and configuration reloading.
 
-### UI 优化
-- **计数器样式**：优化顶栏壁纸计数器的显示，改为醒目的纯黄色文字，移除多余背景框
+### UI Optimization
+- **Counter Style**: Optimized the display of the wallpaper counter in the top bar, changing it to eye-catching plain yellow text and removing redundant background boxes.
 
 ---
 
 ## v0.8.7 (2026-02-01)
 
-### 体验修复
-- **截图目标修正**：修复了截图按钮错误地截取"当前预览壁纸"的问题。现在点击截图将严格截取"当前屏幕正在播放"的壁纸效果，符合所见即所得的操作逻辑。如果当前屏幕未运行壁纸，会弹出提示。
+### Experience Fixes
+- **Screenshot Target Correction**: Fixed the issue where the screenshot button incorrectly captured the "current preview wallpaper." Clicking screenshot will now strictly capture the wallpaper effect "currently playing on the screen," complying with the what-you-see-is-what-you-get logic. A prompt will appear if no wallpaper is running on the current screen.
 
 ---
 
 ## v0.8.6 (2026-02-01)
 
-### 视觉体验升级
-- **动态预览 (P2-2)**：右侧栏详情页现在支持播放 GIF 动图！选中 GIF 壁纸时，预览图会自动播放，而非静止不动
-  - *技术注记*：实现了基于 `GdkPixbufAnimation` 的手动帧调度器，解决了部分 GTK4 环境下直接加载 GIF 导致的白屏/Paintable 断言错误
-- **智能缩略图 (P3-13)**：左侧壁纸列表的 GIF 缩略图现在会自动抓取第 15 帧，有效避免了开头黑屏或淡入前的空白画面
-- **高质量缩放**：使用 LANCZOS 算法生成更清晰的缩略图
+### Visual Experience Upgrade
+- **Dynamic Preview (P2-2)**: The details page in the right sidebar now supports playing GIF animations! When a GIF wallpaper is selected, the preview image will automatically play instead of remaining static.
+  - *Technical Note*: Implemented a manual frame scheduler based on `GdkPixbufAnimation`, resolving white screen/Paintable assertion errors caused by directly loading GIFs in some GTK4 environments.
+- **Smart Thumbnails (P3-13)**: GIF thumbnails in the left wallpaper list now automatically capture the 15th frame, effectively avoiding black screens or empty frames before fade-in.
+- **High-quality Scaling**: Uses the LANCZOS algorithm to generate clearer thumbnails.
 
-### UI 修复
-- **Apply 按钮自适应**：修复了在单屏或双屏模式下错误显示高级应用菜单（下拉抽屉）的问题。现在仅在屏幕数量 >= 3 且处于 Diff 模式时才显示拆分按钮，简化操作逻辑。
+### UI Fixes
+- **Apply Button Adaptation**: Fixed the issue where the advanced application menu (dropdown drawer) was incorrectly displayed in single or dual-screen modes. The split button is now only displayed when the number of screens is ≥ 3 and in Diff mode, simplifying operation logic.
 
 ---
 
 ## v0.8.4 (2026-02-01)
 
-### 新功能
-- **多显示器控制增强**：
-  - **Link/Unlink 模式**：顶栏新增 🔗 切换按钮，可一键将壁纸应用到所有屏幕（Same 模式）或仅当前屏幕（Diff 模式）
-  - **高级应用菜单**：侧边栏 Apply 按钮升级为拆分按钮，点击下拉箭头可手动勾选要应用的特定屏幕（支持 2+1 等复杂场景）
+### New Features
+- **Multi-monitor Control Enhancements**:
+  - **Link/Unlink Mode**: Added a 🔗 toggle button to the top bar for one-click application of wallpapers to all screens (Same mode) or only the current screen (Diff mode).
+  - **Advanced Application Menu**: The Apply button in the sidebar has been upgraded to a split button. Clicking the dropdown arrow allows manual selection of specific screens to apply to (supporting complex scenarios like 2+1).
 
 ---
 
 ## v0.8.3 (2026-01-31)
 
-### 新功能
-- **壁纸计数器**：在 "CURRENTLY USING" 标题栏右侧显示当前壁纸序号/总数（N/M），使用醒目的样式与壁纸名字颜色一致
-- **侧边栏序号显示**：在右侧栏 Folder ID 和 Size 旁边显示选中壁纸的序号/总数（N/M），黄色标签样式
-- **实时更新**：计数器会在壁纸切换、屏幕切换、搜索/排序/重新加载时自动更新
+### New Features
+- **Wallpaper Counter**: Displays the current wallpaper index/total (N/M) to the right of the "CURRENTLY USING" title bar, using a striking style consistent with the wallpaper name color.
+- **Sidebar Index Display**: Displays the index/total (N/M) of the selected wallpaper next to Folder ID and Size in the right sidebar, in a yellow tag style.
+- **Real-time Updates**: Counters automatically update during wallpaper switching, screen switching, searching/sorting/reloading.
 
-### UI 改进
-- **标签间距优化**：统一了 Folder ID、Size 和 Index 标签的间距，去除多余空隙
+### UI Improvements
+- **Tag Spacing Optimization**: Unified the spacing of Folder ID, Size, and Index tags, removing redundant gaps.
 
 ---
 
 ## v0.8.2 (2026-01-30)
 
-### 新功能
-- **命令复制**：在 "CURRENTLY USING" 旁边新增 📋 按钮，悬停显示当前运行的后端命令，点击复制到剪贴板
+### New Features
+- **Command Copy**: Added a 📋 button next to "CURRENTLY USING". Hovering shows the currently running backend command, and clicking copies it to the clipboard.
 
-### UI 改进
-- **系统标题栏支持**：使用 `Gtk.ApplicationWindow` 替代 `Adw.ApplicationWindow`，标题栏由窗口管理器绘制（GNOME/KDE 显示标题栏，niri/Hyprland 不显示）
-- **屏幕选择器移至顶栏**：🖥 屏幕选择器从工具栏移至窗口左上角，与 Home/Settings 按钮同排
+### UI Improvements
+- **System Title Bar Support**: Replaced `Adw.ApplicationWindow` with `Gtk.ApplicationWindow`. The title bar is now drawn by the window manager (GNOME/KDE show the title bar, niri/Hyprland do not).
+- **Screen Selector Moved to Top Bar**: The 🖥 screen selector has been moved from the toolbar to the top left corner of the window, in the same row as the Home/Settings buttons.
 
-### Bug 修复
-- **托盘随机切换修复**：修复了窗口隐藏时，使用托盘"随机切换壁纸"功能会意外唤出 GUI 窗口的问题
+### Bug Fixes
+- **Tray Random Switch Fix**: Fixed the issue where using the tray's "Random Wallpaper" feature while the window was hidden would unexpectedly bring up the GUI window.
 
-### 壁纸大小显示
-- **侧边栏显示磁盘占用**：选中壁纸时，在 Folder ID 旁边显示壁纸文件夹的磁盘大小（如 "85.1 MB"）
-- **绿色标签样式**：大小信息使用绿色胶囊标签，与蓝色的 Folder ID 形成对比
+### Wallpaper Size Display
+- **Sidebar Disk Usage**: When a wallpaper is selected, the disk size of the wallpaper folder (e.g., "85.1 MB") is displayed next to the Folder ID.
+- **Green Tag Style**: Size information uses a green capsule tag, contrasting with the blue Folder ID.
 
-### 壁纸排序功能
-- **工具栏排序控件**：新增 ⇅ 排序下拉菜单，支持 5 种排序方式
-- **排序选项**：
-  - Title - 按壁纸标题 A-Z 排序
-  - Size ↓ - 按文件大小从大到小排序
-  - Size ↑ - 按文件大小从小到大排序
-  - Type - 按壁纸类型（Video/Scene/Web）排序
-  - ID - 按文件夹 ID 排序（原默认方式）
-- **配置持久化**：排序选项自动保存，重启后保持
+### Wallpaper Sorting
+- **Toolbar Sorting Control**: Added a ⇅ sorting dropdown menu supporting 5 sorting methods.
+- **Sorting Options**:
+  - Title - Sort by wallpaper title A-Z
+  - Size ↓ - Sort by file size from largest to smallest
+  - Size ↑ - Sort by file size from smallest to largest
+  - Type - Sort by wallpaper type (Video/Scene/Web)
+  - ID - Sort by folder ID (original default method)
+- **Config Persistence**: Sorting options are automatically saved and maintained after restart.
 
 ---
 
 ## v0.8.1 (2026-01-25)
 
-### 用户友好的错误反馈系统
-- **Toast 通知系统**：新增 `Adw.ToastOverlay` 支持即时通知，用户无需查看日志即可了解问题
-- **路径验证反馈**：设置页面保存时，如果 Workshop/Assets 路径无效，立即显示 Toast 提示
-- **扫描错误检测**：壁纸扫描时检测路径不存在、目录为空、JSON 解析失败等问题，并提供友好提示
-- **后端启动失败**：壁纸引擎启动失败时，自动显示错误提示，引导用户查看日志获取详细信息
+### User-friendly Error Feedback System
+- **Toast Notification System**: Added `Adw.ToastOverlay` support for instant notifications, allowing users to understand issues without checking logs.
+- **Path Validation Feedback**: When saving on the Settings page, if the Workshop/Assets path is invalid, a Toast prompt is immediately displayed.
+- **Scan Error Detection**: Detects issues such as non-existent paths, empty directories, and JSON parsing failures during wallpaper scanning, and provides friendly prompts.
+- **Backend Startup Failure**: Automatically displays an error prompt when the wallpaper engine fails to start, guiding users to check logs for detailed information.
 
-### 新增 Assets 路径配置
-- **自定义 Assets 目录**：在设置 > 高级中可手动指定 Wallpaper Engine assets 文件夹路径
-- **Browse 按钮**：为 Workshop 和 Assets 路径都添加了文件夹浏览按钮，避免手动输入错误
-- **路径验证**：保存设置时验证路径存在性，无效路径会自动清除配置并提示用户
+### New Assets Path Configuration
+- **Custom Assets Directory**: The Wallpaper Engine assets folder path can be manually specified in Settings > Advanced.
+- **Browse Button**: Added folder browse buttons for both Workshop and Assets paths to avoid manual input errors.
+- **Path Validation**: Validates path existence when saving settings; invalid paths will automatically clear the configuration and prompt the user.
 
 ---
 
 ## v0.8.0 (2026-01-24)
 
-### 截图功能大修
-- **真·静默截图**：智能检测并利用 `Xvfb` 实现无窗口后台截图（支持开关切换）
-- **真·4K 采样**：强制后端以 3840x2160 分辨率渲染，完美解决平铺窗口管理器（如 Niri）下的画面裁切问题
-- **交互闭环**：截图按钮实时状态反馈（📸 -> ⏳），成功后提供"打开图片/文件夹"快捷入口
-- **智能策略**：针对视频壁纸启用极速模式（5帧），针对 Web 壁纸自适应延长等待时间
+### Screenshot Functionality Overhaul
+- **True Silent Screenshot**: Intelligently detects and utilizes `Xvfb` for windowless background screenshots (supports toggle).
+- **True 4K Sampling**: Forces the backend to render at 3840x2160 resolution, perfectly resolving image cropping issues in tiling window managers (e.g., Niri).
+- **Interaction Closure**: Real-time status feedback for the screenshot button (📸 -> ⏳), providing "Open Image/Folder" shortcuts upon success.
+- **Smart Strategy**: Enables high-speed mode (5 frames) for video wallpapers and adaptively extends wait time for Web wallpapers.
 
-### 多显示器支持（Beta）
-- **独立控制**：在主界面顶栏选择目标显示器，分别为不同屏幕设置不同壁纸
-- **状态自愈**：启动时自动检测屏幕连接状态，智能清理已断开屏幕的配置，防止后端报错
-- **全局管理**：托盘菜单的"随机播放"和"停止"操作会自动作用于所有活跃屏幕
+### Multi-Monitor Support (Beta)
+- **Independent Control**: Select the target display in the top bar of the main interface to set different wallpapers for different screens.
+- **Status Self-healing**: Automatically detects screen connection status at startup and intelligently cleans up configurations for disconnected screens to prevent backend errors.
+- **Global Management**: "Random" and "Stop" operations in the tray menu automatically apply to all active screens.
 
-### 自动化与体验升级
-- **定时轮换**：支持按分钟间隔自动随机切换壁纸（支持多屏）
-- **智能保存**：Settings 页面实现变更检测，修改非渲染参数（如自启、路径）时不再强制重启壁纸
-- **系统集成**：一键生成桌面快捷方式 (`.desktop`) 和开机自启配置
+### Automation & Experience Upgrade
+- **Timed Rotation**: Supports automatic random wallpaper switching at minute intervals (supports multi-monitor).
+- **Smart Saving**: Implemented change detection on the Settings page; modifying non-rendering parameters (e.g., autostart, paths) no longer forces a wallpaper restart.
+- **System Integration**: One-click generation of desktop shortcuts (`.desktop`) and autostart configurations.
 
-### 高级渲染与音频控制
-- **视觉管理**：新增禁用视差效果（Parallax）、禁用粒子系统（Particles）开关，以及纹理钳制（Clamping）模式选择
-- **音频增强**：新增禁用自动静音（Auto Mute）、禁用音频处理逻辑（Audio Processing）开关
+### Advanced Rendering & Audio Control
+- **Visual Management**: Added switches to disable Parallax effects and Particle systems, and a selection for Clamping mode.
+- **Audio Enhancement**: Added switches to disable Auto Mute and Audio Processing logic.
 
-## v0.7.0 (早期版本)
+## v0.7.0 (Early Version)
 
-### 系统托盘图标
-- 基于 `libayatana-appindicator` 实现，完美支持 Wayland (Niri/Sway/Hyprland) + Waybar 环境
+### System Tray Icon
+- Implemented based on `libayatana-appindicator`, with perfect support for Wayland (Niri/Sway/Hyprland) + Waybar environments.
 
-### 代码重构
-- 将单文件脚本拆分为模块化包结构 (`py_GUI/`)，分离逻辑与界面
-- 更名项目包为 `py_GUI`，新增启动脚本 `run_gui.py`
+### Code Refactoring
+- Split the single-file script into a modular package structure (`py_GUI/`), separating logic from the interface.
+- Renamed the project package to `py_GUI` and added the startup script `run_gui.py`.
 
-### 性能优化
-- 改进了图片资源的加载与缓存机制
+### Performance Optimization
+- Improved loading and caching mechanisms for image assets.
 
-### 稳定性修复
-- 修复了子进程输出导致的死锁问题，现在日志将重定向到文件而非管道
+### Stability Fixes
+- Fixed deadlock issues caused by subprocess output; logs are now redirected to files instead of pipes.
 
-### UI 精简与交互优化
-- **隐藏失效属性栏**：鉴于 C++ 后端在 Wayland 环境下的局限性（Web/Scene 属性无法生效），暂时禁用了侧边栏 Properties 编辑区，提升了界面整洁度并避免功能误导（代码已注释保留）
-- **样式统一**：壁纸显示类型（Type）现在使用与标签一致的胶囊（Capsule）样式，视觉体验更统一
+### UI Streamlining & Interaction Optimization
+- **Hide Invalid Property Bar**: Given the limitations of the C++ backend in Wayland environments (Web/Scene properties cannot take effect), the Properties editing area in the sidebar has been temporarily disabled to improve interface cleanliness and avoid misleading functionality (code remains commented out).
+- **Style Unification**: Wallpaper display type (Type) now uses the same capsule style as tags for a more unified visual experience.
 
 ## v0.5.0
 
-### 日志面板
-- **实时日志显示**：应用和壁纸引擎的日志实时显示
-- **日志级别**：支持 DEBUG/INFO/WARNING/ERROR 级别
-- **日志来源**：区分 Controller/Engine/GUI 来源
-- **日志管理**：Clear/Refresh 按钮，自动限制最大500条
-- **等宽字体**：便于阅读日志内容
-- **颜色区分**：不同日志级别使用不同颜色
-- **一键复制**：Copy Logs 按钮可将日志内容复制到系统剪贴板
+### Log Panel
+- **Real-time Log Display**: Real-time display of application and wallpaper engine logs.
+- **Log Levels**: Supports DEBUG/INFO/WARNING/ERROR levels.
+- **Log Sources**: Distinguishes between Controller/Engine/GUI sources.
+- **Log Management**: Clear/Refresh buttons, automatically limited to a maximum of 500 entries.
+- **Monospace Font**: Facilitates reading of log content.
+- **Color Distinction**: Different log levels use different colors.
+- **One-click Copy**: The Copy Logs button copies log content to the system clipboard.
 
 ## v0.3.0
 
-### 后台/CLI 控制
-- **后台启动**：支持 `--hidden/--minimized` 启动参数，启动后仅后台运行，无窗口显示
-- **单实例 CLI 控制**：所有命令行动作发往同一运行实例（复用 GTK 主线程，避免多开）
-- **显示/隐藏窗口**：
-  - `--show`：显示窗口（若已运行则展示）
-  - `--hide`：隐藏窗口（进程保持）
-  - `--toggle`：切换显示/隐藏状态
-- **快捷操作**：
-  - `--refresh`：重新扫描并加载壁纸库
-  - `--apply-last`：直接应用上次保存的壁纸
-  - `--quit`：完全退出应用与后台进程
+### Background/CLI Control
+- **Background Startup**: Supports `--hidden/--minimized` startup parameters; runs only in the background after startup with no window displayed.
+- **Single-instance CLI Control**: All command-line actions are sent to the same running instance (reusing the GTK main thread to avoid multiple instances).
+- **Show/Hide Window**:
+  - `--show`: Shows the window (displays it if already running).
+  - `--hide`: Hides the window (process remains).
+  - `--toggle`: Toggles show/hide status.
+- **Quick Actions**:
+  - `--refresh`: Rescans and loads the wallpaper library.
+  - `--apply-last`: Directly applies the last saved wallpaper.
+  - `--quit`: Completely exits the application and background processes.
 
-### 搜索功能
-- **实时搜索**：顶部搜索框支持按关键词实时过滤壁纸
-- **多字段匹配**：搜索范围包括标题、描述、标签、文件夹名称
+### Search Functionality
+- **Real-time Search**: The top search box supports real-time wallpaper filtering by keywords.
+- **Multi-field Matching**: Search scope includes title, description, tags, and folder name.
 
-### 壁纸属性编辑（暂时禁用）
-- **功能保留但已隐藏**：由于后端环境限制，目前在侧边栏已隐藏此区域。底层逻辑仍保留
+### Wallpaper Property Editing (Temporarily Disabled)
+- **Feature Retained but Hidden**: Due to backend environment limitations, this area is currently hidden in the sidebar. The underlying logic is still retained.
 
-## 早期版本功能
+## Early Version Features
 
-### 核心功能
-- 壁纸浏览：从 Steam Workshop 自动扫描壁纸库
-- 双视图模式：Grid（网格）与 List（列表）视图切换
-- 侧边栏详情：显示壁纸大图、标题、类型、标签、描述
-- 壁纸应用：点击 Apply 按钮或双击卡片直接应用壁纸
-- 右键菜单：支持应用、停止、删除壁纸及打开所在文件夹
-- 随机选择：I'm feeling lucky 随机应用一张壁纸
-- 快速刷新：Refresh 按钮即时加载新下载的壁纸（无需重启）
-- 自动应用：启动时自动应用上次壁纸
+### Core Features
+- Wallpaper Browsing: Automatically scans the wallpaper library from Steam Workshop.
+- Dual View Mode: Toggle between Grid and List views.
+- Sidebar Details: Displays large wallpaper image, title, type, tags, and description.
+- Wallpaper Application: Directly apply wallpapers by clicking the Apply button or double-clicking a card.
+- Right-click Menu: Supports applying, stopping, deleting wallpapers, and opening their folders.
+- Random Selection: "I'm feeling lucky" to randomly apply a wallpaper.
+- Quick Refresh: Refresh button instantly loads newly downloaded wallpapers (no restart required).
+- Auto Apply: Automatically applies the last wallpaper at startup.
 
-### 进程管理
-- 后端调用：正确使用 `linux-wallpaperengine` 的参数格式
-- 单实例控制：应用前自动 pkill 旧进程，避免堆叠
-- 参数整数化：音量严格传递为整数字符串，防止浮点数崩溃
+### Process Management
+- Backend Invocation: Correctly uses the parameter format of `linux-wallpaperengine`.
+- Single-instance Control: Automatically pkills old processes before applying to avoid stacking.
+- Parameter Integerization: Volume is strictly passed as an integer string to prevent floating-point crashes.
 
 ### UI/UX
-- 现代深色主题：圆角、阴影、悬停效果
-- 窗口约束：侧边栏固定 320px 宽度，不被图片撑宽
-- 当前壁纸显示：顶部工具栏显示当前应用的壁纸名称
-- 右键菜单优化：跟随鼠标位置弹出，支持点选或"按住-拖动-松手"的快速操作
-- Stop 按钮：快速停止当前壁纸播放
-- 后台保活窗口隐藏：关闭窗口会隐藏到后台（进程保留）
+- Modern Dark Theme: Rounded corners, shadows, hover effects.
+- Window Constraints: Sidebar fixed at 320px width, not stretched by images.
+- Current Wallpaper Display: Top toolbar displays the name of the currently applied wallpaper.
+- Right-click Menu Optimization: Pops up following the mouse position, supporting click-to-select or "press-drag-release" quick operations.
+- Stop Button: Quickly stops current wallpaper playback.
+- Background Keep-alive Window Hiding: Closing the window hides it to the background (process remains).

@@ -1,79 +1,85 @@
-# 高级功能文档
+# Advanced Guide
+[中文](ADVANCED_ZH.md)
 
-本文档介绍 Linux Wallpaper Engine GUI 的高级功能和配置选项。
+This document provides a detailed overview of the advanced features and configuration options available in the Linux Wallpaper Engine GUI.
 
-## 目录
+## Table of Contents
 
-- [命令行参数](#命令行参数)
-- [配置文件详解](#配置文件详解)
-- [后端参数映射](#后端参数映射)
-- [系统集成](#系统集成)
-- [截图功能详解](#截图功能详解)
-- [定时轮换功能](#定时轮换功能)
-- [多显示器配置](#多显示器配置)
-- [日志系统](#日志系统)
-- [故障排查](#故障排查)
+- [Command-Line Arguments](#command-line-arguments)
+- [Configuration Reference](#configuration-reference)
+- [Backend Parameter Mapping](#backend-parameter-mapping)
+- [System Integration](#system-integration)
+- [Playback History System](#playback-history-system)
+- [Nickname Management](#nickname-management)
+- [Compact Preview Mode](#compact-preview-mode)
+- [Wayland Advanced Tweaks](#wayland-advanced-tweaks)
+- [Screenshot Feature Details](#screenshot-feature-details)
+- [Timed Rotation](#timed-rotation)
+- [Multi-Monitor Configuration](#multi-monitor-configuration)
+- [Log System](#log-system)
+- [Troubleshooting](#troubleshooting)
+- [Performance Tuning](#performance-tuning)
 
 ---
 
-## 命令行参数
+## Command-Line Arguments
 
-### 启动模式
+### Launch Modes
 
 ```bash
-# 前台启动（默认）
+# Launch in foreground (default)
 python3 run_gui.py
 
-# 后台启动（无窗口）
+# Launch in background (tray icon only)
 python3 run_gui.py --hidden
-python3 run_gui.py --minimized  # 同上
+python3 run_gui.py --minimized  # Alias for --hidden
 ```
 
-### 窗口控制
+### Window Control
 
-所有以下命令会发送到已运行的实例（单实例模式）：
+All subsequent commands are sent to the already running instance (single-instance architecture):
 
 ```bash
-# 显示窗口
+# Show the window
 python3 run_gui.py --show
 
-# 隐藏窗口（保持进程）
+# Hide the window (process keeps running)
 python3 run_gui.py --hide
 
-# 切换显示/隐藏状态
+# Toggle show/hide state
 python3 run_gui.py --toggle
 ```
 
-### 壁纸控制
+### Wallpaper Control
 
 ```bash
-# 应用上次壁纸
+# Apply the last used wallpaper
 python3 run_gui.py --apply-last
 
-# 随机切换壁纸
+# Randomly switch wallpaper
 python3 run_gui.py --random
 
-# 停止当前壁纸
+# Stop current wallpaper
 python3 run_gui.py --stop
 
-# 刷新壁纸库
+# Rescan wallpaper library
 python3 run_gui.py --refresh
 ```
 
-### 退出程序
+### Exit Program
 
 ```bash
-# 完全退出（关闭 GUI 和所有壁纸进程）
+# Fully exit (closes GUI and all wallpaper processes)
 python3 run_gui.py --quit
 ```
 
 ---
 
-## 配置文件详解
+## Configuration Reference
 
-配置文件位置：`~/.config/linux-wallpaperengine-gui/config.json`
+**Location**: `~/.config/linux-wallpaperengine-gui/config.json`
 
-### 完整配置示例
+### Full Configuration Example
 
 ```json
 {
@@ -94,6 +100,7 @@ python3 run_gui.py --quit
   "silentStart": false,
   "autoRotateEnabled": false,
   "rotateInterval": 30,
+  "cycleOrder": "random",
   "screenshotDelay": 10,
   "screenshotWidth": 3840,
   "screenshotHeight": 2160,
@@ -112,90 +119,91 @@ python3 run_gui.py --quit
 }
 ```
 
-### 配置字段说明
+### Configuration Fields
 
-#### 基础设置
+#### General Settings
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `workshopPath` | string | 自动检测 | Steam Workshop 壁纸目录路径 |
-| `assetsPath` | string | null | Wallpaper Engine assets 文件夹路径（null = 自动检测） |
-| `fps` | int | 30 | 帧率限制（1-144） |
-| `volume` | int | 50 | 音量（0-100） |
-| `scaling` | string | "default" | 缩放模式：`default`/`stretch`/`fit`/`fill` |
-| `silence` | bool | true | 是否静音 |
+| Field | Type | Default | Description |
+|------|------|---------|-------------|
+| `workshopPath` | string | Auto-detected | Path to Steam Workshop wallpaper directory |
+| `assetsPath` | string | null | Path to Wallpaper Engine assets folder (null = auto-detect) |
+| `fps` | int | 30 | Frame rate limit (1–144) |
+| `volume` | int | 50 | Audio volume (0–100) |
+| `scaling` | string | "default" | Scaling mode: `default`, `stretch`, `fit`, `fill` |
+| `silence` | bool | true | Mute audio |
 
-#### 高级渲染
+#### Advanced Rendering
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `clamping` | string | "default" | 纹理钳制模式：`default`/`clamp`/`border` |
-| `disableParallax` | bool | false | 禁用视差效果 |
-| `disableParticles` | bool | false | 禁用粒子系统 |
+| Field | Type | Default | Description |
+|------|------|---------|-------------|
+| `clamping` | string | "default" | Texture clamping mode: `default`, `clamp`, `border` |
+| `disableParallax` | bool | false | Disable parallax effects |
+| `disableParticles` | bool | false | Disable particle systems |
 
-#### 音频控制
+#### Audio Control
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `disableAutoMute` | bool | false | 禁用自动静音（全屏时） |
-| `disableAudioProcessing` | bool | false | 禁用音频处理逻辑 |
+| Field | Type | Default | Description |
+|------|------|---------|-------------|
+| `disableAutoMute` | bool | false | Disable automatic muting when a window is fullscreen |
+| `disableAudioProcessing` | bool | false | Disable audio processing logic |
 
-#### 性能优化
+#### Performance Optimization
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `noFullscreenPause` | bool | false | 全屏时不暂停壁纸 |
-| `disableMouse` | bool | false | 禁用鼠标交互 |
+| Field | Type | Default | Description |
+|------|------|---------|-------------|
+| `noFullscreenPause` | bool | false | Do not pause wallpaper when a window is fullscreen |
+| `disableMouse` | bool | false | Disable mouse interaction |
 
-#### 自动化
+#### Automation
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `autoStartEnabled` | bool | false | 开机自启 |
-| `silentStart` | bool | false | 静默启动（后台模式） |
-| `autoRotateEnabled` | bool | false | 定时随机切换 |
-| `rotateInterval` | int | 30 | 切换间隔（分钟） |
+| Field | Type | Default | Description |
+|------|------|---------|-------------|
+| `autoStartEnabled` | bool | false | Enable autostart on login |
+| `silentStart` | bool | false | Silent start (background mode) |
+| `autoRotateEnabled` | bool | false | Enable timed wallpaper rotation |
+| `rotateInterval` | int | 30 | Rotation interval in minutes |
+| `cycleOrder` | string | "random" | Cycle order: `random`, `title`, `size`, `type`, `id` |
 
-#### 截图配置
+#### Screenshot Configuration
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `screenshotDelay` | int | 10 | 截图前等待时间（秒） |
-| `screenshotWidth` | int | 3840 | 截图宽度 |
-| `screenshotHeight` | int | 2160 | 截图高度 |
-| `useXvfb` | bool | true | 使用 Xvfb 静默截图 |
+| Field | Type | Default | Description |
+|------|------|---------|-------------|
+| `screenshotDelay` | int | 10 | Wait time before capture (seconds) |
+| `screenshotWidth` | int | 3840 | Screenshot width |
+| `screenshotHeight` | int | 2160 | Screenshot height |
+| `useXvfb` | bool | true | Use Xvfb for silent screenshots |
 
-#### 状态记录
+#### State Persistence
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `lastWallpaper` | string | 最后应用的壁纸 ID |
-| `lastScreen` | string | 最后选择的屏幕名称 |
-| `activeWallpapers` | object | 各屏幕当前壁纸映射 |
-| `wallpaperProperties` | object | 各壁纸自定义属性 |
+| Field | Type | Description |
+|------|------|-------------|
+| `lastWallpaper` | string | ID of the last applied wallpaper |
+| `lastScreen` | string | Name of the last selected screen |
+| `activeWallpapers` | object | Mapping of current wallpapers per screen |
+| `wallpaperProperties` | object | Custom properties for each wallpaper |
 
 ---
 
-## 后端参数映射
+## Backend Parameter Mapping
 
-GUI 配置会转换为 `linux-wallpaperengine` 的命令行参数：
+GUI configurations are translated into command-line arguments for the `linux-wallpaperengine` backend:
 
-| GUI 配置 | 后端参数 | 示例 |
-|---------|---------|------|
-| `fps: 30` | `--fps 30` | 帧率限制 |
-| `scaling: "stretch"` | `--scaling stretch` | 拉伸缩放 |
-| `silence: true` | `--silent` | 静音 |
-| `volume: 50` | `--volume 50` | 音量 |
-| `noFullscreenPause: true` | `--no-fullscreen-pause` | 不暂停 |
-| `disableMouse: true` | `--disable-mouse` | 禁用鼠标 |
-| `clamping: "clamp"` | `--clamping clamp` | 纹理钳制 |
-| `disableParallax: true` | `--disable-parallax` | 禁用视差 |
-| `disableParticles: true` | `--disable-particles` | 禁用粒子 |
-| `disableAutoMute: true` | `--no-auto-mute` | 禁用自动静音 |
-| `disableAudioProcessing: true` | `--no-audio-processing` | 禁用音频处理 |
-| `assetsPath: "/path/to/assets"` | `--assets-dir /path/to/assets` | 自定义资源目录 |
+| GUI Setting | Backend Argument | Description |
+|-------------|------------------|-------------|
+| `fps: 30` | `--fps 30` | Frame rate limit |
+| `scaling: "stretch"` | `--scaling stretch` | Stretch scaling |
+| `silence: true` | `--silent` | Mute audio |
+| `volume: 50` | `--volume 50` | Audio volume |
+| `noFullscreenPause: true` | `--no-fullscreen-pause` | Disable fullscreen pause |
+| `disableMouse: true` | `--disable-mouse` | Disable mouse interaction |
+| `clamping: "clamp"` | `--clamping clamp` | Texture clamping |
+| `disableParallax: true` | `--disable-parallax` | Disable parallax |
+| `disableParticles: true` | `--disable-particles` | Disable particles |
+| `disableAutoMute: true` | `--no-auto-mute` | Disable auto-mute |
+| `disableAudioProcessing: true` | `--no-audio-processing` | Disable audio processing |
+| `assetsPath: "/path/to/assets"` | `--assets-dir /path/to/assets` | Custom assets directory |
 
-### 完整命令示例
+### Full Command Example
 
 ```bash
 linux-wallpaperengine \
@@ -211,15 +219,15 @@ linux-wallpaperengine \
 
 ---
 
-## 系统集成
+## System Integration
 
-### 生成桌面快捷方式
+### Generate Desktop Shortcut
 
-在 Settings > General 页面点击 "Create Desktop Entry" 按钮会生成：
+Clicking the "Create Desktop Entry" button in **Settings > General** generates:
 
-**文件位置**：`~/.local/share/applications/linux-wallpaperengine-gui.desktop`
+**File Location**: `~/.local/share/applications/linux-wallpaperengine-gui.desktop`
 
-**内容示例**：
+**Example Content**:
 ```desktop
 [Desktop Entry]
 Type=Application
@@ -231,22 +239,22 @@ Terminal=false
 Categories=Utility;
 ```
 
-### 配置开机自启
+### Configure Autostart
 
-点击 "Enable Autostart" 按钮会生成：
+Clicking the "Enable Autostart" button generates:
 
-**文件位置**：`~/.config/autostart/linux-wallpaperengine-gui.desktop`
+**File Location**: `~/.config/autostart/linux-wallpaperengine-gui.desktop`
 
-如果启用了"静默启动"，`Exec` 行会变为：
+If "Silent Start" is enabled, the `Exec` line becomes:
 ```
 Exec=/usr/bin/python3 /home/user/suw/run_gui.py --hidden
 ```
 
-### 窗口管理器集成示例
+### Window Manager Integration
 
-#### Compact Mode 窗口管理配置
+#### Compact Mode Window Rules
 
-由于 Wayland 协议限制，应用无法强制控制平铺窗口管理器（如 Niri/Hyprland）下的窗口大小。为了获得最佳体验（浮窗模式），请在您的 WM 配置文件中添加以下规则：
+Due to Wayland protocol limitations, the application cannot force window dimensions in tiling window managers (like Niri or Hyprland). For the best experience (floating mode), add the following rules to your WM configuration:
 
 ##### Niri (config.kdl)
 ```kdl
@@ -263,7 +271,7 @@ windowrulev2 = size 300 700,title:^(Wallpaper Preview)$
 windowrulev2 = center,title:^(Wallpaper Preview)$
 ```
 
-#### Niri (常规启动)
+#### Niri (Startup & Binds)
 
 ```kdl
 spawn-at-startup "python3" "/home/user/suw/run_gui.py" "--hidden"
@@ -289,69 +297,93 @@ bindsym $mod+Shift+w exec python3 /home/user/suw/run_gui.py --random
 exec-once = python3 /home/user/suw/run_gui.py --hidden
 
 bind = SUPER, W, exec, python3 /home/user/suw/run_gui.py --toggle
-    bind = SUPER SHIFT, W, exec, python3 /home/user/suw/run_gui.py --random
-}
-
----
-
-## Compact Mode 窗口配置 (Niri/Hyprland)
-
-Compact Mode 旨在提供一个极简的预览窗口。在平铺窗口管理器中，你可能需要配置特定的窗口规则来保持其尺寸或浮动状态。
-
-### Niri (config.kdl)
-
-```kdl
-window-rule {
-    match title="Wallpaper Preview"
-    default-column-width { fixed 300; }
-    default-window-height { fixed 700; }
-}
-```
-
-### Hyprland (hyprland.conf)
-
-```
-windowrulev2 = float, title:^(Wallpaper Preview)$
-windowrulev2 = size 300 700, title:^(Wallpaper Preview)$
+bind = SUPER SHIFT, W, exec, python3 /home/user/suw/run_gui.py --random
 ```
 
 ---
 
-## 截图功能详解
+## Playback History System
 
-### 工作原理
+Introduced in v0.10.3-beta, the Playback History system tracks your recently used wallpapers for quick access.
 
-1. **检测 Xvfb**：检查系统是否安装 `xvfb-run`
-2. **选择模式**：
-   - 有 Xvfb：静默模式（虚拟 X 服务器）
-   - 无 Xvfb：窗口模式（物理窗口）
-3. **启动渲染**：使用 `--screenshot` 参数启动后端
-4. **智能延迟**：
-   - Video 壁纸：5 秒（快速采样第一帧）
-   - Web/Scene 壁纸：使用配置的延迟时间
-5. **保存文件**：截图保存到 `~/Pictures/wallpaperengine/`
+- **Capacity**: Stores up to 30 entries. It features auto-deduplication; re-applying a wallpaper already in history moves it to the top.
+- **Access**: Open via the **Hamburger Menu (☰) → Playback History**.
+- **Details**: Each entry displays a thumbnail, the wallpaper's nickname (in *italics*), the original ID, and a timestamp (formatted as `MM-DD HH:MM`).
+- **One-Click Replay**: Clicking an entry immediately syncs the main window state and applies the wallpaper.
+- **Management**: Includes a "Clear" button to wipe history and a capacity counter (e.g., `12 / 30`).
 
-### 截图配置
+---
 
-在 Settings > Advanced 中可配置：
+## Nickname Management
 
-- **Screenshot Delay**：截图前等待时间（秒）
-  - 推荐值：Video=5, Web/Scene=10-15
-- **Screenshot Resolution**：截图分辨率
-  - 推荐：3840x2160（4K）
-  - 用途：解决平铺窗口管理器的画面裁剪问题
-- **Use Xvfb for Screenshots**：是否使用虚拟 X 服务器
-  - 开启：后台截图，不弹窗
-  - 关闭：物理窗口模式（某些壁纸兼容性更好）
+The Nickname System (v0.10.2) allows you to assign friendly names to wallpapers, making your library easier to navigate.
 
-### 资源占用统计
+- **Storage**: Nicknames are persisted in `nicknames.json` via the `NicknameManager`.
+- **Setting Nicknames**: Right-click any wallpaper in the grid and select "Set Nickname", or use the ✏️ button in the sidebar.
+- **Batch Management**: Access the **Manage Nicknames** dialog in **Settings** to view, edit, or delete all nicknames in a single grid view.
+- **Search Integration**: The global search bar matches both the custom nickname and the original wallpaper title.
+- **Visuals**:
+    - **Grid View**: Nicknames are displayed in **_italic bold_**.
+    - **Sidebar**: Shows the "Nickname + Original Title" (the latter in small gray text).
 
-自 v0.10.5 起，截图功能引入了更可靠的资源监控机制：
-- **高频率采样**：在截图期间，监控频率会自动提升至 0.1s，以捕捉极短任务的负载。
-- **混合计算模式**：针对视频壁纸等极速截图任务，会自动切换到 CPU 时间差值计算模式，确保统计结果不为 0%。
-- **自动归一化**：所有 CPU 占用率均已根据 CPU 核心数进行归一化处理（0-100% 为整机总占用），并消除了异常峰值。
+---
 
-### 安装 Xvfb
+## Compact Preview Mode
+
+Designed specifically for tiling window managers (Niri, Hyprland, Sway), Compact Preview Mode (v0.10.0) provides a lightweight, standalone interface.
+
+- **Behavior**: Operates as a separate window and is mutually exclusive with the main application window.
+- **Dimensions**: Default size is 300×700.
+- **Layout**:
+    - **Top**: Large wallpaper preview with GIF animation support.
+    - **Bottom**: 5 circular thumbnails with smooth wrap-around navigation.
+- **Navigation**: Supports keyboard shortcuts (`←` and `→`) and on-screen navigation buttons.
+- **Information**: Displays a blue capsule with the wallpaper ID (click to copy), the title, size, and index.
+- **WM Rules**: It is highly recommended to set this window to "floating" in your WM config (see [System Integration](#compact-mode-window-rules)).
+
+---
+
+## Wayland Advanced Tweaks
+
+Fine-grained control for Wayland sessions (v0.8.10) to handle compositor-specific behaviors.
+
+- **Auto-Detection**: The GUI automatically detects if you are running a Wayland session.
+- **Pause Only Active**: (`--fullscreen-pause-only-active`) Only pause the wallpaper when the currently focused window is fullscreen. This prevents background fullscreen windows from stopping your wallpaper.
+- **Ignore App ID List**: (`--fullscreen-pause-ignore-appid`) A comma-separated list of App IDs (e.g., `waybar,niri`) that should be ignored by the fullscreen detection logic.
+- **Use Case**: Prevents desktop components like docks, bars, or panels from accidentally triggering the wallpaper pause mechanism.
+
+---
+
+## Screenshot Feature Details
+
+### How It Works
+
+1. **Xvfb Detection**: Checks if `xvfb-run` is installed on the system.
+2. **Mode Selection**:
+   - **With Xvfb**: Silent mode (uses a virtual X server).
+   - **Without Xvfb**: Window mode (opens a physical window briefly).
+3. **Rendering**: Launches the backend with the `--screenshot` parameter.
+4. **Smart Delay**:
+   - **Video Wallpapers**: 5 seconds (fast sampling of the first frame).
+   - **Web/Scene Wallpapers**: Uses the user-configured delay.
+5. **Storage**: Screenshots are saved to `~/Pictures/wallpaperengine/`.
+
+### Configuration
+
+Available in **Settings > Advanced**:
+
+- **Screenshot Delay**: Wait time before capture. Recommended: 5s for Video, 10-15s for Web/Scene.
+- **Screenshot Resolution**: Default 3840x2160 (4K). This ensures high quality and avoids cropping issues in tiling WMs.
+- **Use Xvfb for Screenshots**: Toggle between background silent capture and physical window mode.
+
+### Resource Usage Statistics
+
+Since v0.10.5, the screenshot process includes advanced resource monitoring:
+- **High-Frequency Sampling**: Monitoring frequency increases to 0.1s during capture to catch short-lived tasks.
+- **Hybrid Calculation**: For ultra-fast tasks (like video screenshots), it switches to CPU time delta calculation to ensure accuracy.
+- **Normalization**: CPU usage is normalized across all cores (0-100% total system load) with peak filtering.
+
+### Installation
 
 ```bash
 # Arch Linux
@@ -361,288 +393,179 @@ sudo pacman -S xorg-server-xvfb
 sudo apt install xvfb
 ```
 
-### 手动截图命令
+---
 
-```bash
-# 使用 Xvfb（后台）
-xvfb-run -a -s "-screen 0 3840x2160x24" \
-  linux-wallpaperengine \
-  --screenshot /path/to/wallpaper \
-  --screenshot-delay 10
+## Timed Rotation
 
-# 窗口模式
-linux-wallpaperengine \
-  --screenshot /path/to/wallpaper \
-  --fps 30 \
-  --screenshot-delay 10
-```
+### Enabling Rotation
+
+In **Settings > Automation**:
+1. Check **Enable Auto Rotate**.
+2. Set the **Rotate Interval** (in minutes).
+3. Select the **Cycle Order**.
+4. Click **Save Settings**.
+
+### Cycle Order Options
+
+Introduced in v0.8.11, you can choose how wallpapers are selected:
+- **Random**: Selects a random wallpaper from the library.
+- **Title (A-Z)**: Cycles alphabetically by title.
+- **Size (↓/↑)**: Cycles by file size.
+- **Type**: Cycles by wallpaper type (Video, Web, Scene).
+- **ID**: Cycles by Steam Workshop ID.
+
+**Configuration Key**: `cycleOrder`
+
+### Mechanism
+
+- Uses a `GLib.timeout_add_seconds` timer.
+- Supports multi-monitor setups (all screens rotate simultaneously).
+- Continues running even when the GUI window is hidden.
+- Manual wallpaper application resets the timer.
 
 ---
 
-## 定时轮换功能
+## Multi-Monitor Configuration
 
-### 启用方式
+### Screen Detection
 
-在 Settings > Automation 中：
-1. 勾选 "Enable Auto Rotate"
-2. 设置 "Rotate Interval" (分钟)
-3. 点击 Save Settings
+The GUI automatically detects displays using:
+1. **X11**: `xrandr --listmonitors`
+2. **Wayland**: `wlr-randr` (if available)
+3. **Fallback**: Allows manual entry of screen names.
 
-### 工作机制
+### Independent Wallpapers
 
-- 使用 `GLib.timeout_add_seconds` 定时器
-- 每隔指定时间调用随机切换逻辑
-- 支持多显示器（所有屏幕同时随机切换）
-- 窗口隐藏时仍继续运行
+1. Select the target display from the dropdown in the top bar.
+2. Browse and apply a wallpaper.
+3. Repeat for other displays.
 
-### 使用场景
-
-- **幻灯片模式**：每 5 分钟切换一次，体验不同壁纸
-- **内存管理**：每 30 分钟切换，缓解 Web 壁纸内存泄漏
-- **随机性**：避免长期看同一壁纸
-
-### 停止轮换
-
-- 取消勾选 "Enable Auto Rotate" 并保存
-- 或手动应用特定壁纸（会重置定时器）
-
----
-
-## 多显示器配置
-
-### 屏幕检测
-
-GUI 会自动检测：
-1. X11：使用 `xrandr --listmonitors`
-2. Wayland：使用 `wlr-randr`（如果可用）
-3. 回退：允许手动输入屏幕名称
-
-### 配置独立壁纸
-
-1. 在顶栏下拉菜单选择目标显示器
-2. 浏览并应用壁纸
-3. 重复以上步骤为其他显示器配置
-
-### 配置文件示例
+### Configuration Mapping
 
 ```json
 {
   "activeWallpapers": {
-    "eDP-1": "1234567890",   // 笔记本内屏
-    "HDMI-1": "9876543210",  // 外接显示器
-    "DP-1": "1122334455"     // 第二外接显示器
+    "eDP-1": "1234567890",   // Laptop internal screen
+    "HDMI-1": "9876543210",  // External monitor
+    "DP-1": "1122334455"     // Second external monitor
   }
 }
 ```
 
-### 已知问题
+### Known Issues
 
-- 屏幕断开后需要手动停止对应壁纸（GUI 启动时会自动清理）
-- 不同刷新率的显示器可能导致 FPS 不一致
-- 旋转屏幕的壁纸缩放可能异常
+- Disconnected screens require manual cleanup (GUI cleans up on launch).
+- Mixed refresh rates may cause inconsistent FPS.
+- Scaling may behave unexpectedly on rotated screens.
 
 ---
 
-## 日志系统
+## Log System
 
-### 日志来源
+### Log Sources
 
-- **Controller**：GUI 控制逻辑
-- **Engine**：`linux-wallpaperengine` 后端输出
-- **GUI**：GTK 界面事件
+- **Controller**: GUI control logic and process management.
+- **Engine**: Output from the `linux-wallpaperengine` backend.
+- **GUI**: GTK interface events and user interactions.
 
-### 日志级别
+### Log Levels
 
-- **DEBUG**：详细调试信息（灰色）
-- **INFO**：一般信息（白色）
-- **WARNING**：警告（黄色）
-- **ERROR**：错误（红色）
+- **DEBUG**: Detailed debugging information (Gray).
+- **INFO**: General information (White).
+- **WARNING**: Warnings (Yellow).
+- **ERROR**: Errors (Red).
 
-### 日志文件位置
+### File Locations
 
-- **GUI 日志**：`~/.config/linux-wallpaperengine-gui/app.log`
-- **引擎日志**：`~/.config/linux-wallpaperengine-gui/engine_<wallpaper_id>.log`
+- **GUI Log**: `~/.config/linux-wallpaperengine-gui/app.log`
+- **Engine Log**: `~/.config/linux-wallpaperengine-gui/engine_<wallpaper_id>.log`
 
-### 查看日志
+### Viewing Logs
 
-**在 GUI 中**：
-- 切换到 Settings 页面
-- 点击 Logs 标签
-- 日志自动刷新（可点击 Refresh 强制刷新）
+**In the GUI**:
+- Go to **Settings > Logs**.
+- Logs refresh automatically (or click **Refresh**).
 
-**命令行**：
+**Via Terminal**:
 ```bash
-# 查看 GUI 日志
+# Follow GUI logs
 tail -f ~/.config/linux-wallpaperengine-gui/app.log
 
-# 查看引擎日志
+# Follow engine logs
 tail -f ~/.config/linux-wallpaperengine-gui/engine_*.log
 ```
 
-### 复制日志
-
-点击 "Copy Logs" 按钮会将所有日志复制到系统剪贴板，方便提交 Issue。
-
 ---
 
-## 故障排查
+## Troubleshooting
 
-### 壁纸无法应用
+### Wallpaper Fails to Apply
 
-**症状**：点击 Apply 后没有反应或立即消失
+**Symptoms**: Clicking Apply does nothing, or the wallpaper disappears immediately.
 
-**排查步骤**：
-1. 检查日志（Settings > Logs）是否有错误
-2. 确认 `linux-wallpaperengine` 在 PATH 中：
-   ```bash
-   which linux-wallpaperengine
-   ```
-3. 尝试手动运行后端：
+**Steps**:
+1. Check **Settings > Logs** for errors.
+2. Verify `linux-wallpaperengine` is in your PATH: `which linux-wallpaperengine`.
+3. Try running the backend manually:
    ```bash
    linux-wallpaperengine --screen-root eDP-1 /path/to/wallpaper
    ```
-4. 检查壁纸文件夹是否完整（有 `project.json`）
+4. Ensure the wallpaper folder contains a valid `project.json`.
+
+### Screenshot Failures
+
+**Symptoms**: No output file or error message when clicking the screenshot button.
+
+**Steps**:
+1. Check if the directory is writable: `ls -ld ~/Pictures/wallpaperengine`.
+2. If using Xvfb, verify installation: `which xvfb-run`.
+3. Try disabling Xvfb mode in **Settings > Advanced**.
+4. Increase the **Screenshot Delay** to 10 seconds or more.
+
+### System Tray Icon Missing
+
+**Symptoms**: No icon appears in the tray area after launch.
+
+**Steps**:
+1. Verify `libayatana-appindicator` is installed.
+2. Check for tray support in your environment:
+   - **GNOME**: Requires "AppIndicator Support" extension.
+   - **Waybar**: Ensure the `tray` module is enabled.
+   - **i3/Sway**: May require `waybar` or a similar status bar.
 
 ---
 
-### 截图失败
+## Performance Tuning
 
-**症状**：点击截图按钮后无输出或报错
+### Reducing CPU Usage
 
-**排查步骤**：
-1. 检查截图目录是否可写：
-   ```bash
-   ls -ld ~/Pictures/wallpaperengine
-   ```
-2. 如果启用了 Xvfb，确认已安装：
-   ```bash
-   which xvfb-run
-   ```
-3. 尝试关闭 Xvfb 模式（Settings > Advanced）
-4. 增加截图延迟时间（10 秒以上）
+1. **Lower FPS**: Reduce from 30fps to 24fps or lower in **Settings > General**.
+2. **Disable Particles**: Enable "Disable Particle Systems" in **Settings > Advanced**.
+3. **Disable Parallax**: Enable "Disable Parallax Effects" in **Settings > Advanced**.
+4. **Wallpaper Type**: Use **Video** wallpapers instead of Scene or Web types.
 
----
+### Reducing Memory Usage
 
-### 系统托盘图标不显示
+1. **Avoid Web Wallpapers**: They use an internal Chromium engine (CEF).
+2. **Enable Timed Rotation**: Periodically restarts the backend to clear memory leaks.
+3. **Disable Audio Processing**: Turn off in **Settings > Audio**.
 
-**症状**：GUI 启动后托盘区没有图标
+### Reducing GPU Usage
 
-**排查步骤**：
-1. 确认安装了 `libayatana-appindicator`：
-   ```bash
-   # Arch
-   pacman -Q libayatana-appindicator
-   
-   # Ubuntu/Debian
-   dpkg -l | grep libayatana-appindicator3-1
-   ```
-2. 检查是否有系统托盘支持：
-   - GNOME：需要安装 "AppIndicator Support" 扩展
-   - Waybar：确保配置了 `tray` 模块
-   - i3/Sway：可能需要 `waybar` 或其他状态栏
+1. Lower the FPS.
+2. Use simpler wallpapers.
+3. **Pause on Fullscreen**: Ensure "No Fullscreen Pause" is **unchecked**.
 
 ---
 
-### 内存占用过高
+## Getting Help
 
-**症状**：长期运行后内存超过 500MB
+If you cannot resolve an issue:
 
-**解决方案**：
-1. 启用定时轮换（Settings > Automation）
-2. 避免使用复杂 Web 壁纸
-3. 降低 FPS（Settings > General）
-4. 使用 systemd 定时任务定期重启：
-   ```bash
-   # 创建 ~/.config/systemd/user/wallpaper-restart.service
-   [Unit]
-   Description=Restart Wallpaper Engine
-   
-   [Service]
-   Type=oneshot
-   ExecStart=/usr/bin/python3 /home/user/suw/run_gui.py --stop
-   ExecStartPost=/bin/sleep 2
-   ExecStartPost=/usr/bin/python3 /home/user/suw/run_gui.py --apply-last
-   ```
-   
-   ```bash
-   # 创建 ~/.config/systemd/user/wallpaper-restart.timer
-   [Unit]
-   Description=Restart Wallpaper Engine every 6 hours
-   
-   [Timer]
-   OnBootSec=6h
-   OnUnitActiveSec=6h
-   
-   [Install]
-   WantedBy=timers.target
-   ```
-   
-   ```bash
-   systemctl --user enable --now wallpaper-restart.timer
-   ```
-
----
-
-### GUI 无法启动
-
-**症状**：运行 `python3 run_gui.py` 后报错
-
-**常见错误**：
-
-1. **ModuleNotFoundError: No module named 'gi'**
-   ```bash
-   # 缺少 PyGObject
-   sudo pacman -S python-gobject  # Arch
-   sudo apt install python3-gi     # Ubuntu
-   ```
-
-2. **gi.repository.GLib.Error: Settings schema 'org.gnome.desktop.interface' is not installed**
-   ```bash
-   # 缺少 GNOME schemas
-   sudo pacman -S gsettings-desktop-schemas  # Arch
-   sudo apt install gsettings-desktop-schemas # Ubuntu
-   ```
-
-3. **ImportError: cannot import name 'Adw' from 'gi.repository'**
-   ```bash
-   # 缺少 Libadwaita
-   sudo pacman -S libadwaita  # Arch
-   sudo apt install gir1.2-adw-1  # Ubuntu
-   ```
-
----
-
-## 性能调优
-
-### 降低 CPU 占用
-
-1. 降低 FPS（Settings > General）：30fps -> 24fps 或更低
-2. 启用"禁用粒子系统"（Settings > Advanced）
-3. 启用"禁用视差效果"（Settings > Advanced）
-4. 使用 Video 壁纸代替 Scene/Web
-
-### 降低内存占用
-
-1. 避免使用 Web 壁纸
-2. 启用定时轮换（强制定期释放内存）
-3. 禁用音频处理（Settings > Audio）
-
-### 降低 GPU 占用
-
-1. 降低 FPS
-2. 使用简单壁纸
-3. 启用"全屏时暂停"（取消勾选 "No Fullscreen Pause"）
-
----
-
-## 获取帮助
-
-如果以上方法无法解决问题：
-
-1. 查看 [docs/COMPATIBILITY.md](COMPATIBILITY.md) 确认环境兼容性
-2. 检查 [GitHub Issues](https://github.com/your-repo/issues) 是否有相似问题
-3. 提交新 Issue 并附上：
-   - 系统信息（`uname -a`）
-   - 桌面环境
-   - 完整日志（Settings > Logs > Copy Logs）
-   - 壁纸 ID 和类型
+1. Consult [docs/COMPATIBILITY.md](COMPATIBILITY.md).
+2. Search [GitHub Issues](https://github.com/your-repo/issues).
+3. Submit a new Issue with:
+   - System info (`uname -a`)
+   - Desktop environment
+   - Full logs (**Settings > Logs > Copy Logs**)
+   - Wallpaper ID and type
