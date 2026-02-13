@@ -45,8 +45,8 @@ class WallpapersPage(Gtk.Box):
         self.active_wp: Optional[str] = None # Tracks running wallpaper
         
         # We need to track current screen selection
-        self.selected_screen = self.config.get("lastScreen", "eDP-1")
-        self.apply_mode = self.config.get("apply_mode", "diff")
+        self.selected_screen = self.config.get("lastScreen") or "eDP-1"
+        self.apply_mode = self.config.get("apply_mode") or "diff"
 
         self._current_wp_ids = []
 
@@ -278,7 +278,7 @@ class WallpapersPage(Gtk.Box):
         parent.append(status_box)
 
     def update_active_wallpaper_label(self):
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = self.config.get("active_monitors") or {}
         current_wp_id = active_monitors.get(self.selected_screen)
 
         if current_wp_id:
@@ -314,7 +314,7 @@ class WallpapersPage(Gtk.Box):
             self.lbl_jump_total.set_label("/0")
             return
 
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = self.config.get("active_monitors") or {}
         current_wp_id = active_monitors.get(self.selected_screen)
 
         self.lbl_jump_total.set_label(f"/{total}")
@@ -352,7 +352,7 @@ class WallpapersPage(Gtk.Box):
         # Only auto-select if user hasn't selected another wallpaper, unless forced
         if not force and self.selected_wp is not None:
             return False
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = self.config.get("active_monitors") or {}
         current_wp_id = active_monitors.get(self.selected_screen)
         if current_wp_id:
             # Highlight and show details
@@ -443,7 +443,7 @@ class WallpapersPage(Gtk.Box):
         self.apply_wallpaper(wp_id)
 
     def on_screenshot_clicked(self):
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = self.config.get("active_monitors") or {}
         target_id = active_monitors.get(self.selected_screen)
         
         if not target_id:
@@ -482,8 +482,8 @@ class WallpapersPage(Gtk.Box):
             wp = self.wp_manager._wallpapers.get(target_id)
             wp_type = wp.get('type', 'Unknown').lower() if wp else 'unknown'
             
-            user_delay = self.config.get("screenshotDelay", 20)
-            user_delay = int(user_delay) if user_delay is not None else 20
+            user_delay = self.config.get("screenshotDelay") or 20
+            user_delay = int(user_delay)
             
             if wp_type == 'video':
                 delay_frames = 5
@@ -721,10 +721,16 @@ class WallpapersPage(Gtk.Box):
             overlay.set_child(placeholder)
 
         name_box = Gtk.Box()
-        name_box.set_halign(Gtk.Align.CENTER)
+        name_box.set_halign(Gtk.Align.FILL)
         name_box.set_valign(Gtk.Align.END)
-        name_box.set_margin_bottom(10)
+        name_box.set_margin_bottom(0)
+        
         lbl = Gtk.Label()
+        lbl.set_hexpand(True)
+        lbl.set_halign(Gtk.Align.START)
+        lbl.set_margin_start(10)
+        lbl.set_margin_end(10)
+        lbl.set_margin_bottom(8)
         lbl.set_use_markup(True)
         lbl.set_markup(markdown_to_pango(display_name))
         lbl.add_css_class("wallpaper-name")

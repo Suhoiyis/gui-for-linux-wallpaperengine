@@ -264,9 +264,13 @@ class WallpaperApp(Adw.Application):
         
         # Navbar
         screens = self.screen_manager.get_screens()
-        selected_screen = self.config.get("lastScreen", self.screen_manager.get_primary_screen() or "eDP-1")
-        initial_link_state = (self.config.get("apply_mode", "diff") == "same")
-        initial_compact_state = bool(self.config.get("compact_mode", False))
+        selected_screen = (
+            self.config.get("lastScreen")
+            or self.screen_manager.get_primary_screen()
+            or "eDP-1"
+        )
+        initial_link_state = (self.config.get("apply_mode") == "same")
+        initial_compact_state = bool(self.config.get("compact_mode"))
         
         self.navbar = NavBar(
             self.stack, 
@@ -327,7 +331,7 @@ class WallpaperApp(Adw.Application):
             GLib.timeout_add(500, lambda: self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}") or False)
 
         # Restore last session wallpapers
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = self.config.get("active_monitors") or {}
         screens = self.screen_manager.get_screens()
 
         # Ensure lastScreen always points to a connected screen (fallback to first/primary)
@@ -501,14 +505,18 @@ class WallpaperApp(Adw.Application):
     def random_wallpaper(self):
         # Triggered by cycle timer or CLI or Menu
         # Cycle order logic
-        cycle_order = self.config.get("cycleOrder", "random")
+        cycle_order = self.config.get("cycleOrder") or "random"
         
         active_monitors = self.config.get("active_monitors", {})
         screens = self.screen_manager.get_screens()
          
         # If no monitors active, activate on the last used screen or first available
         if not active_monitors:
-            target = self.config.get("lastScreen", self.screen_manager.get_primary_screen() or (screens[0] if screens else "eDP-1"))
+            target = (
+                self.config.get("lastScreen") 
+                or self.screen_manager.get_primary_screen() 
+                or (screens[0] if screens else "eDP-1")
+            )
             active_monitors[target] = None # Placeholder
             
         all_wps = list(self.wp_manager._wallpapers.keys())
@@ -570,8 +578,8 @@ class WallpaperApp(Adw.Application):
             GLib.source_remove(self.cycle_timer_id)
             self.cycle_timer_id = None
             
-        if self.config.get("cycleEnabled", False):
-            interval_mins = self.config.get("cycleInterval", 15)
+        if self.config.get("cycleEnabled"):
+            interval_mins = self.config.get("cycleInterval") or 15
             # Minimum 1 minute safety
             interval_mins = max(1, interval_mins)
             self.cycle_timer_id = GLib.timeout_add_seconds(

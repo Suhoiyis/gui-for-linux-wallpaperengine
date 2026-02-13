@@ -212,7 +212,7 @@ class PerformanceMonitor:
         """Stop tracking a task and return stats."""
         category = tracker["category"]
         start_time = tracker["start_time"]
-        initial_cpu_time = tracker.get("initial_cpu_time", 0.0)
+        initial_cpu_time = tracker["initial_cpu_time"]
         duration = time.time() - start_time
         
         if category in self._processes:
@@ -226,7 +226,7 @@ class PerformanceMonitor:
                             curr_times = proc.cpu_times()
                             delta_cpu = (curr_times.user + curr_times.system) - initial_cpu_time
                             if delta_cpu > 0 and duration > 0:
-                                avg_cpu = (delta_cpu / duration) * 100 / self._cpu_count
+                                avg_cpu = min((delta_cpu / duration) * 100 / self._cpu_count, 100.0)
                                 if cpu == 0:
                                     cpu = avg_cpu
                         except Exception:

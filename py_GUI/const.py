@@ -65,10 +65,9 @@ togglebutton {
     border-bottom: none;
 }
 
-togglebutton:focus {
-    outline: none;
-    box-shadow: none;
-    border: none;
+togglebutton:focus-visible {
+    outline: 2px solid @accent_bg_color;
+    outline-offset: 2px;
 }
 
 .nav-btn {
@@ -95,16 +94,17 @@ togglebutton:focus {
 }
 
 .nav-btn.active, .nav-btn:checked {
-    background: #007bff;
-    color: white;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    background: @accent_bg_color;
+    color: @accent_fg_color;
+    box-shadow: 0 4px 12px alpha(@accent_bg_color, 0.3);
     border: none;
     border-bottom: none;
 }
 
 .nav-btn:focus, .nav-btn:focus-visible {
-    outline: none;
-    box-shadow: none;
+    outline: 2px solid @accent_bg_color;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px alpha(@accent_bg_color, 0.4);
 }
 
 /* Fix for MenuButton double-layer look and hit-box */
@@ -128,8 +128,13 @@ menubutton.nav-btn > button {
     min-height: 36px;
     transition: all 0.2s;
     box-shadow: none;
-    outline: none;
     margin: 0;
+}
+
+menubutton.nav-btn > button:focus-visible {
+    outline: 2px solid @accent_bg_color;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px alpha(@accent_bg_color, 0.4);
 }
 
 menubutton.nav-btn > button:hover {
@@ -163,7 +168,7 @@ menubutton.nav-btn > button:checked {
 }
 
 .status-value {
-    color: #007bff;
+    color: @accent_bg_color;
     font-weight: 700;
     text-transform: uppercase;
 }
@@ -196,8 +201,8 @@ menubutton.nav-btn > button:checked {
 }
 
 .mode-btn.active, .mode-btn:checked {
-    background: #007bff;
-    color: white;
+    background: @accent_bg_color;
+    color: @accent_fg_color;
 }
 
 .stop-btn {
@@ -235,22 +240,25 @@ menubutton.nav-btn > button:checked {
 }
 
 .wallpaper-item:hover {
-    border-color: rgba(0, 123, 255, 0.5);
-    box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
+    border-color: alpha(@accent_bg_color, 0.5);
+    box-shadow: 0 0 15px alpha(@accent_bg_color, 0.7);
 }
 
 .wallpaper-item.selected {
-    border-color: #007bff;
-    box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
+    border-color: @accent_bg_color;
+    box-shadow: 0 0 15px alpha(@accent_bg_color, 0.7);
 }
 
 .wallpaper-name {
-    background: black;
-    border-radius: 10px;
-    border: 2px solid #007bff;
-    padding: 5px 10px;
-    font-weight: 400;
-    font-size: 0.9em;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+    color: white;
+    border-radius: 0 0 12px 12px;
+    padding: 20px 10px 8px 10px;
+    border: none;
+    box-shadow: none;
+    font-weight: 600;
+    font-size: 0.85em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
 /* Wallpaper list - List view */
@@ -269,8 +277,8 @@ menubutton.nav-btn > button:checked {
 }
 
 .list-item.selected {
-    border-color: #007bff;
-    background: rgba(0, 123, 255, 0.1);
+    border-color: @accent_bg_color;
+    background: alpha(@accent_bg_color, 0.1);
 }
 
 .list-title {
@@ -359,12 +367,12 @@ menubutton.nav-btn > button:checked {
 }
 
 .folder-chip {
-    background: rgba(0, 123, 255, 0.15);
-    border: 1px solid rgba(0, 123, 255, 0.3);
+    background: alpha(@accent_bg_color, 0.15);
+    border: 1px solid alpha(@accent_bg_color, 0.3);
     border-radius: 6px;
     padding: 2px 10px;
     font-weight: 800;
-    color: #3b82f6;
+    color: @accent_bg_color;
     font-size: 0.85em;
     margin: 5px 0 5px 20px;
 }
@@ -392,8 +400,8 @@ menubutton.nav-btn > button:checked {
 }
 
 .sidebar-btn {
-    background: #007bff;
-    color: white;
+    background: @accent_bg_color;
+    color: @accent_fg_color;
     border-radius: 25px;
     font-weight: bold;
     padding: 10px 20px;
@@ -402,7 +410,7 @@ menubutton.nav-btn > button:checked {
 }
 
 .sidebar-btn:hover {
-    background: #53a6ff;
+    background: alpha(@accent_bg_color, 0.8);
 }
 
 .sidebar-btn.secondary {
@@ -463,9 +471,9 @@ menubutton.nav-btn > button:checked {
 }
 
 .settings-nav-item.active, .settings-nav-item:checked {
-    background: #007bff;
-    color: white;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    background: @accent_bg_color;
+    color: @accent_fg_color;
+    box-shadow: 0 4px 12px alpha(@accent_bg_color, 0.3);
 }
 
 .settings-section-title {
@@ -504,12 +512,12 @@ menubutton.nav-btn > button:checked {
 }
 
 .action-btn.primary {
-    background: #007bff;
-    color: white;
+    background: @accent_bg_color;
+    color: @accent_fg_color;
 }
 
 .action-btn.primary:hover {
-    background: #53a6ff;
+    background: alpha(@accent_bg_color, 0.8);
 }
 
 .action-btn.secondary {
@@ -596,7 +604,7 @@ switch {
 }
 
 switch:checked {
-    background: #007bff;
+    background: @accent_bg_color;
 }
 
 dropdown button {
