@@ -1,5 +1,13 @@
 # 更新日志
 
+## 最新更新
+### 监控与稳定性优化 (Monitoring & Stability)
+- **截图资源统计修复 (Screenshot Stats Fix)**:
+  - 解决了快速截图（如视频壁纸）时 CPU 占用率偶现显示为 0% 的竞态条件问题。
+  - **多阶段子进程轮询**: 引入了智能轮询机制，确保在 Xvfb 模式下能准确抓取到真实的 `linux-wallpaperengine` 进程而非包装器。
+  - **高精度采样**: 针对极短任务增加了手动 CPU 时间差值计算 fallback，并动态提升监控频率至 0.1s，确保捕捉瞬时负载。
+  - **数值异常处理**: 修复了由于极短任务导致的分母过小引发的 CPU 占用率显示为 1283% 等数学伪影，现在所有显示值均经过归一化与合理性上限校验 ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10))。
+
 ## v0.10.4 (2026-02-12)
 ### 视觉反馈增强 (Visual Feedback)
 - **动态截图按钮 (Animated Screenshot Button)**:
