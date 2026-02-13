@@ -143,6 +143,7 @@ class PropertiesManager:
         props_data = self._config.get("wallpaperProperties", {})
         self._user_properties = props_data
 
+
     def save_to_config(self):
         self._config.set("wallpaperProperties", self._user_properties)
 

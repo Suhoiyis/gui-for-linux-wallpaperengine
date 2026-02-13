@@ -2,6 +2,7 @@ import os
 import json
 import gc
 import shutil
+import io
 from typing import Dict, Optional, List
 import gi
 
@@ -224,9 +225,11 @@ class WallpaperManager:
                         target_frame = min(15, n_frames - 1) if n_frames > 1 else 0
                         img.seek(target_frame)
                         
-                        import io
+                        thumb_img = img.convert("RGBA")
+                        thumb_img.thumbnail((size, size), Image.Resampling.LANCZOS)
+                        
                         buf = io.BytesIO()
-                        img.convert("RGBA").save(buf, format="PNG")
+                        thumb_img.save(buf, format="PNG")
                         data = buf.getvalue()
                         
                         loader = GdkPixbuf.PixbufLoader.new_with_type("png")
