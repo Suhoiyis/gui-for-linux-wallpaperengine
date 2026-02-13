@@ -1,7 +1,12 @@
 # 更新日志
 
 ## 最新更新
-### 界面现代化与系统集成 (UI Modernization & Integration)
+
+### 主题适配与视觉升级 (Theming & Visual Polish)
+- **浅色主题深度适配 (Deep Light Mode Compatibility)**:
+  - 彻底重构了全应用的 CSS 样式表，系统性地替换了 70+ 处硬编码颜色值。
+  - 使用 `@window_bg_color` 和 `@theme_fg_color` 及其 alpha 变体替代了所有强制深色背景和白色文字。
+  - 应用现在能完美、无死角地自适应系统的深色/浅色主题，彻底解决了在浅色主题下文字不可见的问题。
 - **系统强调色同步 (System Accent Color Sync)**:
   - 彻底移除了 CSS 中所有硬编码的蓝色 (`#007bff`)。
   - 全面接入 GTK/Libadwaita 系统变量（如 `@accent_bg_color`, `@accent_fg_color`），现在应用的所有按键、选中态、开关和阴影均会自动跟随系统的“强调色”设置，实现完美的视觉统一。
@@ -14,25 +19,25 @@
 ### 核心稳定性与 PR 修正 (Core Stability & PR Refinements)
 - **配置系统底层架构升级 (Robust Config Fallback)**: 
   - **从根源解决“None 陷阱”**: 重构了 `ConfigManager.get()` 底层逻辑。现在当配置文件中某个键的值被显式设为 `null` 时，它能智能识别并正确回退到开发者提供的 `default` 值。
-  - **Falsy 值全面兼容**: 彻底解决了 `volume=0` (静音)、`fps=0`、`screenshotDelay=0` 等合法数值因 Python falsy 判断被错误覆盖的问题。这一改进作用于全应用范围，显著提升了配置系统的健壮性。
+  - **Falsy 值全面兼容**: 彻底解决了 `volume=0` (静音)、`fps=0`、`screenshotDelay=0` 等合法数值因 Python falsy 判断被错误覆盖的问题。
 - **播放历史智能去重**: 优化了 `HistoryManager` 逻辑，重复应用同一壁纸时会将其记录置顶而非产生重复项。
 - **智能 GIF 缩略图恢复与优化 (GIF Smart Thumbnails)**:
   - 修复了重构导致的 GIF 缩略图逻辑丢失问题。
   - **透明度支持**: 修复了 Pillow 路径下透明度丢失的问题 (RGB -> RGBA)，确保透明 GIF 预览正常。
-  - 现在若安装了 Pillow 库，程序会自动定位并截取 GIF 的静态缩略图：内部按 **0 基索引** 选择第 `15` 帧（即人类计数下的 **第 16 帧**），若总帧数少于 16 帧则自动回退为 **最后一帧**，以有效避开开头可能出现的黑屏或渐入空帧。
-- **类型安全与监控优化**: 
-
-  - 修复了 `PerformanceMonitor` 中 `TypedDict` 的字段访问一致性问题。
-  - 增加了 CPU 采样数值的合理性上限校验，消除了短任务下的数学采样伪影。
-- **Markup 安全防护**: 为所有 Markdown/BBCode 转换逻辑增加了强制 XML 转义，彻底杜绝了因特殊字符导致的 Pango UI 渲染异常。
+  - 优化了帧采样逻辑，默认截取第 15 帧（0基索引）以有效避开开头可能出现的黑屏或渐入空帧。
 
 ### 监控与稳定性优化 (Monitoring & Stability)
 - **截图资源统计修复 (Screenshot Stats Fix)**:
   - 解决了快速截图（如视频壁纸）时 CPU 占用率偶现显示为 0% 的竞态条件问题。
-  - **多阶段子进程轮询**: 引入了智能轮询机制，确保在 Xvfb 模式下能准确抓取到真实的 `linux-wallpaperengine` 进程而非包装器。
-  - **高精度采样**: 针对极短任务增加了手动 CPU 时间差值计算 fallback，并动态提升监控频率至 0.1s，确保捕捉瞬时负载 ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10))。
+  - **多阶段子进程轮询**: 引入了智能轮询机制，确保在 Xvfb 模式下能准确抓取到真实的 `linux-wallpaperengine` 进程。
+  - **高精度采样**: 针对极短任务增加了手动 CPU 时间差值计算 fallback，并动态提升监控频率至 0.1s ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10))。
+- **类型安全与监控优化**: 
+  - 修复了 `PerformanceMonitor` 中 `TypedDict` 的字段访问一致性问题。
+  - 增加了 CPU 采样数值的合理性上限校验，消除了短任务下的数学采样伪影。
+- **Markup 安全防护**: 为所有 Markdown/BBCode 转换逻辑增加了强制 XML 转义，彻底杜绝了因特殊字符导致的 Pango UI 渲染异常。
 
 ## v0.10.4 (2026-02-12)
+
 ### 视觉反馈增强 (Visual Feedback)
 - **动态截图按钮 (Animated Screenshot Button)**:
   - 优化了截图操作的交互反馈，现在点击截图时按钮会自动切换为动态旋转的加载圈 (`Gtk.Spinner`)。
