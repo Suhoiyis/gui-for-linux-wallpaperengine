@@ -235,6 +235,8 @@ class WallpaperController:
         res = res.strip()
         if not re.fullmatch(r"\d+[xX]\d+", res):
             res = default_res
+        else:
+            res = res.lower()
         
         # Check for xvfb-run dynamically and preference
         xvfb_path = shutil.which("xvfb-run")
