@@ -482,7 +482,8 @@ class WallpapersPage(Gtk.Box):
             wp = self.wp_manager._wallpapers.get(target_id)
             wp_type = wp.get('type', 'Unknown').lower() if wp else 'unknown'
             
-            user_delay = self.config.get("screenshotDelay") or 20
+            delay_cfg = self.config.get("screenshotDelay")
+            user_delay = delay_cfg if delay_cfg is not None else 20
             user_delay = int(user_delay)
             
             if wp_type == 'video':
