@@ -1,6 +1,6 @@
 # 更新日志
 
-## v0.10.5 (2026-02-13)
+## 最新更新
 ### 界面现代化与系统集成 (UI Modernization & Integration)
 - **系统强调色同步 (System Accent Color Sync)**:
   - 彻底移除了 CSS 中所有硬编码的蓝色 (`#007bff`)。
@@ -19,9 +19,6 @@
   - 增加了 CPU 采样数值的合理性上限校验，消除了短任务下的数学采样伪影。
 - **Markup 安全防护**: 为所有 Markdown/BBCode 转换逻辑增加了强制 XML 转义，彻底杜绝了因特殊字符导致的 Pango UI 渲染异常。
 
----
-
-## v0.10.4 (2026-02-12)
 ### 监控与稳定性优化 (Monitoring & Stability)
 - **截图资源统计修复 (Screenshot Stats Fix)**:
   - 解决了快速截图（如视频壁纸）时 CPU 占用率偶现显示为 0% 的竞态条件问题。
