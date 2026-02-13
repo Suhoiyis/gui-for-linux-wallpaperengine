@@ -71,11 +71,7 @@ togglebutton:focus-visible {
 }
 
 .nav-btn {
-<<<<<<< HEAD
     background: alpha(@theme_fg_color, 0.08);
-=======
-    background: alpha(@window_bg_color, 0.8);
->>>>>>> origin/hotfix/dark-mode
     color: @theme_fg_color;
     border-radius: 10px;
     padding: 8px 16px;
@@ -88,14 +84,8 @@ togglebutton:focus-visible {
 }
 
 .nav-btn:hover {
-<<<<<<< HEAD
     background: alpha(@theme_fg_color, 0.12);
     border-color: alpha(@theme_fg_color, 0.2);
-=======
-    background: alpha(@window_bg_color, 0.6);
-    border: none;
-    border-bottom: none;
->>>>>>> origin/hotfix/dark-mode
 }
 
 .nav-btn.active, .nav-btn:checked {
@@ -190,12 +180,12 @@ dropdown.nav-btn > button:active {
     font-size: 0.85em;
 }
 
+togglebutton.mode-btn {
+    border: 1px solid alpha(@theme_fg_color, 0.1);
+}
+
 .mode-btn {
-<<<<<<< HEAD
     background: alpha(@theme_fg_color, 0.08);
-=======
-    background: alpha(@window_bg_color, 0.8);
->>>>>>> origin/hotfix/dark-mode
     color: @theme_fg_color;
     border-radius: 10px;
     padding: 6px 6px;
@@ -203,15 +193,12 @@ dropdown.nav-btn > button:active {
     min-height: 36px;
     min-width: 36px;
     font-size: 1.2em;
+    transition: all 0.2s;
 }
 
 .mode-btn:hover {
-<<<<<<< HEAD
     background: alpha(@theme_fg_color, 0.12);
     border-color: alpha(@theme_fg_color, 0.2);
-=======
-    background: alpha(@window_bg_color, 0.6);
->>>>>>> origin/hotfix/dark-mode
 }
 
 .mode-btn.active, .mode-btn:checked {
@@ -221,11 +208,7 @@ dropdown.nav-btn > button:active {
 }
 
 .stop-btn {
-<<<<<<< HEAD
     background: alpha(@theme_fg_color, 0.08);
-=======
-    background: alpha(@window_bg_color, 0.8);
->>>>>>> origin/hotfix/dark-mode
     color: #ef4444;
     border: 1px solid alpha(@theme_fg_color, 0.1);
 }

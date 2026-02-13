@@ -506,7 +506,7 @@ class WallpaperApp(Adw.Application):
         # Triggered by cycle timer or CLI or Menu
         # Cycle order logic
         cycle_order = self.config.get("cycleOrder") or "random"
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = dict(self.config.get("active_monitors", {}) or {})
 
         screens = self.screen_manager.get_screens()
          
