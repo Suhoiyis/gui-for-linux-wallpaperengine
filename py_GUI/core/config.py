@@ -23,7 +23,8 @@ class ConfigManager:
             json.dump(self.config, f, indent=2)
 
     def get(self, key: str, default=None):
-        return self.config.get(key, default)
+        val = self.config.get(key)
+        return val if val is not None else default
 
     def set(self, key: str, value):
         self.config[key] = value

@@ -190,8 +190,7 @@ class SettingsPage(Gtk.Box):
         self.fps_spin = Gtk.SpinButton()
         self.fps_spin.set_range(1, 144)
         self.fps_spin.set_increments(1, 10)
-        fps_val = self.config.get("fps")
-        self.fps_spin.set_value(fps_val if fps_val is not None else 30)
+        self.fps_spin.set_value(self.config.get("fps", 30))
         r.append(self.fps_spin)
 
 
@@ -268,8 +267,7 @@ class SettingsPage(Gtk.Box):
         self.cycle_spin = Gtk.SpinButton()
         self.cycle_spin.set_range(1, 1440) # 1 min to 24 hours
         self.cycle_spin.set_increments(5, 30)
-        cycle_int = self.config.get("cycleInterval")
-        self.cycle_spin.set_value(cycle_int if cycle_int is not None else 15)
+        self.cycle_spin.set_value(self.config.get("cycleInterval", 15))
         r.append(self.cycle_spin)
 
         # Order
@@ -366,8 +364,7 @@ class SettingsPage(Gtk.Box):
         self.vol_spin = Gtk.SpinButton()
         self.vol_spin.set_range(0, 100)
         self.vol_spin.set_increments(5, 10)
-        vol_val = self.config.get("volume")
-        self.vol_spin.set_value(vol_val if vol_val is not None else 50)
+        self.vol_spin.set_value(self.config.get("volume", 50))
         r.append(self.vol_spin)
 
         # No Auto Mute
@@ -511,8 +508,7 @@ class SettingsPage(Gtk.Box):
         self.screenshot_delay_spin = Gtk.SpinButton()
         self.screenshot_delay_spin.set_range(1, 600)
         self.screenshot_delay_spin.set_increments(5, 50)
-        delay_val = self.config.get("screenshotDelay")
-        self.screenshot_delay_spin.set_value(delay_val if delay_val is not None else 20)
+        self.screenshot_delay_spin.set_value(self.config.get("screenshotDelay", 20))
         r.append(self.screenshot_delay_spin)
 
         # Screenshot Resolution

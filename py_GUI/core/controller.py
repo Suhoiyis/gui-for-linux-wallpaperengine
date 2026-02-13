@@ -112,8 +112,7 @@ class WallpaperController:
             cmd.extend(["--screen-root", scr, "--bg", str(wid)])
 
         # Global args
-        fps_val = self.config.get("fps")
-        cmd.extend(["-f", str(fps_val if fps_val is not None else 30)])
+        cmd.extend(["-f", str(self.config.get("fps", 30))])
 
         # Strict boolean check with default True for None
         silence_cfg = self.config.get("silence")
@@ -124,8 +123,7 @@ class WallpaperController:
         if is_silent_mode:
             cmd.append("--silent")
         else:
-            vol_val = self.config.get("volume")
-            cmd.extend(["--volume", str(vol_val if vol_val is not None else 50)])
+            cmd.extend(["--volume", str(self.config.get("volume", 50))])
 
         scaling = self.config.get("scaling") or "default"
         if scaling != "default":
@@ -226,9 +224,8 @@ class WallpaperController:
     def take_screenshot(self, wp_id: str, output_path: str, delay: Optional[int] = None):
         """Take a high-resolution screenshot of a specific wallpaper"""
         if delay is None:
-            delay_cfg = self.config.get("screenshotDelay")
-            delay = delay_cfg if delay_cfg is not None else 20
-        res = self.config.get("screenshotRes") or "3840x2160"
+            delay = self.config.get("screenshotDelay", 20)
+        res = self.config.get("screenshotRes", "3840x2160")
         
         # Check for xvfb-run dynamically and preference
         xvfb_path = shutil.which("xvfb-run")
