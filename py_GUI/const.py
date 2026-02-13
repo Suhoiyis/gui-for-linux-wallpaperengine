@@ -2,7 +2,7 @@ import os
 
 # Application constants
 APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.10.4'
+VERSION = '0.10.5'
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -250,15 +250,14 @@ menubutton.nav-btn > button:checked {
 }
 
 .wallpaper-name {
-    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+    background: rgba(30, 30, 30, 0.9);
     color: white;
-    border-radius: 0 0 12px 12px;
-    padding: 20px 10px 8px 10px;
-    border: none;
-    box-shadow: none;
-    font-weight: 600;
+    border-radius: 20px;
+    padding: 4px 14px;
+    border: 1px solid alpha(@accent_bg_color, 0.3);
+    box-shadow: 0 0 12px alpha(@accent_bg_color, 0.4);
+    font-weight: 500;
     font-size: 0.85em;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
 /* Wallpaper list - List view */

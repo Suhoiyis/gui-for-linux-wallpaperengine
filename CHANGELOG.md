@@ -1,12 +1,32 @@
 # 更新日志
 
-## 最新更新
+## v0.10.5 (2026-02-13)
+### 界面现代化与系统集成 (UI Modernization & Integration)
+- **系统强调色同步 (System Accent Color Sync)**:
+  - 彻底移除了 CSS 中所有硬编码的蓝色 (`#007bff`)。
+  - 全面接入 GTK/Libadwaita 系统变量（如 `@accent_bg_color`, `@accent_fg_color`），现在应用的所有按键、选中态、开关和阴影均会自动跟随系统的“强调色”设置，实现完美的视觉统一。
+- **“胶囊光晕”名称显示 (Capsule Glow Design)**:
+  - 重新设计了网格视图中的壁纸名称框，采用半透明深灰色圆角胶囊造型。
+  - 使用 30% 透明度的极细描边配合 40% 透明度的外发光阴影替代了原有的粗实线边框，视觉效果更柔和、更具现代氛围感。
+- **可访问性增强 (Accessibility)**:
+  - 为所有导航按钮和开关重新引入并优化了 `:focus-visible` 样式。现在使用键盘导航时，会有清晰的系统强调色边框提示。
+
+### 核心稳定性与 PR 修正 (Core Stability & PR Refinements)
+- **配置系统“None 陷阱”修复**: 修复了全局范围内 `config.get()` 无法在值为 `None` 时回退到默认值的逻辑缺陷，显著提升了冷启动时的配置可靠性。
+- **播放历史智能去重**: 优化了 `HistoryManager` 逻辑，重复应用同一壁纸时会将其记录置顶而非产生重复项。
+- **类型安全与监控优化**: 
+  - 修复了 `PerformanceMonitor` 中 `TypedDict` 的字段访问一致性问题。
+  - 增加了 CPU 采样数值的合理性上限校验，消除了短任务下的数学采样伪影。
+- **Markup 安全防护**: 为所有 Markdown/BBCode 转换逻辑增加了强制 XML 转义，彻底杜绝了因特殊字符导致的 Pango UI 渲染异常。
+
+---
+
+## v0.10.4 (2026-02-12)
 ### 监控与稳定性优化 (Monitoring & Stability)
 - **截图资源统计修复 (Screenshot Stats Fix)**:
   - 解决了快速截图（如视频壁纸）时 CPU 占用率偶现显示为 0% 的竞态条件问题。
   - **多阶段子进程轮询**: 引入了智能轮询机制，确保在 Xvfb 模式下能准确抓取到真实的 `linux-wallpaperengine` 进程而非包装器。
-  - **高精度采样**: 针对极短任务增加了手动 CPU 时间差值计算 fallback，并动态提升监控频率至 0.1s，确保捕捉瞬时负载。
-  - **数值异常处理**: 修复了由于极短任务导致的分母过小引发的 CPU 占用率显示为 1283% 等数学伪影，现在所有显示值均经过归一化与合理性上限校验 ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10))。
+  - **高精度采样**: 针对极短任务增加了手动 CPU 时间差值计算 fallback，并动态提升监控频率至 0.1s，确保捕捉瞬时负载 ([#10](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues/10))。
 
 ## v0.10.4 (2026-02-12)
 ### 视觉反馈增强 (Visual Feedback)

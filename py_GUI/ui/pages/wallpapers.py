@@ -721,16 +721,11 @@ class WallpapersPage(Gtk.Box):
             overlay.set_child(placeholder)
 
         name_box = Gtk.Box()
-        name_box.set_halign(Gtk.Align.FILL)
+        name_box.set_halign(Gtk.Align.CENTER)
         name_box.set_valign(Gtk.Align.END)
-        name_box.set_margin_bottom(0)
+        name_box.set_margin_bottom(10)
         
         lbl = Gtk.Label()
-        lbl.set_hexpand(True)
-        lbl.set_halign(Gtk.Align.START)
-        lbl.set_margin_start(10)
-        lbl.set_margin_end(10)
-        lbl.set_margin_bottom(8)
         lbl.set_use_markup(True)
         lbl.set_markup(markdown_to_pango(display_name))
         lbl.add_css_class("wallpaper-name")
