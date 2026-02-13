@@ -169,6 +169,7 @@ class WallpapersPage(Gtk.Box):
 
         stop_btn = Gtk.Button()
         stop_btn.set_icon_name("media-playback-stop-symbolic")
+        stop_btn.add_css_class("flat")
         stop_btn.add_css_class("mode-btn")
         stop_btn.add_css_class("stop-btn")
         stop_btn.set_tooltip_text("Stop Wallpaper")
@@ -177,12 +178,14 @@ class WallpapersPage(Gtk.Box):
 
         lucky_btn = Gtk.Button()
         lucky_btn.set_icon_name("media-playlist-shuffle-symbolic")
+        lucky_btn.add_css_class("flat")
         lucky_btn.add_css_class("mode-btn")
         lucky_btn.set_tooltip_text("I'm feeling lucky")
         lucky_btn.connect("clicked", self.on_feeling_lucky)
         actions_box.append(lucky_btn)
 
         self.btn_screenshot = Gtk.Button()
+        self.btn_screenshot.add_css_class("flat")
         self.btn_screenshot.add_css_class("mode-btn")
         self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
         
@@ -210,6 +213,7 @@ class WallpapersPage(Gtk.Box):
         self.btn_grid = Gtk.ToggleButton()
         self.btn_grid.set_icon_name("view-grid-symbolic")
         self.btn_grid.set_tooltip_text("Grid View")
+        self.btn_grid.add_css_class("flat")
         self.btn_grid.add_css_class("mode-btn")
         self.btn_grid.set_active(True)
         self.btn_grid.connect("toggled", self.on_view_grid)
@@ -218,6 +222,7 @@ class WallpapersPage(Gtk.Box):
         self.btn_list = Gtk.ToggleButton()
         self.btn_list.set_icon_name("view-list-symbolic")
         self.btn_list.set_tooltip_text("List View")
+        self.btn_list.add_css_class("flat")
         self.btn_list.add_css_class("mode-btn")
         self.btn_list.connect("toggled", self.on_view_list)
         view_box.append(self.btn_list)
