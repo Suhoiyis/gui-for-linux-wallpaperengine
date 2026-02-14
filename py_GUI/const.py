@@ -1,15 +1,19 @@
 import os
 
 # Application constants
-APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.10.5'
+APP_ID = "com.github.wallpaperengine.gui"
+VERSION = "0.10.5"
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-WORKSHOP_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/431960")
-ASSETS_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/common/wallpaper_engine/assets")
+WORKSHOP_PATH = os.path.expanduser(
+    "~/.local/share/Steam/steamapps/workshop/content/431960"
+)
+ASSETS_PATH = os.path.expanduser(
+    "~/.local/share/Steam/steamapps/common/wallpaper_engine/assets"
+)
 ICON_PATH = os.path.join(PROJECT_ROOT, "pic/icons/gui_tray_rounded.png")
 
 DEFAULT_CONFIG = {
@@ -33,7 +37,7 @@ DEFAULT_CONFIG = {
     "active_monitors": {},
     "cycleEnabled": False,
     "cycleInterval": 15,
-    "cycleOrder": "random", # random, title, size, type, id
+    "cycleOrder": "random",  # random, title, size, type, id
     "assetsPath": None,  # Custom assets directory (None = auto-detect)
     "wayland_only_active": False,
     "wayland_ignore_appids": "",
@@ -459,22 +463,26 @@ togglebutton.mode-btn {
 }
 
 .settings-nav-item {
-    background: transparent;
-    color: alpha(@theme_fg_color, 0.4);
+    background: alpha(@window_bg_color, 0.4);
+    color: alpha(@theme_fg_color, 0.5);
     border-radius: 10px;
     padding: 12px 16px;
     font-weight: 500;
-    border: none;
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    margin: 2px 0;
+    transition: all 0.2s ease;
 }
 
 .settings-nav-item:hover {
-    background: alpha(@theme_fg_color, 0.15);
+    background: alpha(@theme_fg_color, 0.1);
     color: @theme_fg_color;
+    border-color: alpha(@theme_fg_color, 0.2);
 }
 
 .settings-nav-item.active, .settings-nav-item:checked {
     background: @accent_bg_color;
     color: @accent_fg_color;
+    border-color: transparent;
     box-shadow: 0 4px 12px alpha(@accent_bg_color, 0.3);
 }
 
@@ -491,10 +499,12 @@ togglebutton.mode-btn {
 }
 
 .setting-row {
-    background: alpha(@window_bg_color, 0.3);
+    background: alpha(@window_bg_color, 0.5);
     border-radius: 12px;
     padding: 16px;
     margin: 8px 0;
+    border: 1px solid alpha(@theme_fg_color, 0.08);
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
 }
 
 .setting-label {
