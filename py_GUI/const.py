@@ -622,11 +622,29 @@ entry {
 }
 
 switch {
-    background: alpha(@window_bg_color, 0.6);
+    background: alpha(@theme_fg_color, 0.2);
+    border-radius: 9999px;
+    min-width: 42px;
+    min-height: 22px;
+    border: 1px solid alpha(@theme_fg_color, 0.3);
 }
 
 switch:checked {
     background: @accent_bg_color;
+    border-color: @accent_bg_color;
+}
+
+switch slider {
+    background: @theme_fg_color;
+    border-radius: 9999px;
+    min-width: 18px;
+    min-height: 18px;
+    margin: 2px;
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.3);
+}
+
+switch:checked slider {
+    background: @accent_fg_color;
 }
 
 dropdown button {
