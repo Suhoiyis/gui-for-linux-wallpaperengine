@@ -10,7 +10,7 @@ CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 WORKSHOP_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/431960")
 ASSETS_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/common/wallpaper_engine/assets")
-ICON_PATH = os.path.join(PROJECT_ROOT, "pic/gui_tray_rounded.png")
+ICON_PATH = os.path.join(PROJECT_ROOT, "pic/icons/gui_tray_rounded.png")
 
 DEFAULT_CONFIG = {
     "fps": 30,

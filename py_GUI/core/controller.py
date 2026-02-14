@@ -1,7 +1,8 @@
 import subprocess
 import os
 import shutil
-from typing import Optional, Callable, List, Tuple, Dict
+import re
+from typing import Optional, Callable, List, Tuple, Dict, TextIO
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.logger import LogManager
@@ -16,10 +17,12 @@ class WallpaperController:
         self.prop_manager = prop_manager
         self.log_manager = log_manager
         self.screen_manager = screen_manager
-        self.current_proc: Optional[subprocess.Popen] = None
+        self.current_proc: Optional[subprocess.Popen[bytes]] = None
         self.show_toast: Callable[[str], None] = lambda msg: None
         self._last_command: List[str] = []
         self.history_manager = None
+        self.wp_manager = None
+        self.engine_log: Optional[TextIO] = None
         
         self.perf_monitor = PerformanceMonitor(config=config)
         
@@ -45,7 +48,7 @@ class WallpaperController:
                 last = self.screen_manager.get_primary_screen() or self.screen_manager.get_first_screen() or "eDP-1"
             target_screens = [last]
 
-        active_monitors = self.config.get("active_monitors") or {}
+        active_monitors = dict(self.config.get("active_monitors", {}) or {})
         
         for s in target_screens:
             active_monitors[s] = wp_id
@@ -73,7 +76,7 @@ class WallpaperController:
 
     def stop_screen(self, screen: str):
         """Stop wallpaper on a specific screen"""
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = dict(self.config.get("active_monitors", {}) or {})
         if screen in active_monitors:
             del active_monitors[screen]
             self.config.set("active_monitors", active_monitors)
@@ -89,7 +92,7 @@ class WallpaperController:
         self.stop()
         
         # Validate screens
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = dict(self.config.get("active_monitors", {}) or {})
         connected_screens = self.screen_manager.get_screens()
         
         # Filter out disconnected screens
@@ -125,7 +128,7 @@ class WallpaperController:
         else:
             cmd.extend(["--volume", str(self.config.get("volume", 50))])
 
-        scaling = self.config.get("scaling") or "default"
+        scaling = str(self.config.get("scaling") or "default")
         if scaling != "default":
             cmd.extend(["--scaling", scaling])
 
@@ -147,7 +150,7 @@ class WallpaperController:
         if self.config.get("disableParticles", False):
             cmd.append("--disable-particles")
 
-        clamp = self.config.get("clamping", "clamp")
+        clamp = str(self.config.get("clamping", "clamp") or "clamp")
         if clamp != "clamp":
             cmd.extend(["--clamp", clamp])
 
@@ -225,7 +228,15 @@ class WallpaperController:
         """Take a high-resolution screenshot of a specific wallpaper"""
         if delay is None:
             delay = self.config.get("screenshotDelay", 20)
-        res = self.config.get("screenshotRes", "3840x2160")
+
+        default_res = "3840x2160"
+        res_raw = self.config.get("screenshotRes", default_res)
+        res = res_raw if isinstance(res_raw, str) else default_res
+        res = res.strip()
+        if not re.fullmatch(r"\d+[xX]\d+", res):
+            res = default_res
+        else:
+            res = res.lower()
         
         # Check for xvfb-run dynamically and preference
         xvfb_path = shutil.which("xvfb-run")
@@ -247,6 +258,7 @@ class WallpaperController:
             engine_cmd.extend(["--assets-dir", assets_path])
 
         if has_xvfb:
+            assert xvfb_path is not None
             # Wrap in xvfb-run
             # Important: The server args must be a single string for -s
             xvfb_args = ["-a", "-s", f"-screen 0 {res}x24 +extension GLX"]
