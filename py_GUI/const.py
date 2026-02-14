@@ -269,11 +269,12 @@ togglebutton.mode-btn {
 
 /* Wallpaper list - List view */
 .list-item {
-    background: alpha(@window_bg_color, 0.4);
+    background: alpha(@window_bg_color, 0.5);
     border-radius: 12px;
-    border: 2px solid transparent;
+    border: 1px solid alpha(@theme_fg_color, 0.08);
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
     padding: 12px;
-    margin: 5px 0;
+    margin: 4px 0;
     transition: all 0.2s;
 }
 
@@ -288,6 +289,11 @@ togglebutton.mode-btn {
 }
 
 .list-title {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.heading {
     font-weight: 600;
     font-size: 1.1em;
 }
@@ -502,7 +508,7 @@ togglebutton.mode-btn {
     background: alpha(@window_bg_color, 0.5);
     border-radius: 12px;
     padding: 16px;
-    margin: 8px 0;
+    margin: 0px 0;
     border: 1px solid alpha(@theme_fg_color, 0.08);
     box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
 }
@@ -595,7 +601,11 @@ scrollbar slider:hover {
 }
 
 .card {
+    background: alpha(@window_bg_color, 0.4);
     border-radius: 12px;
+    border: 1px solid alpha(@theme_fg_color, 0.08);
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
+    padding: 8px;
 }
 
 spinbutton {
@@ -627,11 +637,12 @@ dropdown button {
 
 /* Boxed Expander */
 .boxed-expander {
-    background: alpha(@theme_fg_color, 0.03);
+    background: alpha(@window_bg_color, 0.5);
     border: 1px solid alpha(@theme_fg_color, 0.08);
-    border-radius: 8px;
-    margin: 5px 0;
+    border-radius: 12px;
+    margin: 4px 0;
     padding: 2px;
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
 }
 
 .boxed-expander title {
