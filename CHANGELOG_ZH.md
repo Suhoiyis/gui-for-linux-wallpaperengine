@@ -1,6 +1,9 @@
 # 更新日志
 
-[English](CHANGELOG.md) | [中文](CHANGELOG_ZH.md)
+<p>
+    <a href="CHANGELOG.md">English</a> | 
+    <strong>简体中文</strong>
+<p>
 
 ## v0.10.5(2026-02-13)
 

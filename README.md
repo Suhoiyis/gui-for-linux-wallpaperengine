@@ -6,7 +6,7 @@
 <p align="center">A modern GTK4 graphical interface for managing and applying Steam Workshop live wallpapers on Linux.</p>
 
 <p align="center">
-    <a href="README.md">English</a> |
+    <strong>English</strong> | 
     <a href="README_ZH.md">简体中文</a>
 <p>
 
@@ -57,14 +57,14 @@
 
 - 📊 **Performance Monitor**: Real-time CPU/memory tracking with 60-second sparkline charts, per-process breakdown (Frontend, Backend, Tray), and detailed thread lists
 
-<details>
-  <summary>Click to view performance monitoring screenshots</summary>
-  <div align="center">
-    <br>
-    <img src="docs/assets/performance-monitor.png" width="70%" alt="Performance Monitor">
-    <p><em>Real-time CPU/memory tracing and process details</em></p>
-  </div>
-</details>
+    <details>
+      <summary>Click to view performance monitoring screenshots</summary>
+      <div align="center">
+        <br>
+        <img src="docs/assets/performance-monitor.png" width="70%" alt="Performance Monitor">
+        <p><em>Real-time CPU/memory tracing and process details</em></p>
+      </div>
+    </details>
 
 - 📸 **Smart Screenshot**: Silent 4K capture via Xvfb virtual framebuffer, intelligent delay per wallpaper type, resource usage stats, and screenshot history (last 10 captures)
 - 🔄 **Timed Rotation**: Auto-switch wallpapers at configurable intervals; supports random mode and ordered cycling by title, size, type, or folder ID
@@ -164,16 +164,16 @@ Click the monitor icon in the top bar to open the Performance page:
 - **Sparkline charts**: 60-second history for CPU (color-coded: green < 20%, orange < 40%, red ≥ 40%) and Memory (blue)
 - **Process details**: Expand Frontend/Backend/Tray for individual metrics, thread names, and currently playing wallpapers
 
-<details>
-<summary>Click to expand the settings page screenshot</summary>
-<br>
-<div align="center">
-  <img src="docs/assets/settings-page1.png" width="32%" alt="Settings page1">
-  <img src="docs/assets/settings-page2.png" width="32%" alt="settings page2">
-  <img src="docs/assets/settings-page3.png" width="32%" alt="settings page3">
-  <p><em>General Settings / Audio / Advanced Tweaks</em></p>
-</div>
-</details>
+  <details>
+  <summary>Click to expand the settings page screenshot</summary>
+  <br>
+  <div align="center">
+    <img src="docs/assets/settings-page1.png" width="32%" alt="Settings page1">
+    <img src="docs/assets/settings-page2.png" width="32%" alt="settings page2">
+    <img src="docs/assets/settings-page3.png" width="32%" alt="settings page3">
+    <p><em>General Settings / Audio / Advanced Tweaks</em></p>
+  </div>
+  </details>
 
 ## ⌨️ Command-Line Control
 

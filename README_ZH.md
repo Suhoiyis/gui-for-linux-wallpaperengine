@@ -6,8 +6,8 @@
 <p align="center">一个现代化的 GTK4 图形界面，用于在 Linux 上管理和应用 Steam Workshop 动态壁纸。</p>
 
 <p align="center">
-    <a href="README.md">English</a> |
-    <a href="README_ZH.md">简体中文</a>
+    <a href="README.md">English</a> | 
+    <strong>简体中文</strong>
 <p>
 
 > 基于 [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) 后端构建，针对 GNOME / Wayland 桌面环境进行了优化。

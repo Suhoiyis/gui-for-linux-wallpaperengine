@@ -1,5 +1,9 @@
 # 高级指南
-[English](ADVANCED.md) | [中文](ADVANCED_ZH.md)
+
+<p>
+    <a href="ADVANCED.md">English</a> | 
+    <strong>简体中文</strong>
+<p>
 
 本文档详细介绍了 Linux Wallpaper Engine GUI 中提供的高级功能和配置选项。
 
