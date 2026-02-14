@@ -1,13 +1,34 @@
-# Linux Wallpaper Engine GUI
+<h1 align="center">
+  <img src="pic/icons/GUI_rounded.png" alt="Logo" width="128" height="128" style="border-radius: 20px;"/><br>
+  LINUX WALLPAPER ENGINE GUI
+</h1>
 
-<a href="README_ZH.md">简体中文</a>
+<p align="center">A modern GTK4 graphical interface for managing and applying Steam Workshop live wallpapers on Linux.</p>
 
-A modern GTK4 graphical interface for managing and applying Steam Workshop live wallpapers on Linux.
+<p align="center">
+    <a href="README_ZH.md">简体中文</a>
+<p>
 
 > Built on [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) backend, optimized for GNOME / Wayland desktop environments.
 
-![Main Interface](docs/assets/main-ui.png)
 <!-- SCREENSHOT: Main interface — the wallpaper grid view after launching the app, with the sidebar showing wallpaper details (title, tags, description, preview image). Recommended: use dark theme, select a wallpaper so sidebar is populated. -->
+
+<div align="center">
+  <table width="100%">
+    <tr>
+      <td align="center"><b>Dark Mode</b></td>
+      <td align="center"><b>Light Mode</b></td>
+    </tr>
+    <tr>
+      <td align="center">
+        <img src="docs/assets/main-ui.png" width="400" style="display: block;">
+      </td>
+      <td align="center">
+        <img src="docs/assets/light-theme.png" width="400" style="display: block;">
+      </td>
+    </tr>
+  </table>
+</div>
 
 ## ✨ Features
 
@@ -25,12 +46,24 @@ A modern GTK4 graphical interface for managing and applying Steam Workshop live 
 
 - 🪟 **Compact Preview Mode**: A dedicated mini-window (300×700) designed for tiling window managers (Niri, Hyprland, Sway) with circular thumbnail navigation and keyboard shortcuts
 
-![Compact Preview Mode](docs/assets/compact-mode.png)
+<p align="center">
+  <img src="docs/assets/compact_mode.png" alt="Compact Preview Mode" width="40%"/>
+  <br>
+</p>
+
 <!-- SCREENSHOT: Compact Preview Mode — the standalone mini window showing a large wallpaper preview on top, 5 circular thumbnails at the bottom, and action buttons (Apply, Stop, Lucky, Jump). Recommended: show it side-by-side with a terminal or browser to demonstrate tiling WM usage. -->
 
 - 📊 **Performance Monitor**: Real-time CPU/memory tracking with 60-second sparkline charts, per-process breakdown (Frontend, Backend, Tray), and detailed thread lists
 
-![Performance Monitor](docs/assets/performance-monitor.png)
+<details>
+  <summary>Click to view performance monitoring screenshots</summary>
+  <div align="center">
+    <br>
+    <img src="docs/assets/performance-monitor.png" width="70%" alt="Performance Monitor">
+    <p><em>Real-time CPU/memory tracing and process details</em></p>
+  </div>
+</details>
+
 <!-- SCREENSHOT: Performance Monitor page — showing the overview cards (Total CPU, Total Memory, Active Threads), sparkline charts, and expanded process details with thread lists. Recommended: capture while a wallpaper is actively running to show meaningful data. -->
 
 - 📸 **Smart Screenshot**: Silent 4K capture via Xvfb virtual framebuffer, intelligent delay per wallpaper type, resource usage stats, and screenshot history (last 10 captures)
@@ -131,7 +164,17 @@ Click the monitor icon in the top bar to open the Performance page:
 - **Sparkline charts**: 60-second history for CPU (color-coded: green < 20%, orange < 40%, red ≥ 40%) and Memory (blue)
 - **Process details**: Expand Frontend/Backend/Tray for individual metrics, thread names, and currently playing wallpapers
 
-![Settings Page](docs/assets/settings-page.png)
+<details>
+<summary>Click to expand the settings page screenshot</summary>
+<br>
+<div align="center">
+  <img src="docs/assets/settings-page1.png" width="32%" alt="Settings page1">
+  <img src="docs/assets/settings-page2.png" width="32%" alt="settings page2">
+  <img src="docs/assets/settings-page3.png" width="32%" alt="settings page3">
+  <p><em>General Settings / Audio / Advanced Tweaks</em></p>
+</div>
+</details>
+
 <!-- SCREENSHOT: Settings page — showing the main configuration sections (General settings with FPS/Volume/Scaling, Automation with Auto Rotate and Cycle Order, Advanced with Screenshot options and Wayland Tweaks). Recommended: show both General and Automation sections visible. -->
 
 ## ⌨️ Command-Line Control
@@ -186,7 +229,7 @@ For the complete configuration reference, see [docs/ADVANCED.md](docs/ADVANCED.m
 
 | Type | Status | Notes |
 |------|--------|-------|
-| **Video** | ✅ Fully supported | MP4/WebM recommended; lowest resource usage |
+| **Video** | ✅ Fully supported | MP4/WebM recommended |
 | **Web** | ⚠️ Partial | Renders correctly, but **property adjustments are non-functional** (backend limitation) |
 | **Scene** | ⚠️ Limited | Complex particle systems / custom shaders may glitch or fail |
 
@@ -201,9 +244,6 @@ For detailed compatibility information, see [docs/COMPATIBILITY.md](docs/COMPATI
 
 - **Memory growth**: Long-running Web wallpapers may slowly increase memory usage (upstream engine issue). Enable timed rotation to mitigate.
 - **Test environment**: Primarily tested on Arch Linux + Niri. Other environments may require adjustments.
-
-![Light Theme](docs/assets/light-theme.png)
-<!-- SCREENSHOT: Light theme effect — the same main interface but with the system set to light mode, demonstrating that all text, buttons, borders, and controls are clearly visible and properly themed. Recommended: show a wallpaper selected with sidebar visible, contrasting with the dark theme screenshot above. -->
 
 ## ❓ FAQ
 
@@ -272,35 +312,35 @@ suw/
 ├── run_gui.py                 # Entry point
 ├── docs/                      # Documentation
 │   └── assets/                # Screenshots and images
-└── pic/                       # Application icons
+└── pic/icons/                 # Application icons
 ```
 
 ### Architecture Overview
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                    GTK4 + Libadwaita              │
+│                    GTK4 + Libadwaita             │
 │  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │
 │  │ Wallpaper│  │ Settings │  │  Performance   │  │
 │  │   Page   │  │   Page   │  │    Monitor     │  │
 │  └────┬─────┘  └────┬─────┘  └───────┬────────┘  │
-│       │              │                │            │
-│  ┌────┴──────────────┴────────────────┴─────────┐ │
-│  │           WallpaperController                 │ │
-│  │  ┌──────────┐ ┌──────────┐ ┌───────────────┐ │ │
-│  │  │ Config   │ │ History  │ │  Nickname     │ │ │
-│  │  │ Manager  │ │ Manager  │ │  Manager      │ │ │
-│  │  └──────────┘ └──────────┘ └───────────────┘ │ │
-│  └──────────────────┬───────────────────────────┘ │
-│                     │ subprocess                   │
-│  ┌──────────────────┴───────────────────────────┐ │
-│  │         linux-wallpaperengine (C++)           │ │
-│  │         Rendering · Audio · Screenshot        │ │
-│  └──────────────────────────────────────────────┘ │
-│                                                    │
-│  ┌──────────────────────────────────────────────┐ │
-│  │         System Tray (libayatana)              │ │
-│  └──────────────────────────────────────────────┘ │
+│       │             │                │           │
+│  ┌────┴─────────────┴────────────────┴─────────┐ │
+│  │           WallpaperController               │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │ │
+│  │  │ Config   │ │ History  │ │  Nickname    │ │ │
+│  │  │ Manager  │ │ Manager  │ │  Manager     │ │ │
+│  │  └──────────┘ └──────────┘ └──────────────┘ │ │
+│  └──────────────────┬──────────────────────────┘ │
+│                     │ subprocess                 │
+│  ┌──────────────────┴───────────────────────────┐│
+│  │         linux-wallpaperengine (C++)          ││
+│  │         Rendering · Audio · Screenshot       ││
+│  └──────────────────────────────────────────────┘│
+│                                                  │
+│  ┌─────────────────────────────────────────────┐ │
+│  │         System Tray (libayatana)            │ │
+│  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -344,7 +384,7 @@ Contributions are welcome!
 
 ## 📄 License
 
-GPLv3
+GPL-3.0 license
 
 ---
 

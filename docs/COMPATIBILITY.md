@@ -1,5 +1,5 @@
 # Wallpaper Compatibility Guide
-[中文](ADVANCED_ZH.md)
+[中文](COMPATIBILITY_ZH.md)
 
 This document details the compatibility and limitations of Linux Wallpaper Engine GUI in different environments.
 

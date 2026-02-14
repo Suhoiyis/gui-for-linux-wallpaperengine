@@ -1,13 +1,34 @@
-# Linux Wallpaper Engine GUI
+<h1 align="center">
+  <img src="pic/icons/GUI_rounded.png" alt="Logo" width="128" height="128" style="border-radius: 20px;"/><br>
+  LINUX WALLPAPER ENGINE GUI
+</h1>
 
-<a href="README.md">English</a>
+<p align="center">一个现代化的 GTK4 图形界面，用于在 Linux 上管理和应用 Steam Workshop 动态壁纸。</p>
 
-一个现代化的 GTK4 图形界面，用于在 Linux 上管理和应用 Steam Workshop 动态壁纸。
+<p align="center">
+    <a href="README.md">English</a>
+<p>
 
 > 基于 [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) 后端构建，针对 GNOME / Wayland 桌面环境进行了优化。
 
-![Main Interface](docs/assets/main-ui.png)
 <!-- SCREENSHOT: Main interface — the wallpaper grid view after launching the app, with the sidebar showing wallpaper details (title, tags, description, preview image). Recommended: use dark theme, select a wallpaper so sidebar is populated. -->
+
+<div align="center">
+  <table width="100%">
+    <tr>
+      <td align="center"><b>深色模式</b></td>
+      <td align="center"><b>浅色模式</b></td>
+    </tr>
+    <tr>
+      <td align="center">
+        <img src="docs/assets/main-ui.png" width="400" style="display: block;">
+      </td>
+      <td align="center">
+        <img src="docs/assets/light-theme.png" width="400" style="display: block;">
+      </td>
+    </tr>
+  </table>
+</div>
 
 ## ✨ 功能特性
 
@@ -25,12 +46,22 @@
 
 - 🪟 **紧凑预览模式**: 专为平铺式窗口管理器（Niri, Hyprland, Sway）设计的独立迷你窗口（300×700），支持圆形缩略图导航和键盘快捷键
 
-![Compact Preview Mode](docs/assets/compact-mode.png)
+<p align="center">
+  <img src="docs/assets/compact_mode.png" alt="Compact Preview Mode" width="40%"/>
+  <br>
+</p>
 <!-- SCREENSHOT: Compact Preview Mode — the standalone mini window showing a large wallpaper preview on top, 5 circular thumbnails at the bottom, and action buttons (Apply, Stop, Lucky, Jump). Recommended: show it side-by-side with a terminal or browser to demonstrate tiling WM usage. -->
 
 - 📊 **性能监控**: 实时 CPU/内存追踪，提供 60 秒实时趋势图、分进程明细（前端、后端、托盘）以及详细的线程列表
 
-![Performance Monitor](docs/assets/performance-monitor.png)
+<details>
+  <summary>点击查看性能监控截图</summary>
+  <div align="center">
+    <br>
+    <img src="docs/assets/performance-monitor.png" width="70%" alt="Performance Monitor">
+    <p><em>实时CPU/内存跟踪和进程详细信息</em></p>
+  </div>
+</details>
 <!-- SCREENSHOT: Performance Monitor page — showing the overview cards (Total CPU, Total Memory, Active Threads), sparkline charts, and expanded process details with thread lists. Recommended: capture while a wallpaper is actively running to show meaningful data. -->
 
 - 📸 **智能截图**: 通过 Xvfb 虚拟帧缓冲进行静默 4K 截屏，根据壁纸类型智能延迟，提供资源占用统计和截图历史（最近 10 张）
@@ -131,7 +162,16 @@ python3 run_gui.py --show
 - **趋势图**: 60 秒 CPU 历史（颜色标识：绿色 < 20%，橙色 < 40%，红色 ≥ 40%）和内存历史（蓝色）
 - **进程详情**: 展开前端/后端/托盘以查看各项指标、线程名称和当前播放的壁纸
 
-![Settings Page](docs/assets/settings-page.png)
+<details>
+<summary>点击展开设置页面截图</summary>
+<br>
+<div align="center">
+  <img src="docs/assets/settings-page1.png" width="32%" alt="Settings page1">
+  <img src="docs/assets/settings-page2.png" width="32%" alt="settings page2">
+  <img src="docs/assets/settings-page3.png" width="32%" alt="settings page3">
+  <p><em>General Settings / Audio / Advanced Tweaks</em></p>
+</div>
+</details>
 <!-- SCREENSHOT: Settings page — showing the main configuration sections (General settings with FPS/Volume/Scaling, Automation with Auto Rotate and Cycle Order, Advanced with Screenshot options and Wayland Tweaks). Recommended: show both General and Automation sections visible. -->
 
 ## ⌨️ 命令行控制
@@ -186,7 +226,7 @@ binds {
 
 | 类型 | 状态 | 备注 |
 |------|--------|-------|
-| **Video** | ✅ 完全支持 | 推荐使用 MP4/WebM；资源占用最低 |
+| **Video** | ✅ 完全支持 | 推荐使用 MP4/WebM |
 | **Web** | ⚠️ 部分支持 | 渲染正常，但 **属性调节功能失效**（后端限制） |
 | **Scene** | ⚠️ 受限 | 复杂的粒子系统 / 自定义着色器可能会出现闪烁或失败 |
 
@@ -202,7 +242,6 @@ binds {
 - **内存增长**: 长期运行的 Web 壁纸可能会缓慢增加内存占用（上游引擎问题）。启用定时轮换可以缓解此问题。
 - **测试环境**: 主要在 Arch Linux + Niri 上进行测试。其他环境可能需要调整。
 
-![Light Theme](docs/assets/light-theme.png)
 <!-- SCREENSHOT: Light theme effect — the same main interface but with the system set to light mode, demonstrating that all text, buttons, borders, and controls are clearly visible and properly themed. Recommended: show a wallpaper selected with sidebar visible, contrasting with the dark theme screenshot above. -->
 
 ## ❓ 常见问题
@@ -272,35 +311,35 @@ suw/
 ├── run_gui.py                 # Entry point
 ├── docs/                      # Documentation
 │   └── assets/                # Screenshots and images
-└── pic/                       # Application icons
+└── pic/icons/                 # Application icons
 ```
 
 ### 架构概览
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                    GTK4 + Libadwaita              │
+│                    GTK4 + Libadwaita             │
 │  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │
 │  │ Wallpaper│  │ Settings │  │  Performance   │  │
 │  │   Page   │  │   Page   │  │    Monitor     │  │
 │  └────┬─────┘  └────┬─────┘  └───────┬────────┘  │
-│       │              │                │            │
-│  ┌────┴──────────────┴────────────────┴─────────┐ │
-│  │           WallpaperController                 │ │
-│  │  ┌──────────┐ ┌──────────┐ ┌───────────────┐ │ │
-│  │  │ Config   │ │ History  │ │  Nickname     │ │ │
-│  │  │ Manager  │ │ Manager  │ │  Manager      │ │ │
-│  │  └──────────┘ └──────────┘ └───────────────┘ │ │
-│  └──────────────────┬───────────────────────────┘ │
-│                     │ subprocess                   │
-│  ┌──────────────────┴───────────────────────────┐ │
-│  │         linux-wallpaperengine (C++)           │ │
-│  │         Rendering · Audio · Screenshot        │ │
-│  └──────────────────────────────────────────────┘ │
-│                                                    │
-│  ┌──────────────────────────────────────────────┐ │
-│  │         System Tray (libayatana)              │ │
-│  └──────────────────────────────────────────────┘ │
+│       │             │                │           │
+│  ┌────┴─────────────┴────────────────┴─────────┐ │
+│  │           WallpaperController               │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │ │
+│  │  │ Config   │ │ History  │ │  Nickname    │ │ │
+│  │  │ Manager  │ │ Manager  │ │  Manager     │ │ │
+│  │  └──────────┘ └──────────┘ └──────────────┘ │ │
+│  └──────────────────┬──────────────────────────┘ │
+│                     │ subprocess                 │
+│  ┌──────────────────┴───────────────────────────┐│
+│  │         linux-wallpaperengine (C++)          ││
+│  │         Rendering · Audio · Screenshot       ││
+│  └──────────────────────────────────────────────┘│
+│                                                  │
+│  ┌─────────────────────────────────────────────┐ │
+│  │         System Tray (libayatana)            │ │
+│  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -344,7 +383,7 @@ suw/
 
 ## 📄 许可证
 
-GPLv3
+GPL-3.0 license
 
 ---
 

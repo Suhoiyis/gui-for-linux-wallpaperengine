@@ -213,7 +213,7 @@
 - **Scrollbar Style Optimization**: Changed the scrollbar to a thinner 3px width, semi-transparent white, and added fade-in/fade-out transition animations for a more elegant and low-profile look.
 
 ### Bug Fixes
-- **Icon Display**: Fixed the issue where the application displayed a default icon in the Dock/taskbar. By registering the `pic/` directory with the icon theme, setting the program run name (prgname), and optimizing `.desktop` file generation logic (adding `StartupWMClass` and synchronizing ID naming), perfect association between the window and custom icon was achieved.
+- **Icon Display**: Fixed the issue where the application displayed a default icon in the Dock/taskbar. By registering the `pic/icons/` directory with the icon theme, setting the program run name (prgname), and optimizing `.desktop` file generation logic (adding `StartupWMClass` and synchronizing ID naming), perfect association between the window and custom icon was achieved.
 - **History Refresh**: Fixed the issue where new screenshots failed to refresh in the list in real-time after the screenshot history exceeded 10 entries.
 - **CPU Monitoring**: Fixed the issue where CPU usage could not be collected (showing 0%) due to the short process lifecycle when taking fast screenshots (e.g., for video wallpapers) in an Xvfb environment.
 - **Performance Monitoring**: Fixed the issue where CPU usage was displayed too high. Previously, it showed single-core usage (which could exceed 100%), but it has now been standardized to total system usage (0-100%), consistent with system monitors (e.g., GNOME System Monitor).
