@@ -6,12 +6,11 @@
 <p align="center">一个现代化的 GTK4 图形界面，用于在 Linux 上管理和应用 Steam Workshop 动态壁纸。</p>
 
 <p align="center">
-    <a href="README.md">English</a>
+    <a href="README.md">English</a> |
+    <a href="README_ZH.md">简体中文</a>
 <p>
 
 > 基于 [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) 后端构建，针对 GNOME / Wayland 桌面环境进行了优化。
-
-<!-- SCREENSHOT: Main interface — the wallpaper grid view after launching the app, with the sidebar showing wallpaper details (title, tags, description, preview image). Recommended: use dark theme, select a wallpaper so sidebar is populated. -->
 
 <div align="center">
   <table width="100%">
@@ -50,7 +49,6 @@
   <img src="docs/assets/compact_mode.png" alt="Compact Preview Mode" width="40%"/>
   <br>
 </p>
-<!-- SCREENSHOT: Compact Preview Mode — the standalone mini window showing a large wallpaper preview on top, 5 circular thumbnails at the bottom, and action buttons (Apply, Stop, Lucky, Jump). Recommended: show it side-by-side with a terminal or browser to demonstrate tiling WM usage. -->
 
 - 📊 **性能监控**: 实时 CPU/内存追踪，提供 60 秒实时趋势图、分进程明细（前端、后端、托盘）以及详细的线程列表
 
@@ -62,7 +60,6 @@
     <p><em>实时CPU/内存跟踪和进程详细信息</em></p>
   </div>
 </details>
-<!-- SCREENSHOT: Performance Monitor page — showing the overview cards (Total CPU, Total Memory, Active Threads), sparkline charts, and expanded process details with thread lists. Recommended: capture while a wallpaper is actively running to show meaningful data. -->
 
 - 📸 **智能截图**: 通过 Xvfb 虚拟帧缓冲进行静默 4K 截屏，根据壁纸类型智能延迟，提供资源占用统计和截图历史（最近 10 张）
 - 🔄 **定时轮换**: 按可配置的时间间隔自动切换壁纸；支持随机模式和按标题、大小、类型或文件夹 ID 的顺序轮换
@@ -172,7 +169,6 @@ python3 run_gui.py --show
   <p><em>General Settings / Audio / Advanced Tweaks</em></p>
 </div>
 </details>
-<!-- SCREENSHOT: Settings page — showing the main configuration sections (General settings with FPS/Volume/Scaling, Automation with Auto Rotate and Cycle Order, Advanced with Screenshot options and Wayland Tweaks). Recommended: show both General and Automation sections visible. -->
 
 ## ⌨️ 命令行控制
 
@@ -241,8 +237,6 @@ binds {
 
 - **内存增长**: 长期运行的 Web 壁纸可能会缓慢增加内存占用（上游引擎问题）。启用定时轮换可以缓解此问题。
 - **测试环境**: 主要在 Arch Linux + Niri 上进行测试。其他环境可能需要调整。
-
-<!-- SCREENSHOT: Light theme effect — the same main interface but with the system set to light mode, demonstrating that all text, buttons, borders, and controls are clearly visible and properly themed. Recommended: show a wallpaper selected with sidebar visible, contrasting with the dark theme screenshot above. -->
 
 ## ❓ 常见问题
 
@@ -388,6 +382,7 @@ GPL-3.0 license
 ---
 
 **Current Version**: v0.10.5
+
 **Last Updated**: 2026-02-13
 
 *A Vibe Coding experiment project*

@@ -1,6 +1,6 @@
 # 更新日志
 
-[English](CHANGELOG.md)
+[English](CHANGELOG.md) | [中文](CHANGELOG_ZH.md)
 
 ## v0.10.5(2026-02-13)
 

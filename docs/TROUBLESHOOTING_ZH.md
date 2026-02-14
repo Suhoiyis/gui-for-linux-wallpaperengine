@@ -1,6 +1,6 @@
 # 🐛 常见错误与故障排除
 
-[English](TROUBLESHOOTING.md)
+[English](TROUBLESHOOTING.md) | [中文](TROUBLESHOOTING_ZH.md)
 
 本文档记录了 GUI 和 `linux-wallpaperengine` 后端的常见错误及其含义。
 

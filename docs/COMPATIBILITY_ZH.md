@@ -1,5 +1,5 @@
 # 壁纸兼容性指南
-[English](COMPATIBILITY.md)
+[English](COMPATIBILITY.md) | [中文](COMPATIBILITY_ZH.md)
 
 本文档详细说明了 Linux Wallpaper Engine GUI 在不同环境下的兼容性与限制。
 
