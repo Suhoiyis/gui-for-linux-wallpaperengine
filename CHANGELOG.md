@@ -12,14 +12,14 @@
 
 ## v0.10.6 (2026-02-15)
 ### UI fixes
--Fixed a visual problem where items under `performance` and `settings` were not wrapped in borders.
-  -Now each item will be surrounded by a light gray border, and the line spacing between each item has been fine-tuned to make it more coordinated.
--Fixed visual issue with toggle switches under `Settings`:
-  -Adapted the appropriate switch slider color and sliding track color for both light mode and dark mode.
--Fixed the accent color display problem when switching between `grid` and `list` under `home`
+- Fixed a visual problem where items under `performance` and `settings` were not wrapped in borders.
+  - Now each item will be surrounded by a light gray border, and the line spacing between each item has been fine-tuned to make it more coordinated.
+- Fixed visual issue with toggle switches under `Settings`:
+  - Adapted the appropriate switch slider color and sliding track color for both light mode and dark mode.
+- Fixed the accent color display problem when switching between `grid` and `list` under `home`
 
 ### Performance fixes
--Fixed the problem of serious lag and slow response when switching between Grid and List.
+- Fixed the problem of serious lag and slow response when switching between Grid and List.
 
 
 ## v0.10.5 (2026-02-13)
