@@ -236,7 +236,7 @@ class WallpaperApp(Adw.Application):
         # Add 'pic' directory to icon search path
         # py_GUI/ui/app.py -> .../linux-wallpaperengine-gui/
         base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        pic_path = os.path.join(base_path, "pic")
+        pic_path = os.path.join(base_path, "pic/icons")
         
         if os.path.exists(pic_path):
             icon_theme.add_search_path(pic_path)
