@@ -733,6 +733,154 @@ linux-wallpaperengine --screen-root DP-1 --bg 11111111 --screen-root HDMI-A-1 --
 #### 17.窗口化预览 (P3-16)
 **描述**：利用 `--window` 参数提供独立的壁纸预览窗口，无需直接应用到桌面即可查看动态效果。
 
+#### 18.性能卡顿分析 🔍
+##### 问题现象
+- 初次切换 grid ↔ list：2-3 秒卡顿
+- 后续切换：正常响应
+根本原因（确定）
+##### 1. 双重过滤调用 ⚠️ 主要原因
+###### 第1次过滤（第748行）
+def refresh_wallpaper_grid(self):
+    self._current_wp_ids = list(self.filter_wallpapers().keys())  # ← 第1次
+    ...
+    self.populate_grid()  # 或 populate_list()
+###### 第2次过滤（第815行/第827行）
+def populate_grid(self):
+    filtered = self.filter_wallpapers()  # ← 第2次
+    for folder_id, wp in filtered.items():
+        card = self.create_grid_item(...)
+每次切换都调用 filter_wallpapers() 两次，包括：
+- 遍历所有壁纸并转换为小写
+- 排序整个列表（O(n log n)）
+假设有 500+ 个壁纸，这就是 1000+ 次字符串转换 + 两次排序。
+---
+##### 2. 同步图像加载 ⚠️ 次要原因，累积效应
+create_grid_item() 和 create_list_item() 中：
+###### 第869行（grid）和第942行（list）
+texture = self.wp_manager.get_texture(wp["preview"], 170)
+- Grid 模式：170×170px，如果有 100 个壁纸 = 100 次图像加载
+- List 模式：100×100px，加载较小但仍需 I/O
+虽然有 LRU 缓存，但初次切换时缓存是冷的（第一次加载 grid 时缓存了 170×170，切到 list 时需要 100×100 的新尺寸 = 缓存 miss）。
+---
+##### 3. 为什么第一次慢，后续快？
+| 操作 | 第1次切换 | 第2次切换 |
+|------|---------|---------|
+| 过滤 | 2次过滤 | 2次过滤（已排序，可优化但此次仍执行） |
+| 缓存 | 冷缓存（0 条项） | 热缓存（已有 100+ 条） |
+| 图像 I/O | 100+ 次磁盘读取 | 0 次（全部缓存命中） |
+| GTK 布局 | 第一次渲染，可能堆积任务 | GTK 内部状态已热 |
+关键：图像缓存是全局的，一旦加载过就永久保存。
+---
+哪个函数最耗时？
+基于代码复杂度：
+| 函数 | 耗时 | 原因 |
+|------|------|------|
+| filter_wallpapers() | 中等 | 两次排序 + 字符串转换 |
+| get_texture() | 最高 | 同步 I/O + 图像解码（GIF 尤其慢） |
+| populate_grid/list() | 低-中等 | 循环创建 GTK 对象，但 GTK 对象本身不贵 |
+| GTK 布局计算 | 未知 | 可能在后台累积，但应该是异步 |
+排序：get_texture() > filter_wallpapers() > populate_x()
+---
+GIF 处理额外成本
+如果壁纸包含 GIF，get_texture() 中：
+if path.lower().endswith('.gif'):
+    # PIL Image.open() + seek(15) + convert("RGBA") + thumbnail() + save to PNG + PixbufLoader.write()
+这是最重的操作。如果有 20-30 个 GIF 壁纸，就能解释 2-3 秒的延迟。
+---
+为什么 GTK 布局不是主要原因
+- GTK4 FlowBox/ListBox 的 append() 应该是异步的
+- 布局计算一般被推迟到下一个主循环迭代
+- 但如果有 100+ 个复杂 widget，仍可能影响首帧延迟
+---
+##### 总结
+初次切换 grid→list 的 2-3 秒延迟由以下累积：
+1. filter_wallpapers() 被调用 2 次（冗余）
+   → 遍历 500+ 壁纸、转小写、排序
+2. get_texture() 缓存冷启动
+   → 需要加载 100+ 张图（特别是 GIF 的解码很慢）
+3. 可能的 GTK 布局堆积
+   → 100+ 新 widget 加入容器，布局计算延迟
+后续切换快的原因：
+  - 图像已全部缓存在内存中 → get_texture() 返回秒级
+  - filter_wallpapers() 仍被调用 2 次，但成本低（数据在内存，不涉及 I/O）
+
+性能优化方案 🚀
+方案 A: 消除冗余过滤（高优先级） ⭐⭐⭐
+问题：filter_wallpapers() 在 refresh_wallpaper_grid() 和 populate_grid/list() 中各调用一次
+解决方案：
+1. 在 refresh_wallpaper_grid() 中计算一次过滤结果
+2. 将结果存储为实例变量（如 self._filtered_wallpapers）
+3. populate_grid/list() 直接使用该缓存，不再重复过滤
+4. 其他地方如果需要过滤结果，也使用同一份缓存
+收益：
+- 消除 50% 的排序操作（从 2 次 → 1 次）
+- 消除重复的字符串转换和迭代
+- 对于 500+ 壁纸库，估计减少 0.5-1 秒 延迟
+实现成本：低（改 3-4 处代码）
+---
+方案 B: 异步图像加载（中优先级） ⭐⭐
+问题：get_texture() 是同步调用，在 create_grid_item/list_item() 中阻塞 UI 线程
+解决方案：
+1. 改进 populate_grid/list() 使用分批加载：
+   - 先创建所有 widget，先用占位符（空白或文字）
+   - 通过 GLib.idle_add() 或 GLib.timeout_add() 分批加载图像
+   - 后台线程（ThreadPool）加载图像，加载完成后更新 UI
+2. 或者用"懒加载"策略：
+   - 只加载可见区域（Viewport）的图像
+   - 使用 ScrolledWindow 的滚动事件监听
+   - 动态加载/卸载图像纹理
+收益：
+- UI 线程不被阻塞，响应立即
+- 用户看到快速的"骨架屏" → 逐步加载图像的体验
+- 如果用户不滚动到下面的图，不浪费时间加载
+- 估计减少 1-2 秒 感知延迟
+实现成本：中等（需要线程管理、UI 更新同步）
+---
+方案 C: 缓存预热（低优先级） ⭐
+问题：第一次切换时图像缓存冷启动
+解决方案：
+1. 在应用启动时，后台预加载第一批（如前 50 个）常见尺寸的图像
+2. 或者在用户切换视图时，提前加载对方视图的图像（预测性加载）
+收益：
+- 如果用户经常在 grid ↔ list 间切换，第二次以后的切换会更快
+- 估计减少 0.3-0.5 秒（取决于预加载批次大小）
+实现成本：低-中等（需要后台任务调度）
+---
+方案 D: 优化 GIF 处理（中优先级） ⭐⭐
+问题：GIF 解码（PIL convert("RGBA") + thumbnail()）是最耗时操作
+解决方案：
+1. 检测 GIF 的实际帧率和复杂度，使用更激进的缩放
+2. 用 Image.NEAREST 而不是 Image.Resampling.LANCZOS 加快缩放
+3. 预先将常用 GIF 转换为 WebP/PNG，减少运行时解码
+4. 限制一次加载的 GIF 数量（如果库里 GIF 太多）
+收益：
+- 如果库里有大量 GIF，可减少 0.5-1 秒
+- 对纯视频/静态图库影响小
+实现成本：低-中等
+---
+方案 E: 分离视图容器（高优先级） ⭐⭐⭐
+问题：每次切换时，set_child() 在同一个 ScrolledWindow 中交换 FlowBox/ListBox，可能导致 GTK 重新布局
+解决方案：
+1. 预先创建两个 ScrolledWindow（一个用于 grid，一个用于 list）
+2. 切换时只改变可见性（set_visible()），不是 set_child()
+3. 两个容器同时接收 populate_grid/list() 的更新，保持同步
+收益：
+- 消除 GTK 布局重排的成本
+- 视图间切换变成纯 CSS 可见性切换
+- 估计减少 0.2-0.5 秒
+实现成本：低-中等（需要修改 build_ui() 和切换逻辑）
+---
+推荐实施顺序
+| 优先级 | 方案 | 预期收益 | 成本 | 实施难度 |
+|------|------|--------|------|--------|
+| 1 | A（消除冗余过滤） | 0.5-1s | 低 | 简单 |
+| 2 | E（分离视图容器） | 0.2-0.5s | 低-中 | 简单 |
+| 3 | B（异步加载） | 1-2s | 中 | 中等 |
+| 4 | D（GIF 优化） | 0.5-1s（条件） | 低-中 | 简单 |
+| 5 | C（缓存预热） | 0.3-0.5s | 低 | 简单 |
+快速方案（5 分钟）：实施 A + E → 预期改善 0.7-1.5 秒
+终极方案（1 小时）：实施 A + E + B → 预期改善 1.7-3 秒 + 响应性大幅提升
+
 ---
 
 ## 📅 实施时间表
