@@ -439,6 +439,19 @@ class WallpapersPage(Gtk.Box):
         self.show_toast("📋 Command copied to clipboard")
 
     def on_view_grid(self, btn):
+        # Only set toggle start time if an actual change will occur
+        if not btn.get_active():
+            # 用户点击已选中的按钮，阻止它变成未选中
+            # 使用 handler_block 来防止递归触发
+            signal_id = getattr(self, "_grid_signal_id", None)
+            if signal_id:
+                btn.handler_block(signal_id)
+                btn.set_active(True)
+                btn.handler_unblock(signal_id)
+            else:
+                btn.set_active(True)
+            # Early return without setting toggle timer
+            return
         self._toggle_start_time = time.perf_counter()
         if not btn.get_active():
             # 用户点击已选中的按钮，阻止它变成未选中
@@ -464,7 +477,7 @@ class WallpapersPage(Gtk.Box):
         self.refresh_wallpaper_grid()
 
     def on_view_list(self, btn):
-        self._toggle_start_time = time.perf_counter()
+        # Only set toggle start time if an actual change will occur
         if not btn.get_active():
             # 用户点击已选中的按钮，阻止它变成未选中
             # 使用 handler_block 来防止递归触发
@@ -475,7 +488,9 @@ class WallpapersPage(Gtk.Box):
                 btn.handler_unblock(signal_id)
             else:
                 btn.set_active(True)
+            # Early return without setting toggle timer
             return
+        self._toggle_start_time = time.perf_counter()
         # 正常切换到 List 视图
         # 阻止 grid 按钮的信号，避免它的 toggled 处理器误认为是用户点击
         grid_signal_id = getattr(self, "_grid_signal_id", None)
@@ -777,12 +792,17 @@ class WallpapersPage(Gtk.Box):
             self._filtered_wallpapers = self.filter_wallpapers()
             self._filter_cache_key = cache_key
             self._current_wp_ids = list(self._filtered_wallpapers.keys())
-            # Debug log for verification (can be removed after fix is confirmed)
-            self.log_manager.add_debug(
-                f"Filter recomputed: {len(self._filtered_wallpapers)} matches, "
-                f"prev_ids length: {len(prev_ids or [])}",
-                "GUI",
-            )
+            # Debug log for verification - only when debug mode enabled
+            try:
+                if self.config.get("debug", False):
+                    self.log_manager.add_debug(
+                        f"Filter recomputed: {len(self._filtered_wallpapers)} matches, "
+                        f"prev_ids length: {len(prev_ids or [])}",
+                        "GUI",
+                    )
+            except Exception:
+                # Defensive: config may not be available in rare test contexts
+                pass
 
         self.sidebar.set_wallpaper_ids(self._current_wp_ids)
 
@@ -792,19 +812,23 @@ class WallpapersPage(Gtk.Box):
         if self.view_mode == "grid":
             self.view_stack.set_visible_child_name("grid")
             # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
-            if (recomputed and ids_changed) or self.flowbox.get_first_child() is None:
+            if recomputed or ids_changed or self.flowbox.get_first_child() is None:
                 self.populate_grid()
         else:
             self.view_stack.set_visible_child_name("list")
             # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
-            if (recomputed and ids_changed) or self.listbox.get_first_child() is None:
+            if recomputed or ids_changed or self.listbox.get_first_child() is None:
                 self.populate_list()
 
         self.update_counter_label()
 
         if hasattr(self, "_toggle_start_time") and self._toggle_start_time:
             elapsed = (time.perf_counter() - self._toggle_start_time) * 1000
-            self.log_manager.add_info(f"View toggle time: {elapsed:.1f} ms")
+            try:
+                if self.config.get("debug", False):
+                    self.log_manager.add_info(f"View toggle time: {elapsed:.1f} ms")
+            except Exception:
+                pass
             self._toggle_start_time = None
 
     def _invalidate_filter_cache(self):
@@ -820,7 +844,12 @@ class WallpapersPage(Gtk.Box):
         return self._filtered_wallpapers
 
     def filter_wallpapers(self) -> Dict[str, Dict]:
-        self.log_manager.add_debug("filter_wallpapers called", "GUI")
+        # Avoid spamming logs in hot path; only log when debug enabled
+        try:
+            if self.config.get("debug", False):
+                self.log_manager.add_debug("filter_wallpapers called", "GUI")
+        except Exception:
+            pass
         if not self.search_query:
             result = dict(self.wp_manager._wallpapers)
         else:
