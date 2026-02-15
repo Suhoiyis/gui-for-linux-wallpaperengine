@@ -781,12 +781,12 @@ class WallpapersPage(Gtk.Box):
 
         if self.view_mode == "grid":
             self.view_stack.set_visible_child_name("grid")
-            # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
+            # Populate if: (1) filter was recomputed (cache miss), OR (2) container is empty
             if recomputed or ids_changed or self.flowbox.get_first_child() is None:
                 self.populate_grid()
         else:
             self.view_stack.set_visible_child_name("list")
-            # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
+            # Populate if: (1) filter was recomputed (cache miss), OR (2) container is empty
             if recomputed or ids_changed or self.listbox.get_first_child() is None:
                 self.populate_list()
 
