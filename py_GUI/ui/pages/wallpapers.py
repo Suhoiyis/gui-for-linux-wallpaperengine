@@ -1086,7 +1086,10 @@ class WallpapersPage(Gtk.Box):
             if "_list_btn" in wp:
                 wp["_list_btn"].add_css_class("selected")
 
-        filtered = self.filter_wallpapers()
+        filtered = getattr(self, "_filtered_wallpapers", None)
+        if filtered is None:
+            filtered = self.filter_wallpapers()
+            self._filtered_wallpapers = filtered
         if folder_id in filtered:
             index = list(filtered.keys()).index(folder_id) + 1
             total = len(filtered)
