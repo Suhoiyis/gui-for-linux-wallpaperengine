@@ -769,35 +769,15 @@ class WallpapersPage(Gtk.Box):
             )
 
     def refresh_wallpaper_grid(self):
-        cache_key = (self.search_query, self.sort_mode, self.sort_reverse)
-
-        # Save previous IDs to detect changes
+        prev_cache_key = getattr(self, "_filter_cache_key", None)
         prev_ids = getattr(self, "_current_wp_ids", None)
 
-        # Track whether filter was recomputed
-        recomputed = (cache_key != self._filter_cache_key) or (
-            self._filtered_wallpapers is None
-        )
-        if recomputed:
-            self._filtered_wallpapers = self.filter_wallpapers()
-            self._filter_cache_key = cache_key
-            self._current_wp_ids = list(self._filtered_wallpapers.keys())
-            # Debug log for verification - only when debug mode enabled
-            try:
-                if self.config.get("debug", False):
-                    self.log_manager.add_debug(
-                        f"Filter recomputed: {len(self._filtered_wallpapers)} matches, "
-                        f"prev_ids length: {len(prev_ids or [])}",
-                        "GUI",
-                    )
-            except Exception:
-                # Defensive: config may not be available in rare test contexts
-                pass
+        filtered = self.get_filtered_wallpapers()
+
+        recomputed = self._filter_cache_key != prev_cache_key
+        ids_changed = prev_ids != self._current_wp_ids
 
         self.sidebar.set_wallpaper_ids(self._current_wp_ids)
-
-        # Detect if ID list changed (determines whether UI rebuild is needed)
-        ids_changed = prev_ids != self._current_wp_ids
 
         if self.view_mode == "grid":
             self.view_stack.set_visible_child_name("grid")
