@@ -453,17 +453,7 @@ class WallpapersPage(Gtk.Box):
             # Early return without setting toggle timer
             return
         self._toggle_start_time = time.perf_counter()
-        if not btn.get_active():
-            # 用户点击已选中的按钮，阻止它变成未选中
-            # 使用 handler_block 来防止递归触发
-            signal_id = getattr(self, "_grid_signal_id", None)
-            if signal_id:
-                btn.handler_block(signal_id)
-                btn.set_active(True)
-                btn.handler_unblock(signal_id)
-            else:
-                btn.set_active(True)
-            return
+
         # 正常切换到 Grid 视图
         # 阻止 list 按钮的信号，避免它的 toggled 处理器误认为是用户点击
         list_signal_id = getattr(self, "_list_signal_id", None)
