@@ -365,7 +365,7 @@ class WallpapersPage(Gtk.Box):
         self.update_counter_label()
 
     def update_counter_label(self):
-        filtered = self.filter_wallpapers()
+        filtered = self.get_filtered_wallpapers()
         total = len(filtered)
 
         if total == 0:
@@ -395,7 +395,7 @@ class WallpapersPage(Gtk.Box):
             self.update_counter_label()
 
     def _jump_to_index(self, idx: int):
-        filtered = self.filter_wallpapers()
+        filtered = self.get_filtered_wallpapers()
         total = len(filtered)
         if total == 0:
             return
@@ -501,7 +501,7 @@ class WallpapersPage(Gtk.Box):
         self.update_sidebar_index()
 
     def update_sidebar_index(self):
-        filtered = self.filter_wallpapers()
+        filtered = self.get_filtered_wallpapers()
         if self.selected_wp and self.selected_wp in filtered:
             index = list(filtered.keys()).index(self.selected_wp) + 1
             total = len(filtered)
@@ -811,6 +811,14 @@ class WallpapersPage(Gtk.Box):
         self._filtered_wallpapers = None
         self._filter_cache_key = None
 
+    def get_filtered_wallpapers(self) -> Dict[str, Dict]:
+        cache_key = (self.search_query, self.sort_mode, self.sort_reverse)
+        if self._filter_cache_key != cache_key or self._filtered_wallpapers is None:
+            self._filtered_wallpapers = self.filter_wallpapers()
+            self._filter_cache_key = cache_key
+            self._current_wp_ids = list(self._filtered_wallpapers.keys())
+        return self._filtered_wallpapers
+
     def filter_wallpapers(self) -> Dict[str, Dict]:
         self.log_manager.add_debug("filter_wallpapers called", "GUI")
         if not self.search_query:
@@ -1088,8 +1096,7 @@ class WallpapersPage(Gtk.Box):
 
         filtered = getattr(self, "_filtered_wallpapers", None)
         if filtered is None:
-            filtered = self.filter_wallpapers()
-            self._filtered_wallpapers = filtered
+            filtered = self.get_filtered_wallpapers()
         if folder_id in filtered:
             index = list(filtered.keys()).index(folder_id) + 1
             total = len(filtered)
