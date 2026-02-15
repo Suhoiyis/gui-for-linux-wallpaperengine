@@ -193,12 +193,13 @@ class SettingsPage(Gtk.Box):
         self.fps_spin.set_value(self.config.get("fps", 30))
         r.append(self.fps_spin)
 
+
         # Scaling
         r = self.create_row("Scaling Mode", "How the wallpaper fits.")
         box.append(r)
         scaling_opts = ["default", "stretch", "fit", "fill"]
         self.scaling_dd = Gtk.DropDown.new_from_strings(scaling_opts)
-        curr = str(self.config.get("scaling", "default"))
+        curr = str(self.config.get("scaling") or "default")
         if curr in scaling_opts:
             self.scaling_dd.set_selected(scaling_opts.index(curr))
         r.append(self.scaling_dd)
@@ -275,7 +276,7 @@ class SettingsPage(Gtk.Box):
         order_opts = ["Random", "Title", "Size ↑", "Size ↓", "Type", "ID"]
         self.cycle_order_dd = Gtk.DropDown.new_from_strings(order_opts)
         
-        curr_order = self.config.get("cycleOrder", "random").lower()
+        curr_order = (self.config.get("cycleOrder") or "random").lower()
         # Find index
         idx = 0
         if curr_order == "size": 
@@ -407,7 +408,7 @@ class SettingsPage(Gtk.Box):
         
         workshop_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.path_entry = Gtk.Entry()
-        self.path_entry.set_text(self.config.get("workshopPath", WORKSHOP_PATH))
+        self.path_entry.set_text(self.config.get("workshopPath") or WORKSHOP_PATH)
         self.path_entry.set_hexpand(True)
         workshop_box.append(self.path_entry)
         
@@ -514,7 +515,7 @@ class SettingsPage(Gtk.Box):
         r = self.create_row("Screenshot Resolution", "Target resolution (e.g. 1920x1080, 3840x2160).")
         box.append(r)
         self.screenshot_res_entry = Gtk.Entry()
-        self.screenshot_res_entry.set_text(self.config.get("screenshotRes", "3840x2160"))
+        self.screenshot_res_entry.set_text(self.config.get("screenshotRes") or "3840x2160")
         self.screenshot_res_entry.set_hexpand(False)
         self.screenshot_res_entry.set_width_chars(15)
         r.append(self.screenshot_res_entry)

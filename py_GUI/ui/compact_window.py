@@ -323,7 +323,7 @@ class CompactWindow(Gtk.ApplicationWindow):
             self._on_apply_clicked(None)
     
     def _on_jump_clicked(self, btn):
-        active_monitors = self.config.get("active_monitors", {})
+        active_monitors = self.config.get("active_monitors") or {}
         current_wp_id = active_monitors.get(self.target_screen)
         
         if current_wp_id:
@@ -339,7 +339,7 @@ class CompactWindow(Gtk.ApplicationWindow):
             screen = selected_item.get_string()
             self.target_screen = screen
             
-            active_monitors = self.config.get("active_monitors", {})
+            active_monitors = self.config.get("active_monitors") or {}
             current_wp_id = active_monitors.get(screen)
             
             if current_wp_id:

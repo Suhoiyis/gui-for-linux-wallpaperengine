@@ -2,6 +2,7 @@ import os
 import json
 import gc
 import shutil
+import io
 from typing import Dict, Optional, List
 import gi
 
@@ -217,12 +218,27 @@ class WallpaperManager:
 
         if path.lower().endswith('.gif'):
             try:
-                anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
                 pixbuf = None
-                if anim.is_static_image():
-                    pixbuf = anim.get_static_image()
+                if HAS_PIL:
+                    with Image.open(path) as img:
+                        n_frames = getattr(img, 'n_frames', 1)
+                        target_frame = min(15, n_frames - 1) if n_frames > 1 else 0
+                        img.seek(target_frame)
+                        
+                        thumb_img = img.convert("RGBA")
+                        thumb_img.thumbnail((size, size), Image.Resampling.LANCZOS)
+                        
+                        buf = io.BytesIO()
+                        thumb_img.save(buf, format="PNG")
+                        data = buf.getvalue()
+                        
+                        loader = GdkPixbuf.PixbufLoader.new_with_type("png")
+                        loader.write(data)
+                        loader.close()
+                        pixbuf = loader.get_pixbuf()
                 else:
-                    pixbuf = anim.get_static_image() 
+                    anim = GdkPixbuf.PixbufAnimation.new_from_file(path)
+                    pixbuf = anim.get_static_image()
                 
                 if pixbuf:
                     scaled = pixbuf.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)

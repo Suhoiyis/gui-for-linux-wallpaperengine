@@ -11,7 +11,7 @@ class AppIntegrator:
         self.project_root = os.path.dirname(os.path.dirname(current_dir))
         
         self.script_path = os.path.join(self.project_root, "run_gui.py")
-        self.icon_path = os.path.join(self.project_root, "pic/GUI_rounded.png")
+        self.icon_path = os.path.join(self.project_root, "pic/icons/GUI_rounded.png")
         self.python_exe = sys.executable
         
         self.app_dir = os.path.expanduser("~/.local/share/applications")
