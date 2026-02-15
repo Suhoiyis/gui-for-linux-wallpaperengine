@@ -381,8 +381,8 @@ GPL-3.0 license
 
 ---
 
-**Current Version**: v0.10.5
+**Current Version**: v0.10.6
 
-**Last Updated**: 2026-02-13
+**Last Updated**: 2026-02-15
 
 *A Vibe Coding experiment project*
