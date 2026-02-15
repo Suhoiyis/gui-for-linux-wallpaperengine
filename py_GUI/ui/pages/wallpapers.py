@@ -65,6 +65,10 @@ class WallpapersPage(Gtk.Box):
 
         self._current_wp_ids = []
 
+        # Cache for filtered wallpapers
+        self._filtered_wallpapers: Optional[Dict] = None
+        self._filter_cache_key: Optional[tuple] = None
+
         self.build_ui()
         self._setup_key_controller()
 
@@ -87,12 +91,6 @@ class WallpapersPage(Gtk.Box):
         # Status Panel
         self.build_status_panel(self.left_area)
 
-        # Scroll Area
-        self.wallpaper_scroll = Gtk.ScrolledWindow()
-        self.wallpaper_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.wallpaper_scroll.set_vexpand(True)
-        self.left_area.append(self.wallpaper_scroll)
-
         # Containers
         self.flowbox = Gtk.FlowBox()
         self.flowbox.set_valign(Gtk.Align.START)
@@ -112,7 +110,22 @@ class WallpapersPage(Gtk.Box):
         self.listbox.set_margin_start(20)
         self.listbox.set_margin_end(20)
 
-        self.wallpaper_scroll.set_child(self.flowbox)
+        # Dual ScrolledWindow architecture for grid/list views
+        self.grid_scroll = Gtk.ScrolledWindow()
+        self.grid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.grid_scroll.set_vexpand(True)
+        self.grid_scroll.set_child(self.flowbox)
+
+        self.list_scroll = Gtk.ScrolledWindow()
+        self.list_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.list_scroll.set_vexpand(True)
+        self.list_scroll.set_child(self.listbox)
+
+        # Stack to manage view visibility
+        self.view_stack = Gtk.Stack()
+        self.view_stack.add_named(self.grid_scroll, "grid")
+        self.view_stack.add_named(self.list_scroll, "list")
+        self.left_area.append(self.view_stack)
 
         # Sidebar
         self.sidebar = Sidebar(
@@ -426,6 +439,7 @@ class WallpapersPage(Gtk.Box):
         self.show_toast("📋 Command copied to clipboard")
 
     def on_view_grid(self, btn):
+        self._toggle_start_time = time.perf_counter()
         if not btn.get_active():
             # 用户点击已选中的按钮，阻止它变成未选中
             # 使用 handler_block 来防止递归触发
@@ -450,6 +464,7 @@ class WallpapersPage(Gtk.Box):
         self.refresh_wallpaper_grid()
 
     def on_view_list(self, btn):
+        self._toggle_start_time = time.perf_counter()
         if not btn.get_active():
             # 用户点击已选中的按钮，阻止它变成未选中
             # 使用 handler_block 来防止递归触发
@@ -475,11 +490,13 @@ class WallpapersPage(Gtk.Box):
 
     def on_search_changed(self, entry):
         self.search_query = entry.get_text().lower().strip()
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         self.update_sidebar_index()
 
     def on_search_activate(self, entry):
         self.search_query = entry.get_text().lower().strip()
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         self.update_sidebar_index()
 
@@ -504,6 +521,7 @@ class WallpapersPage(Gtk.Box):
         self.sort_mode, self.sort_reverse = sort_map.get(idx, ("title", False))
         self.config.set("sortMode", self.sort_mode)
         self.config.set("sortReverse", self.sort_reverse)
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         self.update_sidebar_index()
 
@@ -526,6 +544,7 @@ class WallpapersPage(Gtk.Box):
                 f"⚠️ {len(self.wp_manager.scan_errors)} wallpaper(s) failed to load"
             )
 
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
 
     def on_feeling_lucky(self, btn):
@@ -745,19 +764,55 @@ class WallpapersPage(Gtk.Box):
             )
 
     def refresh_wallpaper_grid(self):
-        self._current_wp_ids = list(self.filter_wallpapers().keys())
+        cache_key = (self.search_query, self.sort_mode, self.sort_reverse)
+
+        # Save previous IDs to detect changes
+        prev_ids = getattr(self, "_current_wp_ids", None)
+
+        # Track whether filter was recomputed
+        recomputed = (cache_key != self._filter_cache_key) or (
+            self._filtered_wallpapers is None
+        )
+        if recomputed:
+            self._filtered_wallpapers = self.filter_wallpapers()
+            self._filter_cache_key = cache_key
+            self._current_wp_ids = list(self._filtered_wallpapers.keys())
+            # Debug log for verification (can be removed after fix is confirmed)
+            self.log_manager.add_debug(
+                f"Filter recomputed: {len(self._filtered_wallpapers)} matches, "
+                f"prev_ids length: {len(prev_ids or [])}",
+                "GUI",
+            )
+
         self.sidebar.set_wallpaper_ids(self._current_wp_ids)
 
+        # Detect if ID list changed (determines whether UI rebuild is needed)
+        ids_changed = prev_ids != self._current_wp_ids
+
         if self.view_mode == "grid":
-            self.wallpaper_scroll.set_child(self.flowbox)
-            self.populate_grid()
+            self.view_stack.set_visible_child_name("grid")
+            # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
+            if (recomputed and ids_changed) or self.flowbox.get_first_child() is None:
+                self.populate_grid()
         else:
-            self.wallpaper_scroll.set_child(self.listbox)
-            self.populate_list()
+            self.view_stack.set_visible_child_name("list")
+            # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
+            if (recomputed and ids_changed) or self.listbox.get_first_child() is None:
+                self.populate_list()
 
         self.update_counter_label()
 
+        if hasattr(self, "_toggle_start_time") and self._toggle_start_time:
+            elapsed = (time.perf_counter() - self._toggle_start_time) * 1000
+            self.log_manager.add_info(f"View toggle time: {elapsed:.1f} ms")
+            self._toggle_start_time = None
+
+    def _invalidate_filter_cache(self):
+        self._filtered_wallpapers = None
+        self._filter_cache_key = None
+
     def filter_wallpapers(self) -> Dict[str, Dict]:
+        self.log_manager.add_debug("filter_wallpapers called", "GUI")
         if not self.search_query:
             result = dict(self.wp_manager._wallpapers)
         else:
@@ -812,7 +867,12 @@ class WallpapersPage(Gtk.Box):
                 break
             self.flowbox.remove(child)
 
-        filtered = self.filter_wallpapers()
+        # Clean up old widget references to prevent memory leaks
+        for wp in self.wp_manager._wallpapers.values():
+            if "_grid_btn" in wp:
+                del wp["_grid_btn"]
+
+        filtered = self._filtered_wallpapers or {}
         for folder_id, wp in filtered.items():
             card = self.create_grid_item(folder_id, wp)
             self.flowbox.append(card)
@@ -824,7 +884,12 @@ class WallpapersPage(Gtk.Box):
                 break
             self.listbox.remove(child)
 
-        filtered = self.filter_wallpapers()
+        # Clean up old widget references to prevent memory leaks
+        for wp in self.wp_manager._wallpapers.values():
+            if "_list_btn" in wp:
+                del wp["_list_btn"]
+
+        filtered = self._filtered_wallpapers or {}
         total = len(filtered)
         for idx, (folder_id, wp) in enumerate(filtered.items()):
             row = self.create_list_item(folder_id, wp, idx + 1, total)
@@ -1124,6 +1189,7 @@ class WallpapersPage(Gtk.Box):
         if self.wp_manager.delete_wallpaper(wp_id):
             if self.active_wp == wp_id:
                 self.on_stop_clicked()
+            self._invalidate_filter_cache()
             self.refresh_wallpaper_grid()
         else:
             show_error_dialog(self.window, "Error", "Failed to delete wallpaper")
@@ -1181,6 +1247,7 @@ class WallpapersPage(Gtk.Box):
         def on_confirm(new_nick: str):
             if self.nickname_manager:
                 self.nickname_manager.set(wp_id, new_nick)
+                self._invalidate_filter_cache()
                 self.refresh_wallpaper_grid()
                 self.update_sidebar_index()
                 self.update_active_wallpaper_label()
