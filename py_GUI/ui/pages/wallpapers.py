@@ -4,13 +4,19 @@ import signal
 import time
 from typing import Dict, Optional, Callable
 import gi
-gi.require_version('Gtk', '4.0')
-gi.require_version('Gdk', '4.0')
-gi.require_version('Gio', '2.0')
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
+gi.require_version("Gio", "2.0")
 from gi.repository import Gtk, Gdk, Gio, Pango, GLib
 
 from py_GUI.ui.components.sidebar import Sidebar
-from py_GUI.ui.components.dialogs import show_delete_dialog, show_error_dialog, show_screenshot_success_dialog, show_nickname_dialog
+from py_GUI.ui.components.dialogs import (
+    show_delete_dialog,
+    show_error_dialog,
+    show_screenshot_success_dialog,
+    show_nickname_dialog,
+)
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
@@ -20,13 +26,22 @@ from py_GUI.utils import markdown_to_pango, format_size
 
 from py_GUI.core.screen import ScreenManager
 
+
 class WallpapersPage(Gtk.Box):
-    def __init__(self, window: Gtk.Window, config: ConfigManager, 
-                 wp_manager: WallpaperManager, prop_manager: PropertiesManager,
-                 controller: WallpaperController, log_manager: LogManager,
-                 screen_manager: ScreenManager, nickname_manager, show_toast: Callable[[str], None] = None):
+    def __init__(
+        self,
+        window: Gtk.Window,
+        config: ConfigManager,
+        wp_manager: WallpaperManager,
+        prop_manager: PropertiesManager,
+        controller: WallpaperController,
+        log_manager: LogManager,
+        screen_manager: ScreenManager,
+        nickname_manager,
+        show_toast: Callable[[str], None] = None,
+    ):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
-        
+
         self.window = window
         self.config = config
         self.wp_manager = wp_manager
@@ -42,13 +57,17 @@ class WallpapersPage(Gtk.Box):
         self.sort_mode: str = self.config.get("sortMode", "title") or "title"
         self.sort_reverse: bool = bool(self.config.get("sortReverse", False))
         self.selected_wp: Optional[str] = None
-        self.active_wp: Optional[str] = None # Tracks running wallpaper
-        
+        self.active_wp: Optional[str] = None  # Tracks running wallpaper
+
         # We need to track current screen selection
         self.selected_screen = self.config.get("lastScreen") or "eDP-1"
         self.apply_mode = self.config.get("apply_mode") or "diff"
 
         self._current_wp_ids = []
+
+        # Cache for filtered wallpapers
+        self._filtered_wallpapers: Optional[Dict] = None
+        self._filter_cache_key: Optional[tuple] = None
 
         self.build_ui()
         self._setup_key_controller()
@@ -72,12 +91,6 @@ class WallpapersPage(Gtk.Box):
         # Status Panel
         self.build_status_panel(self.left_area)
 
-        # Scroll Area
-        self.wallpaper_scroll = Gtk.ScrolledWindow()
-        self.wallpaper_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.wallpaper_scroll.set_vexpand(True)
-        self.left_area.append(self.wallpaper_scroll)
-
         # Containers
         self.flowbox = Gtk.FlowBox()
         self.flowbox.set_valign(Gtk.Align.START)
@@ -97,23 +110,51 @@ class WallpapersPage(Gtk.Box):
         self.listbox.set_margin_start(20)
         self.listbox.set_margin_end(20)
 
-        self.wallpaper_scroll.set_child(self.flowbox)
+        # Dual ScrolledWindow architecture for grid/list views
+        self.grid_scroll = Gtk.ScrolledWindow()
+        self.grid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.grid_scroll.set_vexpand(True)
+        self.grid_scroll.set_child(self.flowbox)
+
+        self.list_scroll = Gtk.ScrolledWindow()
+        self.list_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.list_scroll.set_vexpand(True)
+        self.list_scroll.set_child(self.listbox)
+
+        # Stack to manage view visibility
+        self.view_stack = Gtk.Stack()
+        self.view_stack.add_named(self.grid_scroll, "grid")
+        self.view_stack.add_named(self.list_scroll, "list")
+        self.left_area.append(self.view_stack)
 
         # Sidebar
-        self.sidebar = Sidebar(self.wp_manager, self.prop_manager, self.controller, self.log_manager, self.nickname_manager)
-        
+        self.sidebar = Sidebar(
+            self.wp_manager,
+            self.prop_manager,
+            self.controller,
+            self.log_manager,
+            self.nickname_manager,
+        )
+
         screens = self.screen_manager.get_screens()
         self.sidebar.set_available_screens(screens)
         self.sidebar.set_current_screen_callback(lambda: self.selected_screen)
-        self.sidebar.set_apply_mode_callback(lambda: getattr(self, 'apply_mode', 'diff'))
+        self.sidebar.set_apply_mode_callback(
+            lambda: getattr(self, "apply_mode", "diff")
+        )
         self.sidebar.set_thumb_clicked_callback(self.select_wallpaper)
         self.sidebar.set_compact_callbacks(
             on_stop=self.on_stop_clicked,
             on_lucky=lambda: self.on_feeling_lucky(None),
-            on_jump=lambda: self.on_currently_using_clicked()
+            on_jump=lambda: self.on_currently_using_clicked(),
         )
-        self.sidebar.btn_edit_nickname.connect("clicked", lambda _: self.on_edit_nickname(self.selected_wp) if self.selected_wp else None)
-        
+        self.sidebar.btn_edit_nickname.connect(
+            "clicked",
+            lambda _: (
+                self.on_edit_nickname(self.selected_wp) if self.selected_wp else None
+            ),
+        )
+
         self.content_box.append(self.sidebar)
 
     def build_toolbar(self):
@@ -122,7 +163,7 @@ class WallpapersPage(Gtk.Box):
 
         search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.toolbar.append(search_box)
-        
+
         icon_search = Gtk.Image.new_from_icon_name("system-search-symbolic")
         icon_search.add_css_class("status-label")
         search_box.append(icon_search)
@@ -131,8 +172,8 @@ class WallpapersPage(Gtk.Box):
         self.search_entry.add_css_class("search-entry")
         self.search_entry.set_placeholder_text("Search wallpapers...")
         self.search_entry.set_width_chars(50)
-        self.search_entry.connect('changed', self.on_search_changed)
-        self.search_entry.connect('activate', self.on_search_activate)
+        self.search_entry.connect("changed", self.on_search_changed)
+        self.search_entry.connect("activate", self.on_search_activate)
         search_box.append(self.search_entry)
 
         sort_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -188,20 +229,20 @@ class WallpapersPage(Gtk.Box):
         self.btn_screenshot.add_css_class("flat")
         self.btn_screenshot.add_css_class("mode-btn")
         self.btn_screenshot.set_tooltip_text("Take Screenshot of current wallpaper")
-        
+
         self.screenshot_stack = Gtk.Stack()
         self.screenshot_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        
+
         icon = Gtk.Image.new_from_icon_name("camera-photo-symbolic")
         self.screenshot_stack.add_named(icon, "icon")
-        
+
         self.screenshot_spinner = Gtk.Spinner()
         self.screenshot_spinner.set_size_request(24, 24)
         self.screenshot_stack.add_named(self.screenshot_spinner, "spinner")
-        
+
         self.screenshot_stack.set_visible_child_name("icon")
         self.btn_screenshot.set_child(self.screenshot_stack)
-        
+
         self.btn_screenshot.connect("clicked", lambda _: self.on_screenshot_clicked())
         actions_box.append(self.btn_screenshot)
 
@@ -216,7 +257,7 @@ class WallpapersPage(Gtk.Box):
         self.btn_grid.add_css_class("flat")
         self.btn_grid.add_css_class("mode-btn")
         self.btn_grid.set_active(True)
-        self.btn_grid.connect("toggled", self.on_view_grid)
+        self._grid_signal_id = self.btn_grid.connect("toggled", self.on_view_grid)
         view_box.append(self.btn_grid)
 
         self.btn_list = Gtk.ToggleButton()
@@ -224,7 +265,7 @@ class WallpapersPage(Gtk.Box):
         self.btn_list.set_tooltip_text("List View")
         self.btn_list.add_css_class("flat")
         self.btn_list.add_css_class("mode-btn")
-        self.btn_list.connect("toggled", self.on_view_list)
+        self._list_signal_id = self.btn_list.connect("toggled", self.on_view_list)
         view_box.append(self.btn_list)
 
     def build_status_panel(self, parent: Gtk.Box):
@@ -336,7 +377,7 @@ class WallpapersPage(Gtk.Box):
         current_wp_id = active_monitors.get(self.selected_screen)
 
         self.lbl_jump_total.set_label(f"/{total}")
-        
+
         if current_wp_id and current_wp_id in filtered:
             wp_index = list(filtered.keys()).index(current_wp_id) + 1
             self.entry_jump.set_text(str(wp_index))
@@ -347,7 +388,7 @@ class WallpapersPage(Gtk.Box):
         text = entry.get_text().strip()
         if not text:
             return
-            
+
         try:
             self._jump_to_index(int(text))
         except ValueError:
@@ -358,10 +399,12 @@ class WallpapersPage(Gtk.Box):
         total = len(filtered)
         if total == 0:
             return
-            
-        if idx < 1: idx = 1
-        if idx > total: idx = total
-        
+
+        if idx < 1:
+            idx = 1
+        if idx > total:
+            idx = total
+
         ids = list(filtered.keys())
         wp_id = ids[idx - 1]
         self.select_wallpaper(wp_id)
@@ -390,30 +433,70 @@ class WallpapersPage(Gtk.Box):
         if not cmd:
             self.show_toast("No command to copy")
             return
-        
+
         clipboard = Gdk.Display.get_default().get_clipboard()
         clipboard.set(cmd)
         self.show_toast("📋 Command copied to clipboard")
 
     def on_view_grid(self, btn):
-        if btn.get_active():
+        self._toggle_start_time = time.perf_counter()
+        if not btn.get_active():
+            # 用户点击已选中的按钮，阻止它变成未选中
+            # 使用 handler_block 来防止递归触发
+            signal_id = getattr(self, "_grid_signal_id", None)
+            if signal_id:
+                btn.handler_block(signal_id)
+                btn.set_active(True)
+                btn.handler_unblock(signal_id)
+            else:
+                btn.set_active(True)
+            return
+        # 正常切换到 Grid 视图
+        # 阻止 list 按钮的信号，避免它的 toggled 处理器误认为是用户点击
+        list_signal_id = getattr(self, "_list_signal_id", None)
+        if list_signal_id:
+            self.btn_list.handler_block(list_signal_id)
             self.btn_list.set_active(False)
-            self.view_mode = "grid"
-            self.refresh_wallpaper_grid()
+            self.btn_list.handler_unblock(list_signal_id)
+        else:
+            self.btn_list.set_active(False)
+        self.view_mode = "grid"
+        self.refresh_wallpaper_grid()
 
     def on_view_list(self, btn):
-        if btn.get_active():
+        self._toggle_start_time = time.perf_counter()
+        if not btn.get_active():
+            # 用户点击已选中的按钮，阻止它变成未选中
+            # 使用 handler_block 来防止递归触发
+            signal_id = getattr(self, "_list_signal_id", None)
+            if signal_id:
+                btn.handler_block(signal_id)
+                btn.set_active(True)
+                btn.handler_unblock(signal_id)
+            else:
+                btn.set_active(True)
+            return
+        # 正常切换到 List 视图
+        # 阻止 grid 按钮的信号，避免它的 toggled 处理器误认为是用户点击
+        grid_signal_id = getattr(self, "_grid_signal_id", None)
+        if grid_signal_id:
+            self.btn_grid.handler_block(grid_signal_id)
             self.btn_grid.set_active(False)
-            self.view_mode = "list"
-            self.refresh_wallpaper_grid()
+            self.btn_grid.handler_unblock(grid_signal_id)
+        else:
+            self.btn_grid.set_active(False)
+        self.view_mode = "list"
+        self.refresh_wallpaper_grid()
 
     def on_search_changed(self, entry):
         self.search_query = entry.get_text().lower().strip()
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         self.update_sidebar_index()
 
     def on_search_activate(self, entry):
         self.search_query = entry.get_text().lower().strip()
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         self.update_sidebar_index()
 
@@ -428,11 +511,17 @@ class WallpapersPage(Gtk.Box):
 
     def on_sort_changed(self, dd, pspec):
         idx = dd.get_selected()
-        sort_map = {0: ("title", False), 1: ("size", True), 2: ("size", False),
-                    3: ("type", False), 4: ("id", False)}
+        sort_map = {
+            0: ("title", False),
+            1: ("size", True),
+            2: ("size", False),
+            3: ("type", False),
+            4: ("id", False),
+        }
         self.sort_mode, self.sort_reverse = sort_map.get(idx, ("title", False))
         self.config.set("sortMode", self.sort_mode)
         self.config.set("sortReverse", self.sort_reverse)
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         self.update_sidebar_index()
 
@@ -443,14 +532,19 @@ class WallpapersPage(Gtk.Box):
 
     def on_reload_wallpapers(self, btn):
         self.wp_manager.clear_cache()
-        self.wp_manager.workshop_path = self.config.get("workshopPath", self.wp_manager.workshop_path)
+        self.wp_manager.workshop_path = self.config.get(
+            "workshopPath", self.wp_manager.workshop_path
+        )
         self.wp_manager.scan()
-        
+
         if self.wp_manager.last_scan_error:
             self.show_toast(f"⚠️ {self.wp_manager.last_scan_error}")
         elif self.wp_manager.scan_errors:
-            self.show_toast(f"⚠️ {len(self.wp_manager.scan_errors)} wallpaper(s) failed to load")
-        
+            self.show_toast(
+                f"⚠️ {len(self.wp_manager.scan_errors)} wallpaper(s) failed to load"
+            )
+
+        self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
 
     def on_feeling_lucky(self, btn):
@@ -463,10 +557,13 @@ class WallpapersPage(Gtk.Box):
     def on_screenshot_clicked(self):
         active_monitors = self.config.get("active_monitors") or {}
         target_id = active_monitors.get(self.selected_screen)
-        
+
         if not target_id:
-            show_error_dialog(self.window, "Screenshot Error", 
-                              f"No wallpaper is currently running on {self.selected_screen}.\n\nPlease apply a wallpaper to this screen first.")
+            show_error_dialog(
+                self.window,
+                "Screenshot Error",
+                f"No wallpaper is currently running on {self.selected_screen}.\n\nPlease apply a wallpaper to this screen first.",
+            )
             return
 
         # UI Feedback: Busy state
@@ -491,7 +588,9 @@ class WallpapersPage(Gtk.Box):
             except Exception as e:
                 save_dir = "/tmp"
                 fallback_used = True
-                self.log_manager.add_error(f"Failed to create {base_dir}: {e}. Falling back to /tmp", "GUI")
+                self.log_manager.add_error(
+                    f"Failed to create {base_dir}: {e}. Falling back to /tmp", "GUI"
+                )
 
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         filename = f"Screenshot_{target_id}_{timestamp}.png"
@@ -500,48 +599,62 @@ class WallpapersPage(Gtk.Box):
         try:
             # Smart Delay Logic
             wp = self.wp_manager._wallpapers.get(target_id)
-            wp_type = wp.get('type', 'Unknown').lower() if wp else 'unknown'
-            
+            wp_type = wp.get("type", "Unknown").lower() if wp else "unknown"
+
             user_delay = self.config.get("screenshotDelay", 20)
             user_delay = int(user_delay)
-            
-            if wp_type == 'video':
+
+            if wp_type == "video":
                 delay_frames = 5
-                self.log_manager.add_info("Smart Delay: Video wallpaper detected, using fast capture (5 frames)", "GUI")
+                self.log_manager.add_info(
+                    "Smart Delay: Video wallpaper detected, using fast capture (5 frames)",
+                    "GUI",
+                )
             else:
                 delay_frames = user_delay
                 # Web wallpapers might need more time, user setting is respected
-            
+
             self.log_manager.add_info(f"Taking screenshot to {output_path}...", "GUI")
-            proc, tracker = self.controller.take_screenshot(target_id, output_path, delay=delay_frames)
-            
+            proc, tracker = self.controller.take_screenshot(
+                target_id, output_path, delay=delay_frames
+            )
+
             start_time = time.time()
-            
+
             # Calculate max wait time (timeout)
             # Xvfb software rendering is slow.
             import shutil
+
             has_xvfb_bin = shutil.which("xvfb-run") is not None
             prefer_xvfb = self.config.get("preferXvfb", True)
             is_xvfb = has_xvfb_bin and prefer_xvfb
-            
+
             # Massive timeout for Xvfb software rendering at 4K
-            fps_target = 1.0 if is_xvfb else 60.0 
+            fps_target = 1.0 if is_xvfb else 60.0
             buffer_s = 20.0 if is_xvfb else 3.0
-            
+
             kill_threshold_s = (delay_frames / fps_target) + buffer_s
-            self.log_manager.add_info(f"Screenshot timeout: {kill_threshold_s:.1f}s (Xvfb={is_xvfb})", "GUI")
-            
+            self.log_manager.add_info(
+                f"Screenshot timeout: {kill_threshold_s:.1f}s (Xvfb={is_xvfb})", "GUI"
+            )
+
             last_size = -1
             stable_ticks = 0
-            
+
             def check_capture_status():
                 nonlocal last_size, stable_ticks
                 elapsed = time.time() - start_time
-                
+
                 # Debug logging every 1s
                 if int(elapsed * 10) % 10 == 0:
-                    fsize = os.path.getsize(output_path) if os.path.exists(output_path) else -1
-                    self.log_manager.add_debug(f"Capture status: T={elapsed:.1f}s, File={fsize} bytes", "GUI")
+                    fsize = (
+                        os.path.getsize(output_path)
+                        if os.path.exists(output_path)
+                        else -1
+                    )
+                    self.log_manager.add_debug(
+                        f"Capture status: T={elapsed:.1f}s, File={fsize} bytes", "GUI"
+                    )
 
                 # 1. Check if process is already dead (crashed or finished)
                 if proc.poll() is not None:
@@ -554,11 +667,18 @@ class WallpapersPage(Gtk.Box):
                         try:
                             with open("/tmp/wallpaper_screenshot_error.log", "r") as f:
                                 err_msg = f.read().strip()
-                        except: pass
-                        
-                        self.log_manager.add_error(f"Screenshot process crashed: {err_msg}", "GUI")
+                        except:
+                            pass
+
+                        self.log_manager.add_error(
+                            f"Screenshot process crashed: {err_msg}", "GUI"
+                        )
                         reset_ui()
-                        show_error_dialog(self.window, "Screenshot Failed", f"The engine crashed or exited early.\n\nBackend Error:\n{err_msg[-500:]}")
+                        show_error_dialog(
+                            self.window,
+                            "Screenshot Failed",
+                            f"The engine crashed or exited early.\n\nBackend Error:\n{err_msg[-500:]}",
+                        )
                     return False
 
                 # 2. Check if file exists and is stable
@@ -571,7 +691,7 @@ class WallpapersPage(Gtk.Box):
                             else:
                                 stable_ticks = 0
                             last_size = curr_size
-                            
+
                             # Stable for ~200ms -> Kill it
                             if stable_ticks >= 2:
                                 kill_process()
@@ -579,7 +699,7 @@ class WallpapersPage(Gtk.Box):
                                 GLib.timeout_add(200, show_success)
                                 return False
                     except OSError:
-                        pass # File might be locked or busy
+                        pass  # File might be locked or busy
 
                 # 3. Timeout -> Force Kill (Trigger save-on-exit)
                 if elapsed > kill_threshold_s:
@@ -587,8 +707,8 @@ class WallpapersPage(Gtk.Box):
                     # Give it 1s to flush on exit
                     GLib.timeout_add(1000, verify_after_kill)
                     return False
-                
-                return True # Continue polling
+
+                return True  # Continue polling
 
             def kill_process():
                 try:
@@ -598,19 +718,25 @@ class WallpapersPage(Gtk.Box):
 
             def show_success():
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                    self.log_manager.add_info(f"Screenshot complete: {output_path}", "GUI")
-                    
+                    self.log_manager.add_info(
+                        f"Screenshot complete: {output_path}", "GUI"
+                    )
+
                     stats = self.controller.perf_monitor.stop_task(tracker)
-                    self.controller.perf_monitor.add_screenshot_history(target_id, output_path, stats)
+                    self.controller.perf_monitor.add_screenshot_history(
+                        target_id, output_path, stats
+                    )
                     stats_str = f"Duration: {stats['duration']:.2f}s | Max CPU: {stats['max_cpu']:.1f}% | Max Mem: {stats['max_mem']:.1f} MB"
-                    
+
                     texture = None
                     wp = self.wp_manager._wallpapers.get(target_id)
                     if wp and wp.get("preview"):
                         texture = self.wp_manager.get_texture(wp["preview"], size=120)
-                    
+
                     reset_ui()
-                    show_screenshot_success_dialog(self.window, output_path, stats_str, texture)
+                    show_screenshot_success_dialog(
+                        self.window, output_path, stats_str, texture
+                    )
                 else:
                     # Rare race condition or save failed
                     verify_after_kill()
@@ -621,7 +747,11 @@ class WallpapersPage(Gtk.Box):
                     show_success()
                 else:
                     reset_ui()
-                    show_error_dialog(self.window, "Screenshot Timeout", "Capture timed out. Try increasing the delay in Settings.")
+                    show_error_dialog(
+                        self.window,
+                        "Screenshot Timeout",
+                        "Capture timed out. Try increasing the delay in Settings.",
+                    )
                 return False
 
             # Start polling every 100ms
@@ -629,54 +759,120 @@ class WallpapersPage(Gtk.Box):
 
         except Exception as e:
             reset_ui()
-            show_error_dialog(self.window, "Screenshot Error", f"Failed to start process: {e}")
+            show_error_dialog(
+                self.window, "Screenshot Error", f"Failed to start process: {e}"
+            )
 
     def refresh_wallpaper_grid(self):
-        self._current_wp_ids = list(self.filter_wallpapers().keys())
+        cache_key = (self.search_query, self.sort_mode, self.sort_reverse)
+
+        # Save previous IDs to detect changes
+        prev_ids = getattr(self, "_current_wp_ids", None)
+
+        # Track whether filter was recomputed
+        recomputed = (cache_key != self._filter_cache_key) or (
+            self._filtered_wallpapers is None
+        )
+        if recomputed:
+            self._filtered_wallpapers = self.filter_wallpapers()
+            self._filter_cache_key = cache_key
+            self._current_wp_ids = list(self._filtered_wallpapers.keys())
+            # Debug log for verification (can be removed after fix is confirmed)
+            self.log_manager.add_debug(
+                f"Filter recomputed: {len(self._filtered_wallpapers)} matches, "
+                f"prev_ids length: {len(prev_ids or [])}",
+                "GUI",
+            )
+
         self.sidebar.set_wallpaper_ids(self._current_wp_ids)
-        
+
+        # Detect if ID list changed (determines whether UI rebuild is needed)
+        ids_changed = prev_ids != self._current_wp_ids
+
         if self.view_mode == "grid":
-            self.wallpaper_scroll.set_child(self.flowbox)
-            self.populate_grid()
+            self.view_stack.set_visible_child_name("grid")
+            # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
+            if (recomputed and ids_changed) or self.flowbox.get_first_child() is None:
+                self.populate_grid()
         else:
-            self.wallpaper_scroll.set_child(self.listbox)
-            self.populate_list()
+            self.view_stack.set_visible_child_name("list")
+            # Populate if: (1) filter was recomputed AND IDs changed, OR (2) container is empty
+            if (recomputed and ids_changed) or self.listbox.get_first_child() is None:
+                self.populate_list()
 
         self.update_counter_label()
 
+        if hasattr(self, "_toggle_start_time") and self._toggle_start_time:
+            elapsed = (time.perf_counter() - self._toggle_start_time) * 1000
+            self.log_manager.add_info(f"View toggle time: {elapsed:.1f} ms")
+            self._toggle_start_time = None
+
+    def _invalidate_filter_cache(self):
+        self._filtered_wallpapers = None
+        self._filter_cache_key = None
+
     def filter_wallpapers(self) -> Dict[str, Dict]:
+        self.log_manager.add_debug("filter_wallpapers called", "GUI")
         if not self.search_query:
             result = dict(self.wp_manager._wallpapers)
         else:
             result = {}
             for wp_id, wp in self.wp_manager._wallpapers.items():
-                title = wp.get('title', '').lower()
-                desc = wp.get('description', '').lower()
-                tags = ' '.join(str(t).lower() for t in wp.get('tags', []))
-                nickname = (self.nickname_manager.get(wp_id) or "").lower() if self.nickname_manager else ""
-                if (self.search_query in title or self.search_query in desc or 
-                    self.search_query in tags or self.search_query in wp_id.lower() or
-                    self.search_query in nickname):
+                title = wp.get("title", "").lower()
+                desc = wp.get("description", "").lower()
+                tags = " ".join(str(t).lower() for t in wp.get("tags", []))
+                nickname = (
+                    (self.nickname_manager.get(wp_id) or "").lower()
+                    if self.nickname_manager
+                    else ""
+                )
+                if (
+                    self.search_query in title
+                    or self.search_query in desc
+                    or self.search_query in tags
+                    or self.search_query in wp_id.lower()
+                    or self.search_query in nickname
+                ):
                     result[wp_id] = wp
 
         if self.sort_mode == "title":
-            sorted_items = sorted(result.items(), key=lambda x: x[1].get('title', '').lower(), reverse=self.sort_reverse)
+            sorted_items = sorted(
+                result.items(),
+                key=lambda x: x[1].get("title", "").lower(),
+                reverse=self.sort_reverse,
+            )
         elif self.sort_mode == "size":
-            sorted_items = sorted(result.items(), key=lambda x: x[1].get('size', 0), reverse=self.sort_reverse)
+            sorted_items = sorted(
+                result.items(),
+                key=lambda x: x[1].get("size", 0),
+                reverse=self.sort_reverse,
+            )
         elif self.sort_mode == "type":
-            sorted_items = sorted(result.items(), key=lambda x: x[1].get('type', '').lower(), reverse=self.sort_reverse)
+            sorted_items = sorted(
+                result.items(),
+                key=lambda x: x[1].get("type", "").lower(),
+                reverse=self.sort_reverse,
+            )
         else:
-            sorted_items = sorted(result.items(), key=lambda x: x[0], reverse=self.sort_reverse)
+            sorted_items = sorted(
+                result.items(), key=lambda x: x[0], reverse=self.sort_reverse
+            )
 
         return dict(sorted_items)
 
     def populate_grid(self):
         while True:
             child = self.flowbox.get_first_child()
-            if child is None: break
+            if child is None:
+                break
             self.flowbox.remove(child)
 
-        filtered = self.filter_wallpapers()
+        # Clean up old widget references to prevent memory leaks
+        for wp in self.wp_manager._wallpapers.values():
+            if "_grid_btn" in wp:
+                del wp["_grid_btn"]
+
+        filtered = self._filtered_wallpapers or {}
         for folder_id, wp in filtered.items():
             card = self.create_grid_item(folder_id, wp)
             self.flowbox.append(card)
@@ -684,10 +880,16 @@ class WallpapersPage(Gtk.Box):
     def populate_list(self):
         while True:
             child = self.listbox.get_first_child()
-            if child is None: break
+            if child is None:
+                break
             self.listbox.remove(child)
 
-        filtered = self.filter_wallpapers()
+        # Clean up old widget references to prevent memory leaks
+        for wp in self.wp_manager._wallpapers.values():
+            if "_list_btn" in wp:
+                del wp["_list_btn"]
+
+        filtered = self._filtered_wallpapers or {}
         total = len(filtered)
         for idx, (folder_id, wp) in enumerate(filtered.items()):
             row = self.create_list_item(folder_id, wp, idx + 1, total)
@@ -695,37 +897,41 @@ class WallpapersPage(Gtk.Box):
 
     def create_grid_item(self, folder_id: str, wp: Dict) -> Gtk.Widget:
         display_name, original_title = self.nickname_manager.get_display_name(wp)
-        is_nickname = (original_title is not None)
+        is_nickname = original_title is not None
 
         btn = Gtk.Button()
         btn.add_css_class("wallpaper-item")
         btn.add_css_class("wallpaper-card")
         btn.set_size_request(170, 170)
         btn.set_has_frame(False)
-        
+
         tooltip_text = markdown_to_pango(display_name)
         if is_nickname:
-             tooltip_text += f"\n<span size='small' alpha='70%'>Original: {markdown_to_pango(wp.get('title', ''))}</span>"
+            tooltip_text += f"\n<span size='small' alpha='70%'>Original: {markdown_to_pango(wp.get('title', ''))}</span>"
         btn.set_tooltip_markup(tooltip_text)
-        
+
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
         gesture = Gtk.GestureClick.new()
         gesture.set_button(Gdk.BUTTON_PRIMARY)
         gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        gesture.connect("pressed", lambda g, n, x, y: self.on_item_activated(folder_id, n))
+        gesture.connect(
+            "pressed", lambda g, n, x, y: self.on_item_activated(folder_id, n)
+        )
         btn.add_controller(gesture)
 
         context = Gtk.GestureClick.new()
         context.set_button(Gdk.BUTTON_SECONDARY)
         context.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        context.connect("pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id, x, y))
+        context.connect(
+            "pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id, x, y)
+        )
         btn.add_controller(context)
 
         overlay = Gtk.Overlay()
         btn.set_child(overlay)
 
-        texture = self.wp_manager.get_texture(wp['preview'], 170)
+        texture = self.wp_manager.get_texture(wp["preview"], 170)
         if texture:
             pic = Gtk.Picture.new_for_paintable(texture)
             pic.set_content_fit(Gtk.ContentFit.COVER)
@@ -734,7 +940,7 @@ class WallpapersPage(Gtk.Box):
         else:
             placeholder = Gtk.Box()
             placeholder.set_size_request(170, 170)
-            lbl = Gtk.Label(label=wp['title'][:1].upper())
+            lbl = Gtk.Label(label=wp["title"][:1].upper())
             lbl.set_halign(Gtk.Align.CENTER)
             lbl.set_valign(Gtk.Align.CENTER)
             placeholder.append(lbl)
@@ -744,7 +950,7 @@ class WallpapersPage(Gtk.Box):
         name_box.set_halign(Gtk.Align.CENTER)
         name_box.set_valign(Gtk.Align.END)
         name_box.set_margin_bottom(10)
-        
+
         lbl = Gtk.Label()
         lbl.set_use_markup(True)
         lbl.set_markup(markdown_to_pango(display_name))
@@ -756,43 +962,49 @@ class WallpapersPage(Gtk.Box):
         name_box.append(lbl)
         overlay.add_overlay(name_box)
 
-        wp['_grid_btn'] = btn
+        wp["_grid_btn"] = btn
         if folder_id == self.selected_wp:
             btn.add_css_class("selected")
 
         return btn
 
-    def create_list_item(self, folder_id: str, wp: Dict, index: int, total: int) -> Gtk.Widget:
+    def create_list_item(
+        self, folder_id: str, wp: Dict, index: int, total: int
+    ) -> Gtk.Widget:
         display_name, original_title = self.nickname_manager.get_display_name(wp)
-        is_nickname = (original_title is not None)
+        is_nickname = original_title is not None
 
         btn = Gtk.Button()
         btn.add_css_class("list-item")
         btn.set_has_frame(False)
-        
+
         tooltip_text = markdown_to_pango(display_name)
         if is_nickname:
-             tooltip_text += f"\n<span size='small' alpha='70%'>Original: {markdown_to_pango(wp.get('title', ''))}</span>"
+            tooltip_text += f"\n<span size='small' alpha='70%'>Original: {markdown_to_pango(wp.get('title', ''))}</span>"
         btn.set_tooltip_markup(tooltip_text)
-        
+
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
         gesture = Gtk.GestureClick.new()
         gesture.set_button(Gdk.BUTTON_PRIMARY)
         gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        gesture.connect("pressed", lambda g, n, x, y: self.on_item_activated(folder_id, n))
+        gesture.connect(
+            "pressed", lambda g, n, x, y: self.on_item_activated(folder_id, n)
+        )
         btn.add_controller(gesture)
 
         context = Gtk.GestureClick.new()
         context.set_button(Gdk.BUTTON_SECONDARY)
         context.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        context.connect("pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id, x, y))
+        context.connect(
+            "pressed", lambda g, n, x, y: self.on_context_menu(btn, folder_id, x, y)
+        )
         btn.add_controller(context)
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         btn.set_child(hbox)
 
-        texture = self.wp_manager.get_texture(wp['preview'], 100)
+        texture = self.wp_manager.get_texture(wp["preview"], 100)
         if texture:
             pic = Gtk.Picture.new_for_paintable(texture)
             pic.set_content_fit(Gtk.ContentFit.COVER)
@@ -818,25 +1030,28 @@ class WallpapersPage(Gtk.Box):
         if is_nickname:
             orig_lbl = Gtk.Label()
             orig_lbl.set_use_markup(True)
-            orig_lbl.set_markup(f"<span size='small' alpha='60%'>{markdown_to_pango(wp.get('title', ''))}</span>")
+            orig_lbl.set_markup(
+                f"<span size='small' alpha='60%'>{markdown_to_pango(wp.get('title', ''))}</span>"
+            )
             orig_lbl.set_halign(Gtk.Align.START)
             orig_lbl.set_ellipsize(Pango.EllipsizeMode.END)
             info.append(orig_lbl)
 
-        sz = format_size(wp.get('size', 0))
+        sz = format_size(wp.get("size", 0))
         size_lbl = Gtk.Label(label=sz)
         size_lbl.add_css_class("list-size")
         size_lbl.set_halign(Gtk.Align.START)
         info.append(size_lbl)
 
-        typ = Gtk.Label(label=f"Type: {wp.get('type','Unknown')}")
+        typ = Gtk.Label(label=f"Type: {wp.get('type', 'Unknown')}")
         typ.add_css_class("list-type")
         typ.set_halign(Gtk.Align.START)
         info.append(typ)
 
-        tags = wp.get('tags', [])
-        if isinstance(tags, str): tags = [tags]
-        tgs = ', '.join(str(x) for x in tags[:5]) if tags else 'None'
+        tags = wp.get("tags", [])
+        if isinstance(tags, str):
+            tags = [tags]
+        tgs = ", ".join(str(x) for x in tags[:5]) if tags else "None"
         tl = Gtk.Label(label=f"Tags: {tgs}")
         tl.add_css_class("list-tags")
         tl.set_halign(Gtk.Align.START)
@@ -848,7 +1063,7 @@ class WallpapersPage(Gtk.Box):
         idx_lbl.set_halign(Gtk.Align.START)
         info.append(idx_lbl)
 
-        wp['_list_btn'] = btn
+        wp["_list_btn"] = btn
         if folder_id == self.selected_wp:
             btn.add_css_class("selected")
 
@@ -858,14 +1073,18 @@ class WallpapersPage(Gtk.Box):
         # Deselect old
         if self.selected_wp and self.selected_wp in self.wp_manager._wallpapers:
             old = self.wp_manager._wallpapers[self.selected_wp]
-            if '_grid_btn' in old: old['_grid_btn'].remove_css_class("selected")
-            if '_list_btn' in old: old['_list_btn'].remove_css_class("selected")
+            if "_grid_btn" in old:
+                old["_grid_btn"].remove_css_class("selected")
+            if "_list_btn" in old:
+                old["_list_btn"].remove_css_class("selected")
 
         self.selected_wp = folder_id
         wp = self.wp_manager._wallpapers.get(folder_id)
         if wp:
-            if '_grid_btn' in wp: wp['_grid_btn'].add_css_class("selected")
-            if '_list_btn' in wp: wp['_list_btn'].add_css_class("selected")
+            if "_grid_btn" in wp:
+                wp["_grid_btn"].add_css_class("selected")
+            if "_list_btn" in wp:
+                wp["_list_btn"].add_css_class("selected")
 
         filtered = self.filter_wallpapers()
         if folder_id in filtered:
@@ -874,7 +1093,7 @@ class WallpapersPage(Gtk.Box):
             self.sidebar.update(folder_id, index, total)
         else:
             self.sidebar.update(folder_id)
-        
+
         if self.sidebar._compact_mode:
             self.sidebar._update_thumb_grid()
 
@@ -892,7 +1111,7 @@ class WallpapersPage(Gtk.Box):
         popover = Gtk.Popover()
         popover.set_parent(widget)
         popover.set_has_arrow(False)
-        
+
         # Position at click coordinates
         rect = Gdk.Rectangle()
         rect.x = int(x)
@@ -911,50 +1130,56 @@ class WallpapersPage(Gtk.Box):
 
         def create_menu_item(label, action_name, target_value=None, is_danger=False):
             btn = Gtk.Button()
-            btn.set_has_frame(False) # Flat button
-            
+            btn.set_has_frame(False)  # Flat button
+
             # Left aligned label
             lbl = Gtk.Label(label=label)
             lbl.set_halign(Gtk.Align.START)
             btn.set_child(lbl)
-            
+
             # Action
             btn.set_action_name(action_name)
             if target_value:
                 btn.set_action_target_value(GLib.Variant.new_string(target_value))
-            
+
             # Styling
             # Ensure it spans full width
             btn.set_halign(Gtk.Align.FILL)
-            
+
             if is_danger:
-                btn.add_css_class("destructive-action") # Makes it red in Libadwaita
-            
+                btn.add_css_class("destructive-action")  # Makes it red in Libadwaita
+
             # Close popover when clicked
             btn.connect("clicked", lambda *_: popover.popdown())
-            
+
             return btn
 
         # Menu Items
         box.append(create_menu_item("Apply Wallpaper", "win.apply", folder_id))
         box.append(create_menu_item("Stop Wallpaper", "win.stop"))
         box.append(create_menu_item("Open Folder", "win.open_folder", folder_id))
-        
+
         # Separator
         box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
-        
+
         btn_edit = Gtk.Button()
         btn_edit.set_has_frame(False)
         lbl_edit = Gtk.Label(label="Set Nickname")
         lbl_edit.set_halign(Gtk.Align.START)
         btn_edit.set_child(lbl_edit)
         btn_edit.set_halign(Gtk.Align.FILL)
-        btn_edit.connect("clicked", lambda _: (self.on_edit_nickname(folder_id), popover.popdown()))
+        btn_edit.connect(
+            "clicked", lambda _: (self.on_edit_nickname(folder_id), popover.popdown())
+        )
         box.append(btn_edit)
-        
+
         # Danger Item
-        box.append(create_menu_item("Delete Wallpaper", "win.delete", folder_id, is_danger=True))
-        
+        box.append(
+            create_menu_item(
+                "Delete Wallpaper", "win.delete", folder_id, is_danger=True
+            )
+        )
+
         popover.popup()
 
     def delete_wallpaper(self, wp_id: str):
@@ -964,31 +1189,32 @@ class WallpapersPage(Gtk.Box):
         if self.wp_manager.delete_wallpaper(wp_id):
             if self.active_wp == wp_id:
                 self.on_stop_clicked()
+            self._invalidate_filter_cache()
             self.refresh_wallpaper_grid()
         else:
             show_error_dialog(self.window, "Error", "Failed to delete wallpaper")
-            
+
     def open_wallpaper_folder(self, wp_id: str):
         import subprocess
         import shutil
-        
+
         wp = self.wp_manager._wallpapers.get(wp_id)
         if wp:
-            folder_path = os.path.dirname(wp['preview'])
-            
+            folder_path = os.path.dirname(wp["preview"])
+
             # List of file managers to try in order of preference
             file_managers = [
-                "thunar",     # XFCE (Preferred)
-                "nautilus",   # GNOME
-                "dolphin",    # KDE
-                "nemo",       # Cinnamon
-                "pcmanfm",    # LXDE
-                "pcmanfm-qt", # LXQt
-                "caja",       # MATE
-                "index",      # Maui
-                "files"       # Elementary
+                "thunar",  # XFCE (Preferred)
+                "nautilus",  # GNOME
+                "dolphin",  # KDE
+                "nemo",  # Cinnamon
+                "pcmanfm",  # LXDE
+                "pcmanfm-qt",  # LXQt
+                "caja",  # MATE
+                "index",  # Maui
+                "files",  # Elementary
             ]
-            
+
             # Try to find an installed file manager
             opened = False
             for fm in file_managers:
@@ -999,11 +1225,11 @@ class WallpapersPage(Gtk.Box):
                         break
                     except:
                         continue
-            
+
             # Fallback to xdg-open if no specific FM found or failed
             if not opened:
                 try:
-                    subprocess.Popen(['xdg-open', folder_path])
+                    subprocess.Popen(["xdg-open", folder_path])
                 except Exception as e:
                     self.log_manager.add_error(f"Failed to open folder: {e}", "GUI")
 
@@ -1011,18 +1237,21 @@ class WallpapersPage(Gtk.Box):
         wp = self.wp_manager._wallpapers.get(wp_id)
         if not wp:
             return
-        
-        title = wp.get('title', '')
-        current_nickname = self.nickname_manager.get(wp_id) if self.nickname_manager else None
-        preview_path = wp.get('preview')
-        
+
+        title = wp.get("title", "")
+        current_nickname = (
+            self.nickname_manager.get(wp_id) if self.nickname_manager else None
+        )
+        preview_path = wp.get("preview")
+
         def on_confirm(new_nick: str):
             if self.nickname_manager:
                 self.nickname_manager.set(wp_id, new_nick)
+                self._invalidate_filter_cache()
                 self.refresh_wallpaper_grid()
                 self.update_sidebar_index()
                 self.update_active_wallpaper_label()
-        
+
         show_nickname_dialog(self.window, title, current_nickname, on_confirm)
 
     def set_compact_mode(self, enabled: bool):

@@ -236,14 +236,14 @@ class WallpaperApp(Adw.Application):
         # Add 'pic' directory to icon search path
         # py_GUI/ui/app.py -> .../linux-wallpaperengine-gui/
         base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        pic_path = os.path.join(base_path, "pic")
+        pic_path = os.path.join(base_path, "pic/icons")
         
         if os.path.exists(pic_path):
             icon_theme.add_search_path(pic_path)
 
         self.win = Gtk.ApplicationWindow(application=self)
         self.win.set_title("Linux Wallpaper Engine GUI")
-        self.win.set_icon_name("GUI") # Matches GUI_rounded.png in pic/
+        self.win.set_icon_name("GUI") # Matches GUI_rounded.png in pic/icons/
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)

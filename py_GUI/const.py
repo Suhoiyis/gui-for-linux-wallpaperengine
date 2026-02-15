@@ -1,16 +1,20 @@
 import os
 
 # Application constants
-APP_ID = 'com.github.wallpaperengine.gui'
-VERSION = '0.10.5'
+APP_ID = "com.github.wallpaperengine.gui"
+VERSION = "0.10.5"
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-WORKSHOP_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/431960")
-ASSETS_PATH = os.path.expanduser("~/.local/share/Steam/steamapps/common/wallpaper_engine/assets")
-ICON_PATH = os.path.join(PROJECT_ROOT, "pic/gui_tray_rounded.png")
+WORKSHOP_PATH = os.path.expanduser(
+    "~/.local/share/Steam/steamapps/workshop/content/431960"
+)
+ASSETS_PATH = os.path.expanduser(
+    "~/.local/share/Steam/steamapps/common/wallpaper_engine/assets"
+)
+ICON_PATH = os.path.join(PROJECT_ROOT, "pic/icons/gui_tray_rounded.png")
 
 DEFAULT_CONFIG = {
     "fps": 30,
@@ -33,7 +37,7 @@ DEFAULT_CONFIG = {
     "active_monitors": {},
     "cycleEnabled": False,
     "cycleInterval": 15,
-    "cycleOrder": "random", # random, title, size, type, id
+    "cycleOrder": "random",  # random, title, size, type, id
     "assetsPath": None,  # Custom assets directory (None = auto-detect)
     "wayland_only_active": False,
     "wayland_ignore_appids": "",
@@ -180,6 +184,10 @@ dropdown.nav-btn > button:active {
     font-size: 0.85em;
 }
 
+togglebutton.mode-btn {
+    border: 1px solid alpha(@theme_fg_color, 0.1);
+}
+
 .mode-btn {
     background: alpha(@theme_fg_color, 0.08);
     color: @theme_fg_color;
@@ -261,11 +269,12 @@ dropdown.nav-btn > button:active {
 
 /* Wallpaper list - List view */
 .list-item {
-    background: alpha(@window_bg_color, 0.4);
+    background: alpha(@window_bg_color, 0.5);
     border-radius: 12px;
-    border: 2px solid transparent;
+    border: 1px solid alpha(@theme_fg_color, 0.08);
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
     padding: 12px;
-    margin: 5px 0;
+    margin: 4px 0;
     transition: all 0.2s;
 }
 
@@ -280,6 +289,11 @@ dropdown.nav-btn > button:active {
 }
 
 .list-title {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.heading {
     font-weight: 600;
     font-size: 1.1em;
 }
@@ -455,22 +469,26 @@ dropdown.nav-btn > button:active {
 }
 
 .settings-nav-item {
-    background: transparent;
-    color: alpha(@theme_fg_color, 0.4);
+    background: alpha(@window_bg_color, 0.4);
+    color: alpha(@theme_fg_color, 0.5);
     border-radius: 10px;
     padding: 12px 16px;
     font-weight: 500;
-    border: none;
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    margin: 2px 0;
+    transition: all 0.2s ease;
 }
 
 .settings-nav-item:hover {
-    background: alpha(@theme_fg_color, 0.15);
+    background: alpha(@theme_fg_color, 0.1);
     color: @theme_fg_color;
+    border-color: alpha(@theme_fg_color, 0.2);
 }
 
 .settings-nav-item.active, .settings-nav-item:checked {
     background: @accent_bg_color;
     color: @accent_fg_color;
+    border-color: transparent;
     box-shadow: 0 4px 12px alpha(@accent_bg_color, 0.3);
 }
 
@@ -487,10 +505,12 @@ dropdown.nav-btn > button:active {
 }
 
 .setting-row {
-    background: alpha(@window_bg_color, 0.3);
+    background: alpha(@window_bg_color, 0.5);
     border-radius: 12px;
     padding: 16px;
-    margin: 8px 0;
+    margin: 0px 0;
+    border: 1px solid alpha(@theme_fg_color, 0.08);
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
 }
 
 .setting-label {
@@ -581,7 +601,11 @@ scrollbar slider:hover {
 }
 
 .card {
+    background: alpha(@window_bg_color, 0.4);
     border-radius: 12px;
+    border: 1px solid alpha(@theme_fg_color, 0.08);
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
+    padding: 8px;
 }
 
 spinbutton {
@@ -598,11 +622,29 @@ entry {
 }
 
 switch {
-    background: alpha(@window_bg_color, 0.6);
+    background: alpha(@theme_fg_color, 0.2);
+    border-radius: 9999px;
+    min-width: 42px;
+    min-height: 22px;
+    border: 1px solid alpha(@theme_fg_color, 0.3);
 }
 
 switch:checked {
     background: @accent_bg_color;
+    border-color: @accent_bg_color;
+}
+
+switch slider {
+    background: @theme_fg_color;
+    border-radius: 9999px;
+    min-width: 18px;
+    min-height: 18px;
+    margin: 2px;
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.3);
+}
+
+switch:checked slider {
+    background: @accent_fg_color;
 }
 
 dropdown button {
@@ -613,11 +655,12 @@ dropdown button {
 
 /* Boxed Expander */
 .boxed-expander {
-    background: alpha(@theme_fg_color, 0.03);
+    background: alpha(@window_bg_color, 0.5);
     border: 1px solid alpha(@theme_fg_color, 0.08);
-    border-radius: 8px;
-    margin: 5px 0;
+    border-radius: 12px;
+    margin: 4px 0;
     padding: 2px;
+    box-shadow: 0 1px 3px alpha(@theme_fg_color, 0.05);
 }
 
 .boxed-expander title {

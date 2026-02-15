@@ -527,7 +527,7 @@ class PerformancePage(Gtk.Box):
         clear_btn.set_valign(Gtk.Align.CENTER)
         header_row.append(clear_btn)
         
-        self.screenshot_history_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.screenshot_history_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.content_box.append(self.screenshot_history_box)
         
         self._last_screenshot_ts = 0
