@@ -184,10 +184,6 @@ dropdown.nav-btn > button:active {
     font-size: 0.85em;
 }
 
-togglebutton.mode-btn {
-    border: 1px solid alpha(@theme_fg_color, 0.1);
-}
-
 .mode-btn {
     background: alpha(@theme_fg_color, 0.08);
     color: @theme_fg_color;
