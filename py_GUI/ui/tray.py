@@ -35,10 +35,20 @@ class TrayIcon:
 
         try:
             log_file = open(log_path, "a") if log_path else None
+            # Use the directory containing the tray script as cwd.
+            # When running inside an AppImage, the main app's cwd is
+            # the FUSE mount (e.g. /tmp/.mount_XXX/opt/…).  Python's
+            # path-init (frozen getpath) calls os.path.abspath on cwd
+            # during interpreter startup, and this can fail with
+            # "OSError: failed to make path absolute" when cwd is on
+            # the squashfs FUSE filesystem.  Setting cwd to a normal
+            # filesystem directory avoids the crash.
+            tray_cwd = os.path.dirname(script_path) or "/"
             self.process = subprocess.Popen(
                 ["python3", script_path, icon_path],
                 stdout=log_file or subprocess.DEVNULL,
                 stderr=log_file or subprocess.DEVNULL,
+                cwd=tray_cwd,
             )
             log(f"tray.start pid={self.process.pid}")
         except Exception as e:
