@@ -253,7 +253,7 @@ C++ 后端使用 CEF (Chromium Embedded Framework) 处理 Web 壁纸。在 Linux
 
 ### 紧凑预览窗口在我的平铺式窗口管理器中没有浮动
 
-您需要在窗口管理器配置中添加窗口规则。请参阅 [docs/ADVANCED.md](docs/ADVANCED.md#compact-preview-mode) 查看 Niri 和 Hyprland 的示例。
+您需要在窗口管理器配置中添加窗口规则。请参阅 [docs/ADVANCED.md](docs/ADVANCED_ZH.md#compact-preview-mode) 查看 Niri 和 Hyprland 的示例。
 
 ### 为什么截图很慢（5–10 秒）？
 
