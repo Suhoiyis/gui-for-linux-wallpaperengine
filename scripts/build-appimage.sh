@@ -100,6 +100,10 @@ else
     warn "CHANGELOG.md not found — About dialog will show fallback text"
 fi
 
+# Remove __pycache__ directories — they cause FUSE mount issues where
+# __file__ points to non-existent __pycache__/module.pyc paths
+find "${OPT}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
 ok "Application files copied → ${OPT}"
 
 # ── Install pure-Python dependencies ─────────────────────────────────────────
