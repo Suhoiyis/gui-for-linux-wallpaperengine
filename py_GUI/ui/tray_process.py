@@ -3,11 +3,14 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("AyatanaAppIndicator3", "0.1")
-from gi.repository import Gtk, AyatanaAppIndicator3, GLib
+from gi.repository import Gtk, AyatanaAppIndicator3, GLib, Gio
 import subprocess
 import signal
 import sys
 import os
+
+_APP_ID = "linux.wallpaperengine.gui"
+_DBUS_PATH = "/" + _APP_ID.replace(".", "/")
 
 
 class TrayProcess:
@@ -127,11 +130,44 @@ class TrayProcess:
             self._cmd("--apply-last")
 
     def _cmd(self, arg):
-        appimage = os.environ.get("APPIMAGE")
-        if appimage:
-            subprocess.Popen([appimage, arg])
+        if self._dbus_activate(arg):
             return
         subprocess.Popen(["python3", self.run_gui_path, arg])
+
+    def _dbus_activate(self, arg):
+        """Send arg to the running primary instance via org.gtk.Actions D-Bus interface.
+        Returns True on success, False on failure (caller falls back to subprocess)."""
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+            action_map = {
+                "--stop": "stop",
+                "--random": "random",
+                "--show": "show",
+                "--hide": "hide",
+                "--apply-last": "apply-last",
+                "--quit": "quit",
+                "--toggle": "toggle",
+                "--refresh": "refresh",
+            }
+            action = action_map.get(arg)
+            if not action:
+                return False
+
+            bus.call_sync(
+                _APP_ID,
+                _DBUS_PATH,
+                "org.gtk.Actions",
+                "Activate",
+                GLib.Variant("(sava{sv})", (action, [], {})),
+                None,
+                Gio.DBusCallFlags.NONE,
+                5000,
+                None,
+            )
+            return True
+        except Exception as e:
+            print(f"D-Bus call failed: {e}")
+            return False
 
     def run(self):
         Gtk.main()
