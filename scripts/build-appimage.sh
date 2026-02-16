@@ -178,6 +178,22 @@ export PYTHONPATH="\${APPDIR}/opt/${PKG}:\${APPDIR}/${SITE_PKG_REL}:\${PYTHONPAT
 # XDG data dirs for icon themes
 export XDG_DATA_DIRS="\${APPDIR}/usr/share:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
+RUNTIME_BASE="\${XDG_RUNTIME_DIR:-/tmp}"
+RUNTIME_DIR="\${RUNTIME_BASE}/linux-wallpaperengine-gui-\${UID:-\$(id -u)}"
+mkdir -p "\${RUNTIME_DIR}"
+TRAY_SCRIPT_SRC="\${APPDIR}/opt/${PKG}/py_GUI/ui/tray_process.py"
+TRAY_ICON_SRC="\${APPDIR}/opt/${PKG}/pic/icons/gui_tray_rounded.png"
+TRAY_SCRIPT_DST="\${RUNTIME_DIR}/tray_process.py"
+TRAY_ICON_DST="\${RUNTIME_DIR}/gui_tray_rounded.png"
+if [ -f "\${TRAY_SCRIPT_SRC}" ]; then
+    cp -f "\${TRAY_SCRIPT_SRC}" "\${TRAY_SCRIPT_DST}"
+fi
+if [ -f "\${TRAY_ICON_SRC}" ]; then
+    cp -f "\${TRAY_ICON_SRC}" "\${TRAY_ICON_DST}"
+fi
+export LWG_TRAY_SCRIPT="\${TRAY_SCRIPT_DST}"
+export LWG_TRAY_ICON="\${TRAY_ICON_DST}"
+
 # ── CWD fix ──────────────────────────────────────────────────────────────
 # The app must run with CWD inside the application tree so that every
 # os.path.abspath(__file__) and PROJECT_ROOT calculation resolves to
