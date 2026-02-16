@@ -193,6 +193,7 @@ if [ -f "\${TRAY_ICON_SRC}" ]; then
 fi
 export LWG_TRAY_SCRIPT="\${TRAY_SCRIPT_DST}"
 export LWG_TRAY_ICON="\${TRAY_ICON_DST}"
+export LWG_TRAY_LOG="\${RUNTIME_DIR}/tray.log"
 
 # ── CWD fix ──────────────────────────────────────────────────────────────
 # The app must run with CWD inside the application tree so that every
