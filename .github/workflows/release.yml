@@ -106,7 +106,11 @@ jobs:
         run: |
           pacman-key --init
           pacman-key --populate archlinux
+          # Fix gcc-libs conflict by replacing with split packages
+          pacman -Syu --noconfirm
+          pacman -Rdd --noconfirm gcc-libs
           pacman -Sy --noconfirm --needed \
+            libgcc libstdc++ \
             git base-devel python python-build python-installer \
             python-wheel python-setuptools gtk4 libadwaita \
             gobject-introspection cairo pkgconf
