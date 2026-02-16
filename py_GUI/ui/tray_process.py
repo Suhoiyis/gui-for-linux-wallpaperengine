@@ -127,9 +127,22 @@ class TrayProcess:
             self._cmd("--apply-last")
 
     def _cmd(self, arg):
-        appimage = os.environ.get("APPIMAGE")
-        if appimage:
-            subprocess.Popen([appimage, arg])
+        appdir = os.environ.get("APPDIR")
+        if appdir:
+            # Inside AppImage: invoke run_gui.py from the mounted AppDir
+            # directly instead of re-launching the full AppImage binary.
+            # Re-launching causes AppRun to overwrite runtime tray assets
+            # and truncate the log file, killing the running tray process.
+            run_gui = os.path.join(
+                appdir, "opt", "linux-wallpaperengine-gui", "run_gui.py"
+            )
+            env = os.environ.copy()
+            env["PYTHONPATH"] = (
+                os.path.join(appdir, "opt", "linux-wallpaperengine-gui")
+                + ":"
+                + env.get("PYTHONPATH", "")
+            )
+            subprocess.Popen(["python3", run_gui, arg], env=env, cwd=appdir)
             return
         subprocess.Popen(["python3", self.run_gui_path, arg])
 

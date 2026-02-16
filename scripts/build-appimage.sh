@@ -185,16 +185,21 @@ TRAY_SCRIPT_SRC="\${APPDIR}/opt/${PKG}/py_GUI/ui/tray_process.py"
 TRAY_ICON_SRC="\${APPDIR}/opt/${PKG}/pic/icons/gui_tray_rounded.png"
 TRAY_SCRIPT_DST="\${RUNTIME_DIR}/tray_process.py"
 TRAY_ICON_DST="\${RUNTIME_DIR}/gui_tray_rounded.png"
-if [ -f "\${TRAY_SCRIPT_SRC}" ]; then
-    cp -f "\${TRAY_SCRIPT_SRC}" "\${TRAY_SCRIPT_DST}"
-fi
-if [ -f "\${TRAY_ICON_SRC}" ]; then
-    cp -f "\${TRAY_ICON_SRC}" "\${TRAY_ICON_DST}"
+# Only copy tray assets and truncate log when no tray process is already
+# running.  CLI re-invocations (--stop, --random, etc.) re-enter AppRun;
+# overwriting the script or clearing the log kills the live tray process.
+if ! pgrep -f "tray_process\\.py" >/dev/null 2>&1; then
+    if [ -f "\${TRAY_SCRIPT_SRC}" ]; then
+        cp -f "\${TRAY_SCRIPT_SRC}" "\${TRAY_SCRIPT_DST}"
+    fi
+    if [ -f "\${TRAY_ICON_SRC}" ]; then
+        cp -f "\${TRAY_ICON_SRC}" "\${TRAY_ICON_DST}"
+    fi
 fi
 export LWG_TRAY_SCRIPT="\${TRAY_SCRIPT_DST}"
 export LWG_TRAY_ICON="\${TRAY_ICON_DST}"
 export LWG_TRAY_LOG="\${RUNTIME_DIR}/tray.log"
- : > "\${LWG_TRAY_LOG}" 2>/dev/null || true
+touch "\${LWG_TRAY_LOG}" 2>/dev/null || true
 
 # ── CWD fix ──────────────────────────────────────────────────────────────
 # The app must run with CWD inside the application tree so that every
