@@ -33,7 +33,10 @@ jobs:
           else
             VERSION=$(git describe --tags --match 'v*' | sed 's/^v//')
           fi
+          # Arch pkgver cannot contain '-' (makepkg will reject); sanitize for PKGBUILD
+          PKGVER=${VERSION//-/.}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
       - name: Install dependencies
@@ -123,8 +126,9 @@ jobs:
       - name: Update PKGBUILD version
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
+          PKGVER="${{ steps.get_version.outputs.pkgver }}"
           # Update pkgver in PKGBUILD
-          sed -i "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD
+          sed -i "s/^pkgver=.*/pkgver=${PKGVER}/" PKGBUILD
           # Reset pkgrel to 1
           sed -i 's/^pkgrel=.*/pkgrel=1/' PKGBUILD
 
@@ -138,10 +142,10 @@ jobs:
 
       - name: Rename package with version
         run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
+          PKGVER="${{ steps.get_version.outputs.pkgver }}"
           for pkg in *.pkg.tar.zst; do
-            if [[ "$pkg" == *"${VERSION}"* ]]; then
-              mv "$pkg" "${{ env.PACKAGE_NAME }}-${VERSION}-x86_64.pkg.tar.zst"
+            if [[ "$pkg" == *"${PKGVER}"* ]]; then
+              mv "$pkg" "${{ env.PACKAGE_NAME }}-${PKGVER}-x86_64.pkg.tar.zst"
               break
             fi
           done
