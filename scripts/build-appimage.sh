@@ -156,6 +156,11 @@ ok "Wrapper script created"
 cat > "${APPDIR}/AppRun" << APPRUN_EOF
 #!/bin/bash
 # AppRun — entry point executed when the AppImage is launched.
+#
+# CRITICAL: The application uses __file__-relative paths everywhere
+# (const.py PROJECT_ROOT, ICON_PATH, etc.).  These resolve correctly
+# only when CWD == app_root.  We therefore 'cd' into the application
+# tree before exec-ing Python.  Without this, the app SIGTERMs.
 
 APPDIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 export APPDIR
@@ -169,7 +174,14 @@ export PYTHONPATH="\${APPDIR}/opt/${PKG}:\${APPDIR}/${SITE_PKG_REL}:\${PYTHONPAT
 # XDG data dirs for icon themes
 export XDG_DATA_DIRS="\${APPDIR}/usr/share:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
-exec "\${APPDIR}/usr/bin/${PKG}" "\$@"
+# ── CWD fix ──────────────────────────────────────────────────────────────
+# The app must run with CWD inside the application tree so that every
+# os.path.abspath(__file__) and PROJECT_ROOT calculation resolves to
+# the bundled opt/ directory.  Launching from the AppDir root (the
+# default) causes immediate SIGTERM.
+cd "\${APPDIR}/opt/${PKG}"
+
+exec python3 run_gui.py "\$@"
 APPRUN_EOF
 chmod +x "${APPDIR}/AppRun"
 ok "AppRun created (Python 3.${PYTHON_MINOR})"
