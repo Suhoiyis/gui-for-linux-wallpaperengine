@@ -185,7 +185,9 @@ export XDG_DATA_DIRS="\${APPDIR}/usr/share:\${XDG_DATA_DIRS:-/usr/local/share:/u
 # default) causes immediate SIGTERM.
 cd "\${APPDIR}/opt/${PKG}"
 
-exec python3 run_gui.py "\$@"
+# Run as child process (NOT exec) so this shell stays alive and
+# the AppImage FUSE mount is preserved for the app lifetime.
+python3 run_gui.py "\$@"
 APPRUN_EOF
 chmod +x "${APPDIR}/AppRun"
 ok "AppRun created (Python 3.${PYTHON_MINOR})"
