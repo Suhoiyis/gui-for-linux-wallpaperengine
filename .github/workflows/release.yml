@@ -100,10 +100,27 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION=$(git describe --tags --match 'v*' | sed 's/^v//')
+            set +e
+            VERSION=$(git describe --tags --match 'v*' 2>/dev/null | sed 's/^v//')
+            set -e
+            RAW_REF="${GITHUB_REF_NAME:-${{ github.ref_name }}}"
+            if [ -z "$VERSION" ]; then
+              VERSION="${RAW_REF#v}"
+            fi
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "VERSION is empty; cannot proceed" >&2
+            exit 1
+          fi
+          # Arch pkgver cannot contain '-' (makepkg will reject)
+          PKGVER=${VERSION//-/.}
+          if [ -z "$PKGVER" ]; then
+            echo "PKGVER is empty; cannot proceed" >&2
+            exit 1
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
+          echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION (pkgver=$PKGVER, ref=${RAW_REF:-unset})"
 
       - name: Setup build environment
         run: |
