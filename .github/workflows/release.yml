@@ -1,0 +1,172 @@
+name: Release AppImage and Arch Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        default: 'v0.0.0-test'
+
+env:
+  APP_ID: linux.wallpaperengine.gui
+  PACKAGE_NAME: linux-wallpaperengine-gui
+
+jobs:
+  build-appimage:
+    name: Build AppImage
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(git describe --tags --match 'v*' | sed 's/^v//')
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3 python3-pip python3-venv \
+            desktop-file-utils \
+            libgtk-4-1 libadwaita-1-0 \
+            libgirepository1.0-dev \
+            libcairo2-dev \
+            pkg-config
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ./appimagetool --appimage-extract 2>/dev/null || true
+
+      - name: Build AppImage
+        run: |
+          chmod +x scripts/build-appimage.sh
+          ./scripts/build-appimage.sh
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+
+      - name: Rename AppImage with version
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          mv build/${{ env.PACKAGE_NAME }}-*.AppImage \
+             build/${{ env.PACKAGE_NAME }}-${VERSION}-x86_64.AppImage
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: build/${{ env.PACKAGE_NAME }}-*-x86_64.AppImage
+          retention-days: 30
+
+  build-arch-package:
+    name: Build Arch Linux Package
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
+      options: --privileged
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(git describe --tags --match 'v*' | sed 's/^v//')
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Setup build environment
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm --needed \
+            git base-devel python python-build python-installer \
+            python-wheel python-setuptools gtk4 libadwaita \
+            gobject-introspection cairo pkgconf
+
+      - name: Create build user
+        run: |
+          useradd -m -G wheel builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+      - name: Update PKGBUILD version
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          # Update pkgver in PKGBUILD
+          sed -i "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD
+          # Reset pkgrel to 1
+          sed -i 's/^pkgrel=.*/pkgrel=1/' PKGBUILD
+
+      - name: Build package
+        run: |
+          chown -R builder:builder .
+          sudo -u builder bash -c '
+            export MAKEFLAGS="-j$(nproc)"
+            makepkg -sf --noconfirm
+          '
+
+      - name: Rename package with version
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          for pkg in *.pkg.tar.zst; do
+            if [[ "$pkg" == *"${VERSION}"* ]]; then
+              mv "$pkg" "${{ env.PACKAGE_NAME }}-${VERSION}-x86_64.pkg.tar.zst"
+              break
+            fi
+          done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: ${{ env.PACKAGE_NAME }}-*-x86_64.pkg.tar.zst
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-appimage, build-arch-package]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: ./artifacts
+
+      - name: Download Arch package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: arch-package
+          path: ./artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./artifacts/*
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
