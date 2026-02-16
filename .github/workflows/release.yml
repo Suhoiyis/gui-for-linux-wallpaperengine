@@ -51,7 +51,7 @@ jobs:
         run: |
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
-          ./appimagetool --appimage-extract 2>/dev/null || true
+          sudo mv appimagetool /usr/local/bin/appimagetool
 
       - name: Build AppImage
         run: |
