@@ -203,7 +203,10 @@ copy_desktop_file() {
         die "Desktop file not found: $PROJECT_ROOT/$DESKTOP_FILE"
     fi
     
-    # Copy desktop file
+    # Copy desktop file to AppDir root (required by appimagetool)
+    cp "$PROJECT_ROOT/$DESKTOP_FILE" "$APPDIR/"
+    
+    # Also copy to standard location for desktop integration
     cp "$PROJECT_ROOT/$DESKTOP_FILE" "$APPDIR/usr/share/applications/"
     
     log_success "Desktop file copied"
@@ -216,7 +219,10 @@ copy_icon() {
         die "Icon file not found: $PROJECT_ROOT/$ICON_SOURCE"
     fi
     
-    # Copy icon in multiple sizes
+    # Copy icon to AppDir root (required by appimagetool)
+    cp "$PROJECT_ROOT/$ICON_SOURCE" "$APPDIR/$EXECUTABLE_NAME.png"
+    
+    # Also copy icon in multiple sizes for desktop integration
     cp "$PROJECT_ROOT/$ICON_SOURCE" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$EXECUTABLE_NAME.png"
     
     # Create scalable version (link to the same file)
