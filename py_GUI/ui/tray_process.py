@@ -45,13 +45,9 @@ class TrayProcess:
         GLib.timeout_add_seconds(2, self._poll_state)
 
     def _find_run_gui(self):
-        # Locate run_gui.py relative to this file
-        # this file: py_GUI/ui/tray_process.py
-        # run_gui.py: ./run_gui.py (root)
-        base = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-        return os.path.join(base, "run_gui.py")
+        from py_GUI.const import PROJECT_ROOT
+        # Locate run_gui.py relative to project root
+        return os.path.join(PROJECT_ROOT, "run_gui.py")
 
     def _build_menu(self):
         self.menu = Gtk.Menu()

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Linux Wallpaper Engine GUI
+Comment=Interactive wallpaper management for Linux
+Icon=linux-wallpaperengine-gui
+Type=Application
+Exec=linux-wallpaperengine-gui
+Categories=Graphics;Settings;System;
+Terminal=false
+StartupNotify=true
+StartupWMClass=linux-wallpaperengine.gui

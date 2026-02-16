@@ -1,0 +1,5 @@
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "$0")")"
+export PYTHONPATH="$HERE/usr/lib:$PYTHONPATH"
+export PATH="$HERE/usr/bin:$PATH"
+exec python3 "$HERE/usr/bin/linux-wallpaperengine-gui" "$@"

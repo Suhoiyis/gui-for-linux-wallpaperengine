@@ -1,265 +1,93 @@
 #!/bin/bash
 
-################################################################################
-# Build AppImage for Linux Wallpaper Engine GUI (system-gtk variant)
-#
-# Creates a "system-gtk" AppImage: the application Python code and pure-Python
-# dependencies (pillow, pyglet) are bundled; GTK4, libadwaita, PyGObject and
-# GObject-Introspection bindings are expected on the host system.
-#
-# Key design decisions:
-#   - Application files live at $APPDIR/opt/$PKG/ so that every __file__-based
-#     path calculation (ICON_PATH, CHANGELOG, pic/icons) works unchanged.
-#   - AppRun explicitly resolves the Python site-packages directory instead of
-#     using a glob (globs don't expand inside variable assignments).
-#   - A thin Python wrapper under usr/bin/ sets sys.path and launches main().
-#
-# Prerequisites:
-#   - Python 3.10+
-#   - appimagetool on PATH
-#
-# Usage:
-#   ./scripts/build-appimage.sh [--appdir PATH] [--output DIR]
-################################################################################
+# AppImage build script for Linux Wallpaper Engine GUI
+# This script builds an AppImage package that works on most modern Linux distributions
 
-set -euo pipefail
+set -e
 
-# ── Configuration ────────────────────────────────────────────────────────────
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
 
-APP_NAME="Linux Wallpaper Engine GUI"
-APP_ID="linux.wallpaperengine.gui"
-PKG="linux-wallpaperengine-gui"          # directory / executable name
-ARCH="x86_64"
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
 
-ICON_SOURCE="pic/icons/GUI_rounded.png"
-DESKTOP_FILE="linux.wallpaperengine.gui.desktop"
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
-APPDIR="${APPDIR:-${PROJECT_ROOT}/build/AppDir}"
-OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/build}"
-
-# ── Colours ──────────────────────────────────────────────────────────────────
-
-_R='\033[0;31m' _G='\033[0;32m' _Y='\033[1;33m' _B='\033[0;34m' _N='\033[0m'
-info()    { echo -e "${_B}[INFO]${_N} $*"; }
-ok()      { echo -e "${_G}[ OK ]${_N} $*"; }
-warn()    { echo -e "${_Y}[WARN]${_N} $*"; }
-die()     { echo -e "${_R}[ERR ]${_N} $*" >&2; exit 1; }
-
-# ── Argument parsing ─────────────────────────────────────────────────────────
-
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -a|--appdir) APPDIR="$2";     shift 2 ;;
-        -o|--output) OUTPUT_DIR="$2"; shift 2 ;;
-        -h|--help)
-            echo "Usage: $(basename "$0") [--appdir PATH] [--output DIR]"
-            exit 0
-            ;;
-        *) die "Unknown option: $1" ;;
-    esac
-done
-
-# ── Prerequisites ────────────────────────────────────────────────────────────
-
-for cmd in python3 appimagetool; do
-    command -v "$cmd" &>/dev/null || die "'$cmd' not found in PATH"
-done
-
-PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
-SITE_PKG_REL="usr/lib/python3.${PYTHON_MINOR}/site-packages"
-
-info "Python 3.${PYTHON_MINOR} detected"
-
-# ── Clean & create AppDir skeleton ───────────────────────────────────────────
-
-OPT="${APPDIR}/opt/${PKG}"
-
-rm -rf "$APPDIR"
-mkdir -p \
-    "${APPDIR}/usr/bin" \
-    "${APPDIR}/usr/share/applications" \
-    "${APPDIR}/usr/share/icons/hicolor/256x256/apps" \
-    "${APPDIR}/${SITE_PKG_REL}" \
-    "${OPT}"
-
-ok "AppDir skeleton created"
-
-# ── Copy application files ───────────────────────────────────────────────────
-# Mirror the source tree so that every __file__-relative path still resolves.
-
-cp -r "${PROJECT_ROOT}/py_GUI"       "${OPT}/"
-cp    "${PROJECT_ROOT}/run_gui.py"   "${OPT}/"
-cp -r "${PROJECT_ROOT}/pic"          "${OPT}/"
-
-# CHANGELOG.md is read at runtime by app.py → get_latest_changelog()
-if [[ -f "${PROJECT_ROOT}/CHANGELOG.md" ]]; then
-    cp "${PROJECT_ROOT}/CHANGELOG.md" "${OPT}/"
-else
-    warn "CHANGELOG.md not found — About dialog will show fallback text"
+# Check if we're in the project root
+if [ ! -f "run_gui.py" ] || [ ! -d "py_GUI" ]; then
+    print_error "This script must be run from the project root directory"
+    exit 1
 fi
 
-# Remove __pycache__ directories — they cause FUSE mount issues where
-# __file__ points to non-existent __pycache__/module.pyc paths
-find "${OPT}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+# Get version from const.py
+VERSION=$(python3 -c "from py_GUI.const import VERSION; print(VERSION)")
 
-ok "Application files copied → ${OPT}"
+print_status "Building AppImage for Linux Wallpaper Engine GUI v$VERSION"
 
-# ── Install pure-Python dependencies ─────────────────────────────────────────
+# Create build directory
+BUILD_DIR="build"
+APPDIR="$BUILD_DIR/AppDir"
+mkdir -p "$APPDIR/usr/bin"
+mkdir -p "$APPDIR/usr/lib"
+mkdir -p "$APPDIR/usr/share/applications"
+mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-info "Installing pip dependencies into AppDir..."
-python3 -m pip install \
-    --target "${APPDIR}/${SITE_PKG_REL}" \
-    --no-deps --no-cache-dir --no-compile \
-    pillow pyglet \
-    2>&1 | tail -5 || warn "pip install had warnings (non-fatal)"
+print_status "Created AppDir structure"
 
-ok "pip dependencies installed → ${APPDIR}/${SITE_PKG_REL}"
+# Copy application files
+cp -r py_GUI "$APPDIR/usr/lib/"
+cp -r pic "$APPDIR/usr/lib/"
+cp run_gui.py "$APPDIR/usr/bin/linux-wallpaperengine-gui"
 
-# ── Create wrapper script (usr/bin/) ─────────────────────────────────────────
+# Make the main script executable
+chmod +x "$APPDIR/usr/bin/linux-wallpaperengine-gui"
 
-WRAPPER="${APPDIR}/usr/bin/${PKG}"
-cat > "$WRAPPER" << 'PYEOF'
-#!/usr/bin/env python3
-"""AppImage wrapper — sets up paths then launches the GUI."""
+print_status "Copied application files"
 
-import os, sys, site
+# Copy desktop file
+cp linux.wallpaperengine.gui.desktop "$APPDIR/usr/share/applications/"
 
-# Resolve APPDIR (set by AppRun, or fall back to relative)
-appdir = os.environ.get("APPDIR") or os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
+# Copy icon
+cp pic/icons/GUI_rounded.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/linux-wallpaperengine-gui.png"
 
-# 1. Pure-Python pip packages (pillow, pyglet)
-sp = os.path.join(
-    appdir, "usr", "lib",
-    f"python3.{sys.version_info.minor}", "site-packages",
-)
-if os.path.isdir(sp):
-    site.addsitedir(sp)
-    if sp not in sys.path:
-        sys.path.insert(0, sp)
+print_status "Copied desktop integration files"
 
-# 2. Application code tree (opt/linux-wallpaperengine-gui/)
-app_root = os.path.join(appdir, "opt", "linux-wallpaperengine-gui")
-if os.path.isdir(app_root):
-    if app_root not in sys.path:
-        sys.path.insert(0, app_root)
-
-from py_GUI.main import main
-main()
-PYEOF
-chmod +x "$WRAPPER"
-ok "Wrapper script created"
-
-# ── Create AppRun ────────────────────────────────────────────────────────────
-# AppRun MUST NOT use globs in variable assignment (they won't expand).
-# Instead we compute the exact python version at build time.
-
-cat > "${APPDIR}/AppRun" << APPRUN_EOF
+# Create AppRun script
+cat > "$APPDIR/AppRun" << 'EOF'
 #!/bin/bash
-# AppRun — entry point executed when the AppImage is launched.
-#
-# CRITICAL: The application uses __file__-relative paths everywhere
-# (const.py PROJECT_ROOT, ICON_PATH, etc.).  These resolve correctly
-# only when CWD == app_root.  We therefore 'cd' into the application
-# tree before exec-ing Python.  Without this, the app SIGTERMs.
+HERE="$(dirname "$(readlink -f "$0")")"
+export PYTHONPATH="$HERE/usr/lib:$PYTHONPATH"
+export PATH="$HERE/usr/bin:$PATH"
+exec python3 "$HERE/usr/bin/linux-wallpaperengine-gui" "$@"
+EOF
+chmod +x "$APPDIR/AppRun"
 
-APPDIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-export APPDIR
+print_status "Created AppRun script"
 
-# Library path (unused in system-gtk variant but harmless)
-export LD_LIBRARY_PATH="\${APPDIR}/usr/lib:\${LD_LIBRARY_PATH:-}"
-
-# Python paths — NO globs, exact version baked at build time.
-export PYTHONPATH="\${APPDIR}/opt/${PKG}:\${APPDIR}/${SITE_PKG_REL}:\${PYTHONPATH:-}"
-
-# XDG data dirs for icon themes
-export XDG_DATA_DIRS="\${APPDIR}/usr/share:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-
-RUNTIME_BASE="\${XDG_RUNTIME_DIR:-/tmp}"
-RUNTIME_DIR="\${RUNTIME_BASE}/linux-wallpaperengine-gui-\${UID:-\$(id -u)}"
-mkdir -p "\${RUNTIME_DIR}"
-TRAY_SCRIPT_SRC="\${APPDIR}/opt/${PKG}/py_GUI/ui/tray_process.py"
-TRAY_ICON_SRC="\${APPDIR}/opt/${PKG}/pic/icons/gui_tray_rounded.png"
-TRAY_SCRIPT_DST="\${RUNTIME_DIR}/tray_process.py"
-TRAY_ICON_DST="\${RUNTIME_DIR}/gui_tray_rounded.png"
-# Only copy tray assets and truncate log when no tray process is already
-# running.  CLI re-invocations (--stop, --random, etc.) re-enter AppRun;
-# overwriting the script or clearing the log kills the live tray process.
-if ! pgrep -f "tray_process\\.py" >/dev/null 2>&1; then
-    if [ -f "\${TRAY_SCRIPT_SRC}" ]; then
-        cp -f "\${TRAY_SCRIPT_SRC}" "\${TRAY_SCRIPT_DST}"
-    fi
-    if [ -f "\${TRAY_ICON_SRC}" ]; then
-        cp -f "\${TRAY_ICON_SRC}" "\${TRAY_ICON_DST}"
-    fi
-fi
-export LWG_TRAY_SCRIPT="\${TRAY_SCRIPT_DST}"
-export LWG_TRAY_ICON="\${TRAY_ICON_DST}"
-export LWG_TRAY_LOG="\${RUNTIME_DIR}/tray.log"
-touch "\${LWG_TRAY_LOG}" 2>/dev/null || true
-
-# ── CWD fix ──────────────────────────────────────────────────────────────
-# The app must run with CWD inside the application tree so that every
-# os.path.abspath(__file__) and PROJECT_ROOT calculation resolves to
-# the bundled opt/ directory.  Launching from the AppDir root (the
-# default) causes immediate SIGTERM.
-cd "\${APPDIR}/opt/${PKG}"
-
-# Run as child process (NOT exec) so this shell stays alive and
-# the AppImage FUSE mount is preserved for the app lifetime.
-python3 run_gui.py "\$@"
-APPRUN_EOF
-chmod +x "${APPDIR}/AppRun"
-ok "AppRun created (Python 3.${PYTHON_MINOR})"
-
-# ── Desktop file & icon ──────────────────────────────────────────────────────
-
-[[ -f "${PROJECT_ROOT}/${DESKTOP_FILE}" ]] \
-    || die "Desktop file not found: ${PROJECT_ROOT}/${DESKTOP_FILE}"
-[[ -f "${PROJECT_ROOT}/${ICON_SOURCE}" ]] \
-    || die "Icon not found: ${PROJECT_ROOT}/${ICON_SOURCE}"
-
-# Root-level copies (appimagetool requirement)
-cp "${PROJECT_ROOT}/${DESKTOP_FILE}" "${APPDIR}/"
-cp "${PROJECT_ROOT}/${ICON_SOURCE}"  "${APPDIR}/${PKG}.png"
-
-# Standard FreeDesktop locations
-cp "${PROJECT_ROOT}/${DESKTOP_FILE}" "${APPDIR}/usr/share/applications/"
-cp "${PROJECT_ROOT}/${ICON_SOURCE}"  "${APPDIR}/usr/share/icons/hicolor/256x256/apps/${PKG}.png"
-
-ok "Desktop file and icon installed"
-
-# ── Build the AppImage ───────────────────────────────────────────────────────
-
-mkdir -p "$OUTPUT_DIR"
-OUTFILE="${OUTPUT_DIR}/${PKG}-${ARCH}.AppImage"
-
-info "Running appimagetool..."
-if ARCH="$ARCH" appimagetool "$APPDIR" "$OUTFILE"; then
-    chmod +x "$OUTFILE"
-    ok "AppImage created: ${OUTFILE}  ($(du -h "$OUTFILE" | cut -f1))"
+# Download appimagetool if not present
+if ! command -v appimagetool &> /dev/null; then
+    print_warning "appimagetool not found, downloading..."
+    wget -q https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage -O /tmp/appimagetool
+    chmod +x /tmp/appimagetool
+    APPIMAGETOOL="/tmp/appimagetool"
 else
-    die "appimagetool failed"
+    APPIMAGETOOL="appimagetool"
 fi
 
-# ── Verify ───────────────────────────────────────────────────────────────────
+# Build AppImage
+print_status "Building AppImage..."
+$APPIMAGETOOL "$APPDIR" "$BUILD_DIR/linux-wallpaperengine-gui-$VERSION-x86_64.AppImage"
 
-file "$OUTFILE" | grep -q "ELF" \
-    && ok "ELF signature verified" \
-    || warn "File type check inconclusive (may still work)"
-
-# ── Summary ──────────────────────────────────────────────────────────────────
-
-echo ""
-echo -e "${_B}════════════════════════════════════════${_N}"
-echo "  App:    ${APP_NAME}"
-echo "  ID:     ${APP_ID}"
-echo "  Arch:   ${ARCH}"
-echo "  Output: ${OUTFILE}"
-echo -e "${_B}════════════════════════════════════════${_N}"
-echo ""
-info "Test:  ${OUTFILE}"
-info "Debug: ${OUTFILE} 2>&1 | head -50"
+print_status "AppImage built successfully!"
+print_status "Output: $BUILD_DIR/linux-wallpaperengine-gui-$VERSION-x86_64.AppImage"

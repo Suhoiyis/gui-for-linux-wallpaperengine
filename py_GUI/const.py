@@ -1,20 +1,19 @@
-import os
+from py_GUI.utils.path_manager import PathManager
+
+# Initialize path manager
+_path_manager = PathManager()
 
 # Application constants
 APP_ID = "linux.wallpaperengine.gui"
-VERSION = "0.10.6"
+VERSION = "0.10.7"
 
-# Configuration Paths
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
-CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-WORKSHOP_PATH = os.path.expanduser(
-    "~/.local/share/Steam/steamapps/workshop/content/431960"
-)
-ASSETS_PATH = os.path.expanduser(
-    "~/.local/share/Steam/steamapps/common/wallpaper_engine/assets"
-)
-ICON_PATH = os.path.join(PROJECT_ROOT, "pic/icons/gui_tray_rounded.png")
+# Configuration Paths (using dynamic path resolution)
+PROJECT_ROOT = _path_manager.app_dir
+CONFIG_DIR = _path_manager.get_config_dir()
+CONFIG_FILE = _path_manager.get_config_file()
+WORKSHOP_PATH = _path_manager.get_workshop_path()
+ASSETS_PATH = _path_manager.get_assets_path()
+ICON_PATH = _path_manager.get_icon_path("gui_tray_rounded.png")
 
 DEFAULT_CONFIG = {
     "fps": 30,

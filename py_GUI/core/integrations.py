@@ -6,10 +6,9 @@ from py_GUI.const import APP_ID
 
 class AppIntegrator:
     def __init__(self):
-        # Resolve paths dynamically based on this file's location
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.project_root = os.path.dirname(os.path.dirname(current_dir))
-        
+        from py_GUI.const import PROJECT_ROOT, ICON_PATH
+        # Resolve paths dynamically based on environment
+        self.project_root = PROJECT_ROOT
         self.script_path = os.path.join(self.project_root, "run_gui.py")
         self.icon_path = os.path.join(self.project_root, "pic/icons/GUI_rounded.png")
         self.python_exe = sys.executable

@@ -83,10 +83,9 @@ def get_debug_info():
 def get_latest_changelog():
     import os
     import re
+    from py_GUI.const import PROJECT_ROOT
 
-    changelog_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md"
-    )
+    changelog_path = os.path.join(PROJECT_ROOT, "CHANGELOG.md")
     if not os.path.exists(changelog_path):
         return "<p>No changelog found.</p>"
 
@@ -260,12 +259,9 @@ class WallpaperApp(Adw.Application):
         display = Gdk.Display.get_default()
         icon_theme = Gtk.IconTheme.get_for_display(display)
 
-        # Add 'pic' directory to icon search path
-        # py_GUI/ui/app.py -> .../linux-wallpaperengine-gui/
-        base_path = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-        pic_path = os.path.join(base_path, "pic/icons")
+        # Add 'pic' directory to icon search path using dynamic path resolution
+        from py_GUI.const import PROJECT_ROOT
+        pic_path = os.path.join(PROJECT_ROOT, "pic/icons")
 
         if os.path.exists(pic_path):
             icon_theme.add_search_path(pic_path)
