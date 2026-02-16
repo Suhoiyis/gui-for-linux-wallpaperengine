@@ -45,13 +45,18 @@ jobs:
             libgtk-4-1 libadwaita-1-0 \
             libgirepository1.0-dev \
             libcairo2-dev \
-            pkg-config
+            pkg-config \
+            libfuse2 \
+            file
 
       - name: Download appimagetool
         run: |
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
-          sudo mv appimagetool /usr/local/bin/appimagetool
+          # Extract appimagetool (workaround for FUSE issues in CI)
+          ./appimagetool --appimage-extract
+          sudo mv squashfs-root/AppRun /usr/local/bin/appimagetool
+          sudo cp -r squashfs-root/usr /usr/local/
 
       - name: Build AppImage
         run: |
