@@ -194,6 +194,7 @@ fi
 export LWG_TRAY_SCRIPT="\${TRAY_SCRIPT_DST}"
 export LWG_TRAY_ICON="\${TRAY_ICON_DST}"
 export LWG_TRAY_LOG="\${RUNTIME_DIR}/tray.log"
+ : > "\${LWG_TRAY_LOG}" 2>/dev/null || true
 
 # ── CWD fix ──────────────────────────────────────────────────────────────
 # The app must run with CWD inside the application tree so that every
