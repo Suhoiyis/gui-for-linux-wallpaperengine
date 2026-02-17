@@ -73,13 +73,15 @@ cp pic/icons/GUI_rounded.png "$APPDIR/linux-wallpaperengine-gui.png"
 
 print_status "Copied desktop integration files"
 
-# Create AppRun script
+# Create AppRun script with better error handling
 cat > "$APPDIR/AppRun" << 'EOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
-export PYTHONPATH="$HERE/usr/lib:$PYTHONPATH"
+export PYTHONPATH="$HERE/usr/lib:$HERE:$PYTHONPATH"
 export PATH="$HERE/usr/bin:$PATH"
 export APPDIR="$HERE"
+
+# Execute the application
 exec python3 "$HERE/usr/bin/linux-wallpaperengine-gui" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"

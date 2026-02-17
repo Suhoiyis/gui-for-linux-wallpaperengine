@@ -45,9 +45,17 @@ class TrayProcess:
         GLib.timeout_add_seconds(2, self._poll_state)
 
     def _find_run_gui(self):
-        from py_GUI.const import PROJECT_ROOT
-        # Locate run_gui.py relative to project root
-        return os.path.join(PROJECT_ROOT, "run_gui.py")
+        # Check if running inside AppImage
+        appdir = os.environ.get('APPDIR')
+        if appdir:
+            # Running inside AppImage - use AppDir path
+            return os.path.join(appdir, 'usr', 'bin', 'linux-wallpaperengine-gui')
+        
+        # Fallback: Locate run_gui.py relative to this file
+        base = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        return os.path.join(base, "run_gui.py")
 
     def _build_menu(self):
         self.menu = Gtk.Menu()

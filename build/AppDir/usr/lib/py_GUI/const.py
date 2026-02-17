@@ -5,7 +5,7 @@ _path_manager = PathManager()
 
 # Application constants
 APP_ID = "linux.wallpaperengine.gui"
-VERSION = "0.10.6"
+VERSION = "0.10.7"
 
 # Configuration Paths (using dynamic path resolution)
 PROJECT_ROOT = _path_manager.app_dir
