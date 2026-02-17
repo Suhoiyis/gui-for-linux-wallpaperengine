@@ -49,6 +49,14 @@ class TrayProcess:
         GLib.timeout_add_seconds(2, self._poll_state)
 
     def _find_run_gui(self):
+
+        appdir = os.getenv('APPDIR')
+        if appdir:
+            # 假设 run_gui.py 在 AppImage 的 usr/bin 或 usr/share 下
+            # 这里的路径取决于稍后我们在 build 脚本里怎么放文件
+            appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/run_gui.py")
+            if os.path.exists(appimage_path): return appimage_path
+
         sys_path = "/usr/share/linux-wallpaperengine-gui/run_gui.py"
         if os.path.exists(sys_path): return sys_path
         try:
@@ -136,8 +144,10 @@ class TrayProcess:
 
     def _exec_cmd(self, arg):
         try:
+            # 【建议】这里使用 sys.executable 替换 'python3'
+            # 确保在 AppImage 环境下调用的是包内的解释器
             subprocess.Popen(
-                ['python3', self.run_gui_path, arg],
+                [sys.executable, self.run_gui_path, arg],
                 start_new_session=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL

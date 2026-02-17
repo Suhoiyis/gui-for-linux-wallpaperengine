@@ -30,6 +30,14 @@ class TrayIcon:
         log_main("TrayIcon Instance Accessed")
     
     def _find_script(self):
+
+        appdir = os.getenv('APPDIR')
+        if appdir:
+            # 在 AppImage 中，我们通常把源码放在 /usr/src 或者 /usr/share 下
+            # 这里假设安装到了 usr/share/linux-wallpaperengine-gui
+            appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/py_GUI/ui/tray_process.py")
+            if os.path.exists(appimage_path): return appimage_path
+
         sys_path = "/usr/share/linux-wallpaperengine-gui/py_GUI/ui/tray_process.py"
         if os.path.exists(sys_path): return sys_path
         
@@ -40,6 +48,21 @@ class TrayIcon:
         except: pass
         return None
 
+    # def _resolve_icon(self):
+    #     icon_path = "pic/icons/GUI_rounded.png"
+    #     try:
+    #         from py_GUI.const import ICON_PATH
+    #         icon_path = ICON_PATH
+    #     except: pass
+
+    #     candidates = [
+    #         os.path.join("/usr/share/linux-wallpaperengine-gui", icon_path),
+    #         os.path.abspath(icon_path),
+    #     ]
+    #     for p in candidates:
+    #         if os.path.exists(p): return p
+    #     return ""
+
     def _resolve_icon(self):
         icon_path = "pic/icons/GUI_rounded.png"
         try:
@@ -47,10 +70,21 @@ class TrayIcon:
             icon_path = ICON_PATH
         except: pass
 
-        candidates = [
-            os.path.join("/usr/share/linux-wallpaperengine-gui", icon_path),
-            os.path.abspath(icon_path),
-        ]
+        candidates = []
+
+            # 【新增】AppImage 环境优先检查
+            # 运行时 APPDIR 环境变量会自动指向 AppImage 的挂载点
+        appdir = os.getenv('APPDIR')
+        if appdir:
+            candidates.append(os.path.join(appdir, "usr/share/linux-wallpaperengine-gui", icon_path))
+
+        # 原有的检查逻辑
+        candidates.append(os.path.join("/usr/share/linux-wallpaperengine-gui", icon_path))
+        candidates.append(os.path.abspath(icon_path))
+
+        # 备用：尝试直接从安装路径找
+        candidates.append("/usr/share/pixmaps/linux-wallpaperengine-gui.png")
+
         for p in candidates:
             if os.path.exists(p): return p
         return ""
