@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-wallpaperengine-gui"
+version = "0.10.6"
+description = "A modern GTK4 graphical interface for managing Steam Workshop live wallpapers on Linux."
+readme = "README.md"
+authors = [{ name = "Your Name", email = "your@email.com" }]
+license = { text = "GPL-3.0" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+    "PyGObject",
+    # 注意：libadwaita 和 gtk4 通常作为系统库安装，但在 python 依赖中主要是 PyGObject
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine"
+
+[project.scripts]
+# 这里定义安装后终端输入的命令，指向你的入口函数
+linux-wallpaperengine-gui = "py_GUI.main:main"
+# 注意：你需要确保 run_gui.py 里有一个 main() 函数，
+# 或者将 run_gui.py 里的代码封装一下。
+# 如果 run_gui.py 是直接执行的脚本，下面的打包脚本我会做特殊处理。
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["py_GUI*"]  # 告诉它：只要是 py_GUI 开头的文件夹，哪怕藏在下面，都给我打包带走！
+namespaces = false      # (可选) 这是一个常规包，不是命名空间包
