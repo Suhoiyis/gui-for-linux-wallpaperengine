@@ -66,10 +66,10 @@ cp linux.wallpaperengine.gui.desktop "$APPDIR/"
 # Also copy to usr/share/applications for system integration
 cp linux.wallpaperengine.gui.desktop "$APPDIR/usr/share/applications/"
 
-# Copy icon
+# Copy icon - must match the Icon= value in desktop file (linux-wallpaperengine-gui)
 cp pic/icons/GUI_rounded.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/linux-wallpaperengine-gui.png"
-# Also copy to AppDir root for appimagetool
-cp pic/icons/GUI_rounded.png "$APPDIR/"
+# Also copy to AppDir root with correct name for appimagetool
+cp pic/icons/GUI_rounded.png "$APPDIR/linux-wallpaperengine-gui.png"
 
 print_status "Copied desktop integration files"
 
