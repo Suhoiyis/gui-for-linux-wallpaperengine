@@ -35,6 +35,11 @@ VERSION=$(python3 -c "from py_GUI.const import VERSION; print(VERSION)")
 
 print_status "Building AppImage for Linux Wallpaper Engine GUI v$VERSION"
 
+# Set architecture (required by appimagetool)
+ARCH="${ARCH:-x86_64}"
+export ARCH
+print_status "Target architecture: $ARCH"
+
 # Create build directory
 BUILD_DIR="build"
 APPDIR="$BUILD_DIR/AppDir"
