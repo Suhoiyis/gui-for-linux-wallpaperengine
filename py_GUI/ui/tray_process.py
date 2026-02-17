@@ -8,150 +8,154 @@ import signal
 import sys
 import os
 import time
-import random
 
-# === 终极调试日志 ===
 def log_crash(msg):
     try:
         with open("/tmp/tray_crash.log", "a") as f:
             ts = time.strftime("%H:%M:%S")
-            f.write(f"[{ts}] {msg}\n")
-    except:
-        pass
-
-# 全局异常钩子：任何未捕获的错误都会被记录
-def exception_hook(exctype, value, traceback):
-    log_crash(f"UNCAUGHT EXCEPTION: {value}")
-    sys.__excepthook__(exctype, value, traceback)
-
-sys.excepthook = exception_hook
+            f.write(f"[{ts}] [TRAY] {msg}\n")
+    except: pass
 
 class TrayProcess:
-    def __init__(self, icon_path):
-        log_crash(f"Tray Init. PID: {os.getpid()}")
+    def __init__(self, icon_path, parent_pid):
         self.icon_path = icon_path
+        self.parent_pid = int(parent_pid) if parent_pid.isdigit() else None
         self.run_gui_path = self._find_run_gui()
+        self.is_engine_running = False
         
-        # 【关键修改】使用随机 ID，防止“单实例”冲突导致无法启动
-        # 如果上一个进程还没完全退出，用新 ID 可以保证这个能活下来
-        unique_id = f"wallpaper-engine-gui-{random.randint(1000, 9999)}"
+        # 【修复 1】Tooltip 名称修复
+        # 第一个参数是 ID，通常会被用作 Tooltip
+        self.app_id = "linux-wallpaperengine-gui"
         
         self.indicator = AyatanaAppIndicator3.Indicator.new(
-            unique_id,
+            self.app_id,
             "preferences-desktop-wallpaper",
             AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS
         )
         
         if self.icon_path and os.path.exists(self.icon_path):
-            self.indicator.set_icon_full(self.icon_path, "Wallpaper Engine")
+            self.indicator.set_icon_full(os.path.abspath(self.icon_path), "Wallpaper Engine")
+            # 显式设置 Title，增加兼容性
+            try: self.indicator.set_title("Wallpaper Engine GUI")
+            except: pass
         
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self._build_menu())
         
-# 忽略 SIGPIPE，防止主程序关闭管道导致的崩溃
-        signal.signal(signal.SIGPIPE, signal.SIG_IGN)
+        # 忽略 SIGTERM，防止误杀
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         
-        # 修改 SIGTERM 处理，增加一点延迟确认，或者在特定情况下忽略
-        signal.signal(signal.SIGTERM, self._on_sigterm)
+        # 启动状态轮询（检查引擎状态 + 检查主程序是否存活）
+        GLib.timeout_add_seconds(2, self._poll_state)
 
-    def _on_sigterm(self, *args):
-        # 只有当收到来自特定条件的信号才退出，这里可以先记录但不退出
-        log_crash("Received SIGTERM - Ignoring to prevent accidental suicide.")
-        # 如果你确实想让它能被杀死，可以取消下面这行的注释
-        # Gtk.main_quit()
-
-    def _keep_alive(self):
-        return True
-    
     def _find_run_gui(self):
-        # 1. 绝对优先：系统安装路径
         sys_path = "/usr/share/linux-wallpaperengine-gui/run_gui.py"
-        if os.path.exists(sys_path):
-            return sys_path
-            
-        # 2. 相对路径回退
+        if os.path.exists(sys_path): return sys_path
         try:
             base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             dev_path = os.path.join(base, 'run_gui.py')
-            if os.path.exists(dev_path):
-                 return dev_path
-        except:
-            pass
+            if os.path.exists(dev_path): return dev_path
+        except: pass
         return "run_gui.py"
     
+    def _poll_state(self):
+        # 【修复 3】看门狗：如果主程序死了，托盘自动自杀
+        if self.parent_pid:
+            try:
+                # 发送 0 信号检测进程是否存在
+                os.kill(self.parent_pid, 0)
+            except OSError:
+                log_crash(f"Parent PID {self.parent_pid} died. Exiting.")
+                Gtk.main_quit()
+                return False
+
+        # 检查壁纸引擎是否在运行 (用于 Play/Stop 逻辑)
+        running = False
+        try:
+            pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+            for pid in pids:
+                try:
+                    with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as f:
+                        cmdline = f.read().decode('utf-8', errors='ignore').replace('\0', ' ')
+                        # 检查是否有 linux-wallpaperengine 进程
+                        if 'linux-wallpaperengine' in cmdline and 'python' not in cmdline:
+                            running = True
+                            break
+                except: continue
+        except: pass
+        
+        self.is_engine_running = running
+        return True
+
     def _build_menu(self):
         menu = Gtk.Menu()
         
-        # Helper to simplify menu creation
-        def add_item(label, command, use_markup=False):
-            item = Gtk.MenuItem()
-            lbl = Gtk.Label(label=label)
-            lbl.set_use_markup(use_markup)
-            item.add(lbl)
-            # 【关键修改】使用 timeout_add 代替 idle_add
-            # 延迟 200ms 执行，让菜单先平稳关闭，防止 UI 线程冲突崩溃
-            item.connect("activate", lambda _: GLib.timeout_add(200, self._safe_cmd, command))
-            menu.append(item)
-            return item
-
-        show_item = add_item("<b>Show Window</b>", "--show", True)
-        
-        try:
-            self.indicator.set_secondary_activate_target(show_item)
-        except:
-            pass
+        # Show Window
+        item_show = Gtk.MenuItem()
+        label = Gtk.Label(label="<b>Show Window</b>")
+        label.set_use_markup(True)
+        item_show.add(label)
+        item_show.connect("activate", lambda _: self._safe_cmd("--show"))
+        menu.append(item_show)
+        try: self.indicator.set_secondary_activate_target(item_show)
+        except: pass
             
         menu.append(Gtk.SeparatorMenuItem())
         
-        # Play/Stop 稍微复杂点，需要逻辑判断，但这里简化为命令发送
-        # 我们假设 GUI 会处理逻辑，这里只管发信号
+        # Play/Stop
         item_toggle = Gtk.MenuItem(label="Play/Stop")
-        # 同样延迟 200ms
-        item_toggle.connect("activate", lambda _: GLib.timeout_add(200, self._on_toggle))
+        # 连接到逻辑函数，而不是直接发命令
+        item_toggle.connect("activate", self._on_toggle_click)
         menu.append(item_toggle)
         
-        add_item("Random Wallpaper", "--random")
+        # Random
+        item_random = Gtk.MenuItem(label="Random Wallpaper")
+        item_random.connect("activate", lambda _: self._safe_cmd("--random"))
+        menu.append(item_random)
         
         menu.append(Gtk.SeparatorMenuItem())
         
-        add_item("Quit Application", "--quit")
+        # Quit
+        item_quit = Gtk.MenuItem(label="Quit Application")
+        item_quit.connect("activate", lambda _: self._safe_cmd("--quit"))
+        menu.append(item_quit)
         
         menu.show_all()
         return menu
 
-    def _on_toggle(self):
-        # 简单的 toggle 逻辑：直接发 --toggle-play 或者类似的，
-        # 这里为了稳健，我们直接发 --apply-last，让主程序决定
-        # 或者发 --stop，取决于你想做什么。
-        # 为了防崩溃，这里只做简单的命令转发
-        self._safe_cmd("--random") # 暂时用 random 代替，或者你有专门的 toggle 命令
-        return False
+    def _on_toggle_click(self, widget):
+        # 【修复 2】Play/Stop 逻辑修复
+        # 如果引擎在跑，就发 stop；没跑，就发 apply-last
+        if self.is_engine_running:
+            self._safe_cmd("--stop")
+        else:
+            self._safe_cmd("--apply-last")
 
     def _safe_cmd(self, arg):
+        GLib.timeout_add(100, self._exec_cmd, arg)
+
+    def _exec_cmd(self, arg):
         try:
-            log_crash(f"Command: {arg}")
-            # close_fds=True 和 start_new_session=True 双重隔离
             subprocess.Popen(
                 ['python3', self.run_gui_path, arg],
                 start_new_session=True,
-                close_fds=True, 
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
         except Exception as e:
             log_crash(f"Cmd Error: {e}")
-        return False # 停止定时器
+        return False
 
     def run(self):
-        try:
-            Gtk.main()
-        except Exception as e:
-            log_crash(f"Main Loop Crash: {e}")
+        Gtk.main()
 
 if __name__ == "__main__":
     try:
+        # 接收参数: script.py <icon_path> <parent_pid>
         icon = sys.argv[1] if len(sys.argv) > 1 else ""
-        app = TrayProcess(icon)
+        pid = sys.argv[2] if len(sys.argv) > 2 else "0"
+        
+        app = TrayProcess(icon, pid)
         app.run()
     except Exception as e:
-        log_crash(f"Startup Crash: {e}")
+        log_crash(f"Startup: {e}")
