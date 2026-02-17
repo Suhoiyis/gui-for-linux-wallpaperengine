@@ -55,11 +55,16 @@ chmod +x "$APPDIR/usr/bin/linux-wallpaperengine-gui"
 
 print_status "Copied application files"
 
-# Copy desktop file
+# Copy desktop file to AppDir root (required by appimagetool)
+cp linux.wallpaperengine.gui.desktop "$APPDIR/"
+
+# Also copy to usr/share/applications for system integration
 cp linux.wallpaperengine.gui.desktop "$APPDIR/usr/share/applications/"
 
 # Copy icon
 cp pic/icons/GUI_rounded.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/linux-wallpaperengine-gui.png"
+# Also copy to AppDir root for appimagetool
+cp pic/icons/GUI_rounded.png "$APPDIR/"
 
 print_status "Copied desktop integration files"
 
