@@ -79,6 +79,7 @@ cat > "$APPDIR/AppRun" << 'EOF'
 HERE="$(dirname "$(readlink -f "$0")")"
 export PYTHONPATH="$HERE/usr/lib:$PYTHONPATH"
 export PATH="$HERE/usr/bin:$PATH"
+export APPDIR="$HERE"
 exec python3 "$HERE/usr/bin/linux-wallpaperengine-gui" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"

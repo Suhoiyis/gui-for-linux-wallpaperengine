@@ -44,11 +44,21 @@ class TrayIcon:
             # the squashfs FUSE filesystem.  Setting cwd to a normal
             # filesystem directory avoids the crash.
             tray_cwd = os.path.dirname(script_path) or "/"
+            
+            # Set PYTHONPATH for tray subprocess to find py_GUI modules
+            env = os.environ.copy()
+            app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if 'PYTHONPATH' in env:
+                env['PYTHONPATH'] = app_root + ':' + env['PYTHONPATH']
+            else:
+                env['PYTHONPATH'] = app_root
+            
             self.process = subprocess.Popen(
                 ["python3", script_path, icon_path],
                 stdout=log_file or subprocess.DEVNULL,
                 stderr=log_file or subprocess.DEVNULL,
                 cwd=tray_cwd,
+                env=env,
             )
             log(f"tray.start pid={self.process.pid}")
         except Exception as e:
