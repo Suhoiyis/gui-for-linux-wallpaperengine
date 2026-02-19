@@ -6,6 +6,18 @@
 <p align="center">一个现代化的 GTK4 图形界面，用于在 Linux 上管理和应用 Steam Workshop 动态壁纸。</p>
 
 <p align="center">
+  <a href="https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases/latest">
+    <img src="https://img.shields.io/github/v/release/Suhoiyis/gui-for-linux-wallpaperengine?color=success&label=Release&style=flat-square" alt="Latest Release">
+  </a>
+  <a href="https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/Suhoiyis/gui-for-linux-wallpaperengine?style=flat-square&color=blue" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/Platform-Linux-lightgrey?style=flat-square&logo=linux" alt="Platform">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python&logoColor=white" alt="Python Version">
+  <img src="https://img.shields.io/badge/GUI-GTK4-4A86CF?style=flat-square&logo=gnome&logoColor=white" alt="GTK4">
+</p>
+
+<p align="center">
     <a href="README.md">English</a> | 
     <strong>简体中文</strong>
 <p>
@@ -52,14 +64,14 @@
 
 - 📊 **性能监控**: 实时 CPU/内存追踪，提供 60 秒实时趋势图、分进程明细（前端、后端、托盘）以及详细的线程列表
 
-<details>
-  <summary>点击查看性能监控截图</summary>
-  <div align="center">
-    <br>
-    <img src="docs/assets/performance-monitor.png" width="70%" alt="Performance Monitor">
-    <p><em>实时CPU/内存跟踪和进程详细信息</em></p>
-  </div>
-</details>
+  <details>
+    <summary>点击查看性能监控截图</summary>
+    <div align="center">
+      <br>
+      <img src="docs/assets/performance-monitor.png" width="70%" alt="Performance Monitor">
+      <p><em>实时CPU/内存跟踪和进程详细信息</em></p>
+    </div>
+  </details>
 
 - 📸 **智能截图**: 通过 Xvfb 虚拟帧缓冲进行静默 4K 截屏，根据壁纸类型智能延迟，提供资源占用统计和截图历史（最近 10 张）
 - 🔄 **定时轮换**: 按可配置的时间间隔自动切换壁纸；支持随机模式和按标题、大小、类型或文件夹 ID 的顺序轮换
@@ -69,50 +81,55 @@
 - 🖼️ **GIF 智能缩略图**: 智能帧提取（第 15 帧）以避免空白/黑色预览图；支持透明 GIF 渲染
 - 🔔 **更新检查器**: 自动检查 GitHub Release，具备智能速率限制处理和语义化版本比较功能
 
-## 🚀 快速入门
+## 🚀 安装指南
 
-### 前置条件
+### 1. 安装后端（必须）
+本 GUI 作为控制端，需要您的系统上先安装核心渲染引擎。
+请参考 [Almamu/linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) 的编译说明进行安装，并确保该程序已加入系统的环境变量 PATH 中：
 
-**Arch Linux:**
 ```bash
-sudo pacman -S python-gobject gtk4 libadwaita libayatana-appindicator
+which linux-wallpaperengine  # 验证安装是否成功
 ```
 
-**Ubuntu / Debian:**
-```bash
+### 2. 安装 GUI 控制端
+前往 [Releases 页面](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases) 下载最新版本，然后选择您喜欢的安装方式：
+
+#### 方法 A：Arch Linux 安装包（Arch/Manjaro 用户推荐）
+
+我们暂未将应用上架AUR仓库（正在计划中），但是我们现在提供了预编译的 .pkg.tar.zst 包。使用 pacman 安装会自动处理所有的 GUI 依赖项。
+
+```Bash
+# 请将文件名替换为您实际下载的文件
+sudo pacman -U linux-wallpaperengine-gui-*-x86_64.pkg.tar.zst
+```
+
+安装完成后，您就可以直接在桌面应用启动器中找到它了。
+
+#### 方法 B：AppImage
+开箱即用的便携格式，无需配置依赖，完美集成桌面快捷方式和系统托盘。
+
+```Bash
+# 赋予执行权限
+chmod +x linux-wallpaperengine-gui-*-x86_64.AppImage
+
+# 运行
+./linux-wallpaperengine-gui-*-x86_64.AppImage
+```
+
+#### 方法 C：源码运行
+如果您更喜欢直接运行 Python 脚本，请先安装前置依赖库：
+
+```Bash
+# Arch Linux
+sudo pacman -S python-gobject gtk4 libadwaita libayatana-appindicator
+# Ubuntu / Debian
 sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libayatana-appindicator3-1
 ```
 
-**可选** (用于静默截图):
-```bash
-# Arch Linux
-sudo pacman -S xorg-server-xvfb
+然后克隆本仓库并运行：
 
-# Ubuntu / Debian
-sudo apt install xvfb
-```
-
-### 安装后端
-
-此 GUI 需要 [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine):
-
-```bash
-# Follow the backend project's build instructions
-# Make sure 'linux-wallpaperengine' is in your PATH
-which linux-wallpaperengine  # Verify installation
-```
-
-### 运行
-
-```bash
-# Launch GUI
+```Bash
 python3 run_gui.py
-
-# Launch in background (tray icon only)
-python3 run_gui.py --hidden
-
-# Show an already-running instance
-python3 run_gui.py --show
 ```
 
 ## 📖 基本用法
