@@ -31,7 +31,7 @@ docs/reference_doc/
 
 AppDir
 *.AppImage
-
+*deploy*
 runtime-x86_64
 requirements.txt
 
@@ -44,3 +44,7 @@ src/
 build/
 dist/
 *.egg-info/
+
+build_appimage.sh
+PKGBUILD
+*.toml
