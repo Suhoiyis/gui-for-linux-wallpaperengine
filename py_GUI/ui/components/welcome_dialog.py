@@ -27,9 +27,18 @@ class WelcomeDialog(Gtk.Window):
         header_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         main_box.append(header_box)
         
-        icon = Gtk.Image.new_from_icon_name("preferences-desktop-wallpaper")
-        icon.set_pixel_size(80)
-        icon.add_css_class("accent")
+        # 尝试获取自定义 Logo
+        logo_path = self._resolve_logo_path()
+        
+        if logo_path:
+            # 如果找到了图片文件，就加载文件
+            icon = Gtk.Image.new_from_file(logo_path)
+        else:
+            # 找不到就回退到系统图标，防止界面空白
+            icon = Gtk.Image.new_from_icon_name("preferences-desktop-wallpaper")
+            icon.add_css_class("accent")
+            
+        icon.set_pixel_size(100)
         header_box.append(icon)
         
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -115,6 +124,37 @@ class WelcomeDialog(Gtk.Window):
         self.btn_start.set_halign(Gtk.Align.CENTER)
         self.btn_start.connect("clicked", self.on_start_clicked)
         footer_box.append(self.btn_start)
+
+    def _resolve_logo_path(self):
+        """
+        智能查找 Logo 图片路径，兼容源码、AppImage 和系统安装包
+        """
+        candidates = []
+        filename = "pic/icons/GUI_rounded.png"
+
+        # 1. AppImage 环境优先 (检测 APPDIR 环境变量)
+        appdir = os.getenv('APPDIR')
+        if appdir:
+            # 对应 build 脚本中的安装路径
+            candidates.append(os.path.join(appdir, "usr/share/linux-wallpaperengine-gui", filename))
+
+        # 2. 系统/Arch 包安装路径
+        candidates.append(os.path.join("/usr/share/linux-wallpaperengine-gui", filename))
+
+        # 3. 源码开发环境 (相对于当前文件的位置)
+        # 当前文件在 py_GUI/ui/welcome_dialog.py
+        # 项目根目录是往上推 3 级
+        try:
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            candidates.append(os.path.join(base_path, filename))
+        except:
+            pass
+
+        # 遍历检查，返回第一个存在的路径
+        for path in candidates:
+            if os.path.exists(path):
+                return path
+        return None
 
     def on_browse_clicked(self, button):
         dialog = Gtk.FileChooserNative(

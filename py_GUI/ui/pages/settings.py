@@ -758,12 +758,16 @@ class SettingsPage(Gtk.Box):
             root = self.window
             
             if root:
-                def on_nicknames_saved():
+                def on_nicknames_saved(needs_refresh=False):
                     app = Gio.Application.get_default()
                     if app and hasattr(app, 'wallpapers_page'):
-                        app.wallpapers_page.refresh_wallpaper_grid()
-                        app.wallpapers_page.update_active_wallpaper_label()
-
+                        if needs_refresh:
+                            # 如果执行了删除并保存，调用全局刷新（相当于点击菜单栏的 Refresh Library）
+                            app.refresh_from_cli()
+                        else:
+                            # 如果只是普通修改，仅更新 UI 即可，避免不必要的性能消耗
+                            app.wallpapers_page.refresh_wallpaper_grid()
+                            app.wallpapers_page.update_active_wallpaper_label()
                 dialog = NicknameManagerDialog(root, self.nickname_manager, self.wp_manager, on_saved=on_nicknames_saved)
                 dialog.present()
             else:

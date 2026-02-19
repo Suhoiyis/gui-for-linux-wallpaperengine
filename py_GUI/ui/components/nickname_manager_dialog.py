@@ -17,7 +17,9 @@ class NicknameManagerDialog(Gtk.Window):
         self.wp_manager = wp_manager
         self.on_saved_callback = on_saved
         self.rows: List[Tuple[str, Gtk.CheckButton, Gtk.Entry]] = [] 
-        
+
+        self._needs_library_refresh = False
+
         self.build_ui()
         self.load_data()
         
@@ -109,29 +111,29 @@ class NicknameManagerDialog(Gtk.Window):
         for wp_id, nick in sorted_items:
             row = Gtk.ListBoxRow()
             row.set_activatable(False)
-            
+
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             box.set_margin_start(8)
             box.set_margin_end(8)
             box.set_margin_top(8)
             box.set_margin_bottom(8)
             row.set_child(box)
-            
+
             check = Gtk.CheckButton()
             check.set_valign(Gtk.Align.CENTER)
             box.append(check)
-            
+
             wp_data = self.wp_manager.get_wallpaper(wp_id)
             title = "Unknown Wallpaper"
-            
+
             if wp_data:
                 preview_path = wp_data.get("preview")
                 title = wp_data.get("title", "Unknown")
-                
+
                 texture = None
                 if preview_path:
                     texture = self.wp_manager.get_texture(preview_path, 48)
-                    
+
                 if texture:
                     img = Gtk.Picture.new_for_paintable(texture)
                     img.set_size_request(48, 48)
@@ -143,12 +145,12 @@ class NicknameManagerDialog(Gtk.Window):
             else:
                 title = f"ID: {wp_id}"
                 self._add_placeholder_icon(box)
-                
+
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             vbox.set_valign(Gtk.Align.CENTER)
             vbox.set_hexpand(True)
             box.append(vbox)
-            
+
             lbl_title = Gtk.Label(label=title)
             lbl_title.set_halign(Gtk.Align.START)
             lbl_title.add_css_class("caption")
@@ -156,12 +158,12 @@ class NicknameManagerDialog(Gtk.Window):
             lbl_title.set_ellipsize(Pango.EllipsizeMode.END)
             lbl_title.set_max_width_chars(40)
             vbox.append(lbl_title)
-            
+
             entry = Gtk.Entry()
             entry.set_text(nick)
             entry.set_placeholder_text("Nickname")
             vbox.append(entry)
-            
+
             self.list_box.append(row)
             self.rows.append((wp_id, check, entry))
 
@@ -186,13 +188,16 @@ class NicknameManagerDialog(Gtk.Window):
                 entry.set_text("")
                 count += 1
 
+        if count > 0:
+            self._needs_library_refresh = True
+
 
     def on_save(self, btn):
         for wp_id, _, entry in self.rows:
             new_nick = entry.get_text()
             self.nickname_manager.set(wp_id, new_nick)
-        
+
         if self.on_saved_callback:
-            self.on_saved_callback()
-            
+            self.on_saved_callback(getattr(self, '_needs_library_refresh', False))
+
         self.close()
