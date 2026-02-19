@@ -34,3 +34,13 @@ AppDir
 build_appimage.sh
 runtime-x86_64
 requirements.txt
+
+packages.md
+
+*.tar.gz
+*.tar.zst
+
+src/
+build/
+dist/
+*.egg-info/
