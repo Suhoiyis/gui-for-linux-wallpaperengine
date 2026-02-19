@@ -28,10 +28,10 @@ issues/
 tools/
 docs/reference_doc/
 
-linuxdeploy*
+
 AppDir
 *.AppImage
-build_appimage.sh
+
 runtime-x86_64
 requirements.txt
 
