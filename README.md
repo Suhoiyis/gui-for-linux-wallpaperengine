@@ -96,6 +96,7 @@ Follow the build instructions for [Almamu/linux-wallpaperengine](https://github.
 ```bash
 which linux-wallpaperengine  # Verify installation
 ```
+(Arch Linux users can simply install it from the AUR: yay -S linux-wallpaperengine)
 
 ### 2. Install the GUI
 Head over to the [Releases page](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases) to download the latest version, then choose your preferred method:

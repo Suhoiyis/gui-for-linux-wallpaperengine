@@ -90,6 +90,7 @@
 ```bash
 which linux-wallpaperengine  # 验证安装是否成功
 ```
+（Arch Linux 用户可以直接从 AUR 安装：yay -S linux-wallpaperengine）
 
 ### 2. 安装 GUI 控制端
 前往 [Releases 页面](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases) 下载最新版本，然后选择您喜欢的安装方式：
