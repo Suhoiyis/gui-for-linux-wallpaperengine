@@ -6,7 +6,6 @@ from py_GUI.const import APP_ID
 
 class AppIntegrator:
     def __init__(self):
-        # Resolve paths dynamically based on this file's location
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.project_root = os.path.dirname(os.path.dirname(current_dir))
         
@@ -19,15 +18,30 @@ class AppIntegrator:
         self.desktop_filename = f"{APP_ID}.desktop"
 
     def _generate_content(self, hidden=False):
-        # Check if running inside AppImage
         appimage_path = os.environ.get("APPIMAGE")
         
+        # 针对不同环境适配 Exec, Icon 和 Path
         if appimage_path:
-            # Running inside AppImage - use the AppImage executable itself
+            # 1. AppImage 环境
             exec_cmd = f"\"{appimage_path}\""
+            # AppImage 运行时，图标被映射到了系统环境，或者用户使用了 AppImageLauncher
+            # 最好只写图标名称，不写绝对路径，避免指向 /tmp/.mount_...
+            icon_str = "linux-wallpaperengine-gui"
+            path_str = "" # AppImage 不需要指定 Path
+            
+        elif self.project_root.startswith("/usr/share/"):
+            # 2. Arch Linux 安装包环境 (或者其他将代码放在 /usr/share 的包管理)
+            # Arch 打包时已经在 /usr/bin 创建了全局命令，直接调用即可
+            exec_cmd = "linux-wallpaperengine-gui"
+            # Arch 打包时图标已经放到了 hicolor，可以直接用名称
+            icon_str = "linux-wallpaperengine-gui"
+            path_str = ""
+            
         else:
-            # Running from source - use Python to execute run_gui.py
+            # 3. 源码直接运行环境
             exec_cmd = f"{self.python_exe} \"{self.script_path}\""
+            icon_str = self.icon_path
+            path_str = f"Path={self.project_root}\n"
         
         if hidden:
             exec_cmd += " --hidden"
@@ -37,12 +51,11 @@ Type=Application
 Name=Linux Wallpaper Engine
 Comment=Wallpaper Engine for Linux (GUI)
 Exec={exec_cmd}
-Icon={self.icon_path}
-Path={self.project_root}
-Terminal=false
+Icon={icon_str}
+{path_str}Terminal=false
 Categories=Utility;Graphics;
 StartupNotify=true
-StartupWMClass=linux-wallpaperengine-gui
+StartupWMClass={APP_ID}
 X-GNOME-Autostart-enabled=true
 """
 
