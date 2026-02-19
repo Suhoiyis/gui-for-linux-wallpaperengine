@@ -403,8 +403,8 @@ GPL-3.0 license
 
 ---
 
-**Current Version**: v0.10.6
+**Current Version**: v0.11.0
 
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-19
 
 *A Vibe Coding experiment project*
