@@ -53,24 +53,33 @@ class TrayProcess:
         # 启动状态轮询（检查引擎状态 + 检查主程序是否存活）
         GLib.timeout_add_seconds(2, self._poll_state)
 
-    def _find_run_gui(self):
+    # def _find_run_gui(self):
 
-        appdir = os.getenv('APPDIR')
-        if appdir:
-            # 假设 run_gui.py 在 AppImage 的 usr/bin 或 usr/share 下
-            # 这里的路径取决于稍后我们在 build 脚本里怎么放文件
-            appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/run_gui.py")
-            if os.path.exists(appimage_path): return appimage_path
+    #     appdir = os.getenv('APPDIR')
+    #     if appdir:
+    #         # 假设 run_gui.py 在 AppImage 的 usr/bin 或 usr/share 下
+    #         # 这里的路径取决于稍后我们在 build 脚本里怎么放文件
+    #         appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/run_gui.py")
+    #         if os.path.exists(appimage_path): return appimage_path
 
-        sys_path = "/usr/share/linux-wallpaperengine-gui/run_gui.py"
-        if os.path.exists(sys_path): return sys_path
-        try:
-            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            dev_path = os.path.join(base, 'run_gui.py')
-            if os.path.exists(dev_path): return dev_path
-        except Exception: pass
-        return "run_gui.py"
+    #     sys_path = "/usr/share/linux-wallpaperengine-gui/run_gui.py"
+    #     if os.path.exists(sys_path): return sys_path
+    #     try:
+    #         base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    #         dev_path = os.path.join(base, 'run_gui.py')
+    #         if os.path.exists(dev_path): return dev_path
+    #     except Exception: pass
+    #     return "run_gui.py"
     
+    def _find_run_gui(self):
+        # 抛弃写死的绝对路径，直接根据当前文件位置反推 run_gui.py 的位置
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        rel_path = os.path.join(base, 'run_gui.py')
+        if os.path.exists(rel_path):
+            return rel_path
+        return "run_gui.py"
+
+
     def _poll_state(self):
         # 【修复 3】看门狗：如果主程序死了，托盘自动自杀
         if self.parent_pid:
@@ -149,13 +158,24 @@ class TrayProcess:
 
     def _exec_cmd(self, arg):
         try:
-            # 【建议】这里使用 sys.executable 替换 'python3'
-            # 确保在 AppImage 环境下调用的是包内的解释器
+            cmd = ["python3", self.run_gui_path, arg]
+            
+            appdir = os.getenv('APPDIR')
+            if appdir:
+                launcher = os.path.join(appdir, "AppRun")
+                if os.path.exists(launcher):
+                    cmd = [launcher, arg]
+            
+            # 【终极核心修复】剥离 GTK 自动注入的环境变量，防止触发双开 Bug！
+            clean_env = os.environ.copy()
+            clean_env.pop("DESKTOP_STARTUP_ID", None)
+            clean_env.pop("GIO_LAUNCHED_DESKTOP_FILE", None)
+            
             subprocess.Popen(
-                [sys.executable, self.run_gui_path, arg],
-                start_new_session=True,
+                cmd,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
+                env=clean_env  # 👈 传入洗干净的环境变量
             )
         except Exception as e:
             log_crash(f"Cmd Error: {e}")

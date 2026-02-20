@@ -33,24 +33,33 @@ class TrayIcon:
             self.process = None
         log_main("TrayIcon Instance Accessed")
     
-    def _find_script(self):
+    # def _find_script(self):
 
-        appdir = os.getenv('APPDIR')
-        if appdir:
-            # 在 AppImage 中，我们通常把源码放在 /usr/src 或者 /usr/share 下
-            # 这里假设安装到了 usr/share/linux-wallpaperengine-gui
-            appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/py_GUI/ui/tray_process.py")
-            if os.path.exists(appimage_path): return appimage_path
+    #     appdir = os.getenv('APPDIR')
+    #     if appdir:
+    #         # 在 AppImage 中，我们通常把源码放在 /usr/src 或者 /usr/share 下
+    #         # 这里假设安装到了 usr/share/linux-wallpaperengine-gui
+    #         appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/py_GUI/ui/tray_process.py")
+    #         if os.path.exists(appimage_path): return appimage_path
 
-        sys_path = "/usr/share/linux-wallpaperengine-gui/py_GUI/ui/tray_process.py"
-        if os.path.exists(sys_path): return sys_path
+    #     sys_path = "/usr/share/linux-wallpaperengine-gui/py_GUI/ui/tray_process.py"
+    #     if os.path.exists(sys_path): return sys_path
         
-        try:
-            base = os.path.dirname(os.path.abspath(__file__))
-            rel_path = os.path.join(base, 'tray_process.py')
-            if os.path.exists(rel_path): return rel_path
-        except Exception: pass
+    #     try:
+    #         base = os.path.dirname(os.path.abspath(__file__))
+    #         rel_path = os.path.join(base, 'tray_process.py')
+    #         if os.path.exists(rel_path): return rel_path
+    #     except Exception: pass
+    #     return None
+
+    def _find_script(self):
+        # 直接寻找同目录下的 tray_process.py
+        base = os.path.dirname(os.path.abspath(__file__))
+        rel_path = os.path.join(base, 'tray_process.py')
+        if os.path.exists(rel_path): 
+            return rel_path
         return None
+
 
     # def _resolve_icon(self):
     #     icon_path = "pic/icons/GUI_rounded.png"
@@ -95,7 +104,6 @@ class TrayIcon:
 
     def start(self):
         """启动托盘"""
-        # 如果已有进程对象且还在运行，就不重复启动
         if self.process and self.process.poll() is None:
             return
 
@@ -103,19 +111,29 @@ class TrayIcon:
         if not script_path: return
 
         real_icon_path = self._resolve_icon()
-        # 获取主程序 PID 用于看门狗
         parent_pid = str(os.getpid())
         
         try:
             log_main(f"Spawning tray. Parent PID: {parent_pid}")
             
-            # 【关键修复】启动后必须赋值给 self.process
-            # 这样 app.py 才能读到 pid
+            cmd = ["python3", script_path, real_icon_path, parent_pid]
+            
+            appdir = os.getenv('APPDIR')
+            if appdir:
+                appdir_python = os.path.join(appdir, "usr/bin/python3")
+                if os.path.exists(appdir_python):
+                    cmd[0] = appdir_python
+
+            # 【终极核心修复】剥离 GTK 自动注入的环境变量
+            clean_env = os.environ.copy()
+            clean_env.pop("DESKTOP_STARTUP_ID", None)
+            clean_env.pop("GIO_LAUNCHED_DESKTOP_FILE", None)
+
             self.process = subprocess.Popen(
-                [sys.executable, script_path, real_icon_path, parent_pid],
+                cmd, 
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True, 
+                stderr=None,
+                env=clean_env,  # 👈 传入洗干净的环境变量
                 close_fds=True
             )
             log_main(f"Tray spawned. PID: {self.process.pid}")

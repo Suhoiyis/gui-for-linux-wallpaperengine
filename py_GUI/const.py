@@ -1,7 +1,7 @@
 import os
 
 # Application constants
-APP_ID = "linux-wallpaperengine-gui"
+APP_ID = "com.wallpaperengine.gui"
 VERSION = "0.11.0"
 
 # Configuration Paths
