@@ -147,7 +147,7 @@ class WelcomeDialog(Gtk.Window):
         try:
             base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             candidates.append(os.path.join(base_path, filename))
-        except:
+        except Exception:
             pass
 
         # 遍历检查，返回第一个存在的路径

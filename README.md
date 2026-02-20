@@ -108,8 +108,10 @@ We have not yet published the application to the AUR (it is currently planned), 
 ```Bash
 # Replace with the actual downloaded filename
 sudo pacman -U linux-wallpaperengine-gui-*-x86_64.pkg.tar.zst
-Once installed, you can launch it from your application menu.
 ```
+
+Once installed, you can launch it from your application menu.
+
 
 #### Method B: AppImage (Universal Linux)
 A portable, zero-config executable. It integrates directly with your desktop environment and system tray.

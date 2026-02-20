@@ -5,10 +5,14 @@ import time
 
 def log_main(msg):
     try:
-        with open("/tmp/tray_crash.log", "a") as f:
+        import os, time
+        log_dir = os.path.expanduser("~/.cache/linux-wallpaperengine-gui")
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "tray_crash.log")
+        with open(log_path, "a") as f:
             ts = time.strftime("%H:%M:%S")
             f.write(f"[{ts}] [MAIN] {msg}\n")
-    except:
+    except Exception:
         pass
 
 class TrayIcon:
@@ -45,7 +49,7 @@ class TrayIcon:
             base = os.path.dirname(os.path.abspath(__file__))
             rel_path = os.path.join(base, 'tray_process.py')
             if os.path.exists(rel_path): return rel_path
-        except: pass
+        except Exception: pass
         return None
 
     # def _resolve_icon(self):
@@ -53,7 +57,7 @@ class TrayIcon:
     #     try:
     #         from py_GUI.const import ICON_PATH
     #         icon_path = ICON_PATH
-    #     except: pass
+    #     except Exception: pass
 
     #     candidates = [
     #         os.path.join("/usr/share/linux-wallpaperengine-gui", icon_path),
@@ -68,7 +72,7 @@ class TrayIcon:
         try:
             from py_GUI.const import ICON_PATH
             icon_path = ICON_PATH
-        except: pass
+        except Exception: pass
 
         candidates = []
 

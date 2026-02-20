@@ -11,10 +11,15 @@ import time
 
 def log_crash(msg):
     try:
-        with open("/tmp/tray_crash.log", "a") as f:
+        import os, time
+        log_dir = os.path.expanduser("~/.cache/linux-wallpaperengine-gui")
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "tray_crash.log")
+        with open(log_path, "a") as f:
             ts = time.strftime("%H:%M:%S")
             f.write(f"[{ts}] [TRAY] {msg}\n")
-    except: pass
+    except Exception:
+        pass
 
 class TrayProcess:
     def __init__(self, icon_path, parent_pid):
@@ -37,7 +42,7 @@ class TrayProcess:
             self.indicator.set_icon_full(os.path.abspath(self.icon_path), "Wallpaper Engine")
             # 显式设置 Title，增加兼容性
             try: self.indicator.set_title("Wallpaper Engine GUI")
-            except: pass
+            except Exception: pass
         
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self._build_menu())
@@ -63,7 +68,7 @@ class TrayProcess:
             base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             dev_path = os.path.join(base, 'run_gui.py')
             if os.path.exists(dev_path): return dev_path
-        except: pass
+        except Exception: pass
         return "run_gui.py"
     
     def _poll_state(self):
@@ -89,8 +94,8 @@ class TrayProcess:
                         if 'linux-wallpaperengine' in cmdline and 'python' not in cmdline:
                             running = True
                             break
-                except: continue
-        except: pass
+                except Exception: continue
+        except Exception: pass
         
         self.is_engine_running = running
         return True
@@ -106,7 +111,7 @@ class TrayProcess:
         item_show.connect("activate", lambda _: self._safe_cmd("--show"))
         menu.append(item_show)
         try: self.indicator.set_secondary_activate_target(item_show)
-        except: pass
+        except Exception: pass
             
         menu.append(Gtk.SeparatorMenuItem())
         
