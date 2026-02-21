@@ -243,7 +243,7 @@ class WallpaperApp(Adw.Application):
 
         self.win = Gtk.ApplicationWindow(application=self)
         self.win.set_title("Linux Wallpaper Engine GUI")
-        self.win.set_icon_name("linux-wallpaperengine-gui") # Matches GUI_rounded.png in pic/icons/
+        self.win.set_icon_name(APP_ID) # Matches GUI_rounded.png in pic/icons/
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)
@@ -709,7 +709,7 @@ class WallpaperApp(Adw.Application):
         try:
             dialog = Adw.AboutDialog(
                 application_name="Linux Wallpaper Engine GUI",
-                application_icon="linux-wallpaperengine-gui",
+                application_icon=APP_ID,
                 version=VERSION,
                 developer_name="Suhoiyis",
                 comments="A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux, based on linux-wallpaperengine.",
