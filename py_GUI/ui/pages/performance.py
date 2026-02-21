@@ -232,7 +232,7 @@ class PerformancePage(Gtk.Box):
                 # Handle truncated case like "_moni"
                 if func == "_moni": return "PerfMonitor"
                 return func.replace("_", " ").title().strip()
-            except:
+            except Exception:
                 pass
                 
         return name
@@ -662,12 +662,12 @@ class PerformancePage(Gtk.Box):
                 try:
                     subprocess.Popen([fm, folder])
                     return
-                except:
+                except Exception:
                     continue
         
         try:
             subprocess.Popen(["xdg-open", folder])
-        except:
+        except Exception:
             pass
 
     def _open_screenshot_image(self, path: str):

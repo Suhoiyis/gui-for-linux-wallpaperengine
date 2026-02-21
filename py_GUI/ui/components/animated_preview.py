@@ -69,7 +69,7 @@ class AnimatedPreview(Gtk.Picture):
         
         try:
             self.anim_iter.advance(None)
-        except:
+        except Exception:
             return False
         
         pixbuf = self.anim_iter.get_pixbuf()

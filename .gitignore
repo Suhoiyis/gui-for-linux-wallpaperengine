@@ -48,3 +48,5 @@ dist/
 build_appimage.sh
 PKGBUILD
 *.toml
+
+environment_test/

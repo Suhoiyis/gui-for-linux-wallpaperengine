@@ -309,7 +309,7 @@ class WallpaperController:
             if hasattr(self, 'engine_log') and self.engine_log and not self.engine_log.closed:
                 try:
                     self.engine_log.close()
-                except:
+                except Exception:
                     pass
         subprocess.run(
             ["pkill", "-f", "linux-wallpaperengine"],

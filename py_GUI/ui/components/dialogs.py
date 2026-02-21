@@ -171,15 +171,15 @@ def show_screenshot_success_dialog(parent_window, file_path, stats=None, texture
                             subprocess.Popen([fm, folder])
                             opened = True
                             break
-                        except: continue
+                        except Exception: continue
                 
                 if not opened:
                     subprocess.Popen(['xdg-open', folder])
-            except: pass
+            except Exception: pass
         elif response == 102:
             try:
                 subprocess.Popen(['xdg-open', file_path])
-            except: pass
+            except Exception: pass
         
         d.destroy()
 

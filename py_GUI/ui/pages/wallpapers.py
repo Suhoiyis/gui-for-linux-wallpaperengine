@@ -672,7 +672,7 @@ class WallpapersPage(Gtk.Box):
                         try:
                             with open("/tmp/wallpaper_screenshot_error.log", "r") as f:
                                 err_msg = f.read().strip()
-                        except:
+                        except Exception:
                             pass
 
                         self.log_manager.add_error(
@@ -718,7 +718,7 @@ class WallpapersPage(Gtk.Box):
             def kill_process():
                 try:
                     os.killpg(os.getpgid(proc.pid), signal.SIGINT)
-                except:
+                except Exception:
                     proc.terminate()
 
             def show_success():
@@ -1236,7 +1236,7 @@ class WallpapersPage(Gtk.Box):
                         subprocess.Popen([fm, folder_path])
                         opened = True
                         break
-                    except:
+                    except Exception:
                         continue
 
             # Fallback to xdg-open if no specific FM found or failed

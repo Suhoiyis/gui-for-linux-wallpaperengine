@@ -14,7 +14,7 @@ class ConfigManager:
                 with open(CONFIG_FILE, 'r') as f:
                     cfg = json.load(f)
                     return {**DEFAULT_CONFIG, **cfg}
-            except:
+            except Exception:
                 pass
         return DEFAULT_CONFIG.copy()
 

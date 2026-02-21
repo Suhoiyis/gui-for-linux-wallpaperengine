@@ -243,7 +243,7 @@ class WallpaperApp(Adw.Application):
 
         self.win = Gtk.ApplicationWindow(application=self)
         self.win.set_title("Linux Wallpaper Engine GUI")
-        self.win.set_icon_name("GUI") # Matches GUI_rounded.png in pic/icons/
+        self.win.set_icon_name(APP_ID) # Matches GUI_rounded.png in pic/icons/
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)
@@ -614,9 +614,25 @@ class WallpaperApp(Adw.Application):
         
         import os
         import sys
+        import subprocess
         
-        args = [arg for arg in sys.argv if arg not in ("--hidden", "--minimized")]
-        os.execv(sys.executable, [sys.executable] + args)
+        # 提取去掉首位脚本名和隐藏参数后的干净参数
+        args = [arg for arg in sys.argv[1:] if arg not in ("--hidden", "--minimized")]
+        
+        appimage_path = os.environ.get("APPIMAGE")
+        if appimage_path:
+            # 【AppImage 环境重启】
+            # 使用外部文件的绝对路径，启动一个完全独立的新会话 (start_new_session=True)
+            # 这样新进程就不会受当前进程 FUSE 销毁的影响
+            cmd = [appimage_path] + args
+            subprocess.Popen(cmd, start_new_session=True, cwd=os.path.expanduser("~"))
+            self.quit()
+            sys.exit(0)
+        else:
+            # 【源码环境重启】
+            # 传统的进程替换方式
+            cmd = [sys.executable, sys.argv[0]] + args
+            os.execv(sys.executable, cmd)
 
     def setup_actions(self):
         action_apply = Gio.SimpleAction.new("apply", GLib.VariantType.new("s"))
@@ -693,7 +709,7 @@ class WallpaperApp(Adw.Application):
         try:
             dialog = Adw.AboutDialog(
                 application_name="Linux Wallpaper Engine GUI",
-                application_icon="GUI_rounded",
+                application_icon=APP_ID,
                 version=VERSION,
                 developer_name="Suhoiyis",
                 comments="A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux, based on linux-wallpaperengine.",

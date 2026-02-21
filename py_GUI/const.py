@@ -1,8 +1,8 @@
 import os
 
 # Application constants
-APP_ID = "com.github.wallpaperengine.gui"
-VERSION = "0.11.0"
+APP_ID = "com.wallpaperengine.gui"
+VERSION = "0.11.1"
 
 # Configuration Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

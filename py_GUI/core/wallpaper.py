@@ -46,7 +46,7 @@ class WallpaperManager:
             manifest = os.path.join(workshop_dir, "appworkshop_431960.acf")
             if os.path.exists(manifest):
                 return manifest
-        except:
+        except Exception:
             pass
             
         return None
@@ -262,7 +262,7 @@ class WallpaperManager:
 
             self._texture_cache[cache_key] = texture
             return texture
-        except:
+        except Exception:
             return None
 
     def clear_cache(self):

@@ -60,7 +60,7 @@ class PropertiesManager:
                                 prop['value'] = float(value_str)
                                 if prop['value'] == int(prop['value']):
                                     prop['value'] = int(prop['value'])
-                            except:
+                            except Exception:
                                 prop['value'] = value_str
                     elif subline.startswith('Min:'):
                         prop['min'] = float(subline[4:].strip())
