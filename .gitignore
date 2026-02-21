@@ -50,3 +50,4 @@ PKGBUILD
 *.toml
 
 environment_test/
+squashfs-root/
