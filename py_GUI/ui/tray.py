@@ -319,9 +319,24 @@ class TrayIcon:
             self.process = None
     
     def stop(self):
-        if self.process:
+        if self.process and self.process.poll() is None:
             try:
+                # First try a graceful termination (SIGTERM on POSIX)
                 self.process.terminate()
-            except:
-                pass
-        self.process = None
+                try:
+                    # Give the process a short time to exit gracefully
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    # If SIGTERM is ignored or ineffective, force kill
+                    self.process.kill()
+                    try:
+                        self.process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        log_main("TrayIcon.stop: process did not exit after SIGKILL")
+            except Exception as e:
+                log_main(f"TrayIcon.stop failed: {e}")
+            finally:
+                # Always drop the reference once we've attempted to stop it
+                self.process = None
+        else:
+            self.process = None
