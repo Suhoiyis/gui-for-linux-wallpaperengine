@@ -123,7 +123,7 @@ class SettingsPage(Gtk.Box):
         stop_btn = Gtk.Button(label="Stop Wallpaper")
         stop_btn.add_css_class("action-btn")
         stop_btn.add_css_class("danger")
-        stop_btn.connect("clicked", lambda _: self.controller.stop())
+        stop_btn.connect("clicked", lambda _: self.window.get_application().stop_wallpaper())
         actions.append(stop_btn)
 
     def on_nav_toggled(self, btn, section_id):
