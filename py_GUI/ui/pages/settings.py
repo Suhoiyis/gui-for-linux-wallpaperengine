@@ -127,9 +127,6 @@ class SettingsPage(Gtk.Box):
         stop_btn.connect("clicked", self.on_stop_clicked)
         actions.append(stop_btn)
 
-        actions.append(stop_btn)
-
-
     def on_stop_clicked(self, _button):
         """安全停止壁纸，防止 window 或 app 为 None 导致崩溃"""
         if self.window is not None:
