@@ -340,7 +340,7 @@ class TrayIcon:
     def stop(self):
         if self.process:
             try:
-                self.process.terminate()
+                self.process.kill()
             except Exception:
                 pass
         self.process = None
