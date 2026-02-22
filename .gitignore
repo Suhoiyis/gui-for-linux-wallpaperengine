@@ -28,10 +28,8 @@ issues/
 tools/
 docs/reference_doc/
 
-
 AppDir
 *.AppImage
-*deploy*
 runtime-x86_64
 requirements.txt
 
@@ -45,9 +43,6 @@ build/
 dist/
 *.egg-info/
 
-build_appimage.sh
-PKGBUILD
-*.toml
 
 environment_test/
 squashfs-root/
