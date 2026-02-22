@@ -3,9 +3,6 @@ import os
 import sys
 import time
 
-
-# ==============================================================================
-
 def log_main(msg):
     try:
         import os, time
@@ -73,48 +70,89 @@ class TrayIcon:
         except Exception:
             return "com.wallpaperengine.gui"
 
+    def _get_tray_binary_path(self) -> str:
+        """
+        终极逃生舱：尝试获取路径，如果被 FUSE 拦截，直接用子进程把它拽到 /tmp 下面运行！
+        """
+        import shutil
+        import stat
+        import subprocess
+
+        # 1. 常规探测：先问 PATH 拿人
+        src = shutil.which('tray-rs-bin')
+        
+        # 2. 备用探测：向 APPDIR 拿人
+        if not src:
+            appdir = os.getenv('APPDIR')
+            if appdir:
+                src = os.path.join(appdir, 'usr', 'bin', 'tray-rs-bin')
+            else:
+                base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                src = os.path.join(base, 'tray-rs-bin')
+
+        # 3. 如果 Python 觉得存在，直接返回（源码开发模式通常走这里）
+        if src and os.path.exists(src):
+            log_main(f"[ESCAPE-POD] Direct access OK: {src}")
+            return src
+
+        # 4. 🚨 逃生舱启动：Python 看不见？让 Shell 子进程去拿！
+        log_main(f"[ESCAPE-POD] Python stat failed for {src}. Deploying shell extraction to /tmp...")
+        
+        dest = f"/tmp/lwg-tray-rs-bin-{os.getuid()}"
+        try:
+            # 用系统的 cp 命令，跨越 Python 的命名空间障碍去拷贝
+            r = subprocess.run(
+                ['cp', src, dest],
+                capture_output=True, text=True, timeout=5
+            )
+            if r.returncode == 0:
+                os.chmod(dest, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+                log_main(f"[ESCAPE-POD] Shell extraction SUCCESS! New path: {dest}")
+                return dest
+            else:
+                log_main(f"[ESCAPE-POD] Shell extraction FAILED: {r.stderr.strip()}")
+        except Exception as e:
+            log_main(f"[ESCAPE-POD] Exception during extraction: {e}")
+
+        return ""
+
     def start(self):
         if self.process and self.process.poll() is None:
             return
 
-        # 1. 直接定位我们刚才编译的原生 Rust 托盘插件
-        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        rust_tray_path = os.path.join(base, 'tray-rs-bin')
-        
-        if not os.path.exists(rust_tray_path):
-            log_main(f"CRITICAL: Rust tray binary not found at {rust_tray_path}")
+        import shutil
+        import os
+
+        # 【核心逻辑】读取由启动脚本在 FUSE 存活期预先复制好的临时路径
+        # 这样即使 /tmp/.mount_xxx 消失了，/tmp/lwg-tray-rs-xxx 依然永久有效
+        rust_tray_path = os.getenv('LWG_TRAY_BIN')
+
+        # [回退方案] 如果是开发环境或环境变量丢失，尝试从 PATH 找
+        if not rust_tray_path or not os.path.exists(rust_tray_path):
+            rust_tray_path = shutil.which('tray-rs-bin')
+
+        # 最终验证：如果都找不到，才放弃
+        if not rust_tray_path or not os.path.exists(rust_tray_path):
+            log_main(f"CRITICAL: tray-rs-bin not found. LWG_TRAY_BIN={os.getenv('LWG_TRAY_BIN')}")
             return
 
-        # 2. 准备参数
+        log_main(f"Launching tray from: {rust_tray_path}")
+
         real_icon_path = self._resolve_icon()
         parent_pid = str(os.getpid())
         
-        # 3. 计算 run_gui_path (完美保留了你的 AppImage 识别黑魔法)
-        try:
-            appimage = os.getenv('APPIMAGE')
-            appdir = os.getenv('APPDIR')
-            
-            if appimage and os.path.exists(appimage):
-                run_gui_path = appimage
-            elif appdir:
-                run_gui_path = os.path.join(appdir, 'AppRun')
-            else:
-                run_gui_path = os.path.join(base, 'run_gui.py')
-        except Exception as e:
-            log_main(f"Failed to calculate run_gui_path: {e}")
-            run_gui_path = "run_gui.py"
+        # 唤醒路径计算
+        appdir = os.getenv('APPDIR')
+        run_gui_path = os.path.join(appdir, 'AppRun') if appdir else 'run_gui.py'
 
-        cmd = [rust_tray_path, real_icon_path, parent_pid, run_gui_path]
-        
-        # 4. 🚀 瞬间发射！不再需要清理环境，因为 Rust 里面已经清洗过了！
         try:
             self.process = subprocess.Popen(
-                cmd, 
+                [rust_tray_path, real_icon_path, parent_pid, run_gui_path],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 close_fds=True
             )
-            log_main(f"Rust Tray spawned successfully. PID: {self.process.pid}")
+            log_main(f"Rust Tray spawned. PID: {self.process.pid}")
             
         except Exception as e:
             log_main(f"Start failed: {e}")
