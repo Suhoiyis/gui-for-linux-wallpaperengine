@@ -531,9 +531,14 @@ class WallpapersPage(Gtk.Box):
         self.update_sidebar_index()
 
     def on_stop_clicked(self):
-        # Stop wallpaper on current screen
-        self.controller.stop_screen(self.selected_screen)
-        self.update_active_wallpaper_label()
+        # 统一上报给 App 层，由 App 层负责停止壁纸、清空记录并掐断轮播计时器
+        app = self.window.get_application()
+        if app and hasattr(app, "stop_wallpaper"):
+            app.stop_wallpaper()
+        else:
+            # Fallback (以防万一)
+            self.controller.stop_screen(self.selected_screen)
+            self.update_active_wallpaper_label()
 
     def on_reload_wallpapers(self, btn):
         self.wp_manager.clear_cache()

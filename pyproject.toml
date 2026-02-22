@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-wallpaperengine-gui"
+# 【关键】：必须保持这种格式，让 build_appimage.sh 能 grep 到
+version = "0.11.2"
+description = "A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux"
+readme = "README.md"
+authors = [
+    { name = "Suhoiyis" }
+]
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.10"
+dependencies = [
+    "PyGObject",
+    "Pillow"
+]
+
+[project.urls]
+Homepage = "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine"
+Issues = "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues"
+
+# 【终极修复】显式声明非标准目录结构，防止未来别人打包时丢弃 pic 资源
+[tool.setuptools]
+py-modules = ["run_gui"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["py_GUI*"]
+
+[tool.setuptools.package-data]
+"*" = ["pic/**/*", "py_GUI/**/*.json", "py_GUI/**/*.css"]

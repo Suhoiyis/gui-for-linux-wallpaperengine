@@ -28,9 +28,7 @@ class TrayProcess:
         self.run_gui_path = self._find_run_gui()
         self.is_engine_running = False
         
-        # 【修复 1】Tooltip 名称修复
-        # 第一个参数是 ID，通常会被用作 Tooltip
-        self.app_id = "linux-wallpaperengine-gui"
+        self.app_id = "com.wallpaperengine.gui"
         
         self.indicator = AyatanaAppIndicator3.Indicator.new(
             self.app_id,
@@ -38,60 +36,58 @@ class TrayProcess:
             AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS
         )
         
-        if self.icon_path and os.path.exists(self.icon_path):
-            self.indicator.set_icon_full(os.path.abspath(self.icon_path), "Wallpaper Engine")
-            # 显式设置 Title，增加兼容性
-            try: self.indicator.set_title("Wallpaper Engine GUI")
-            except Exception: pass
+        try: self.indicator.set_title("Wallpaper Engine GUI")
+        except Exception: pass
         
+        if self.icon_path and self.icon_path.startswith("/"):
+            self.indicator.set_icon_full(self.icon_path, "Wallpaper Engine")
+        else:
+            self.indicator.set_icon_full(self.icon_path if self.icon_path else self.app_id, "Wallpaper Engine")
+            
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self._build_menu())
-        
-        # 忽略 SIGTERM，防止误杀
+
+        import signal
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         
-        # 启动状态轮询（检查引擎状态 + 检查主程序是否存活）
         GLib.timeout_add_seconds(2, self._poll_state)
+        # Claude 提供的神级探针
+        GLib.timeout_add_seconds(3, self._verify_registration)
 
-    # def _find_run_gui(self):
+    def _verify_registration(self):
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["dbus-send", "--session", "--print-reply",
+                 "--dest=org.freedesktop.DBus",
+                 "/org/freedesktop/DBus",
+                 "org.freedesktop.DBus.ListNames"],
+                capture_output=True, text=True, timeout=3
+            )
+            if self.app_id in result.stdout or "StatusNotifier" in result.stdout:
+                log_crash("DBus Verification: OK (Tray successfully registered to DBus)")
+            else:
+                log_crash("DBus Verification: FAILED (Tray is NOT in DBus names!)")
+        except Exception as e:
+            log_crash(f"DBus Verification Error: {e}")
+        return False
 
-    #     appdir = os.getenv('APPDIR')
-    #     if appdir:
-    #         # 假设 run_gui.py 在 AppImage 的 usr/bin 或 usr/share 下
-    #         # 这里的路径取决于稍后我们在 build 脚本里怎么放文件
-    #         appimage_path = os.path.join(appdir, "usr/share/linux-wallpaperengine-gui/run_gui.py")
-    #         if os.path.exists(appimage_path): return appimage_path
-
-    #     sys_path = "/usr/share/linux-wallpaperengine-gui/run_gui.py"
-    #     if os.path.exists(sys_path): return sys_path
-    #     try:
-    #         base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    #         dev_path = os.path.join(base, 'run_gui.py')
-    #         if os.path.exists(dev_path): return dev_path
-    #     except Exception: pass
-    #     return "run_gui.py"
-    
     def _find_run_gui(self):
-        # 抛弃写死的绝对路径，直接根据当前文件位置反推 run_gui.py 的位置
         base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         rel_path = os.path.join(base, 'run_gui.py')
         if os.path.exists(rel_path):
             return rel_path
         return "run_gui.py"
 
-
     def _poll_state(self):
-        # 【修复 3】看门狗：如果主程序死了，托盘自动自杀
         if self.parent_pid:
             try:
-                # 发送 0 信号检测进程是否存在
                 os.kill(self.parent_pid, 0)
             except OSError:
                 log_crash(f"Parent PID {self.parent_pid} died. Exiting.")
                 Gtk.main_quit()
                 return False
 
-        # 检查壁纸引擎是否在运行 (用于 Play/Stop 逻辑)
         running = False
         try:
             pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
@@ -99,7 +95,6 @@ class TrayProcess:
                 try:
                     with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as f:
                         cmdline = f.read().decode('utf-8', errors='ignore').replace('\0', ' ')
-                        # 检查是否有 linux-wallpaperengine 进程
                         if 'linux-wallpaperengine' in cmdline and 'python' not in cmdline:
                             running = True
                             break
@@ -112,7 +107,6 @@ class TrayProcess:
     def _build_menu(self):
         menu = Gtk.Menu()
         
-        # Show Window
         item_show = Gtk.MenuItem()
         label = Gtk.Label(label="<b>Show Window</b>")
         label.set_use_markup(True)
@@ -124,20 +118,16 @@ class TrayProcess:
             
         menu.append(Gtk.SeparatorMenuItem())
         
-        # Play/Stop
         item_toggle = Gtk.MenuItem(label="Play/Stop")
-        # 连接到逻辑函数，而不是直接发命令
         item_toggle.connect("activate", self._on_toggle_click)
         menu.append(item_toggle)
         
-        # Random
         item_random = Gtk.MenuItem(label="Random Wallpaper")
         item_random.connect("activate", lambda _: self._safe_cmd("--random"))
         menu.append(item_random)
         
         menu.append(Gtk.SeparatorMenuItem())
         
-        # Quit
         item_quit = Gtk.MenuItem(label="Quit Application")
         item_quit.connect("activate", lambda _: self._safe_cmd("--quit"))
         menu.append(item_quit)
@@ -146,8 +136,6 @@ class TrayProcess:
         return menu
 
     def _on_toggle_click(self, widget):
-        # 【修复 2】Play/Stop 逻辑修复
-        # 如果引擎在跑，就发 stop；没跑，就发 apply-last
         if self.is_engine_running:
             self._safe_cmd("--stop")
         else:
@@ -166,7 +154,6 @@ class TrayProcess:
                 if os.path.exists(launcher):
                     cmd = [launcher, arg]
             
-            # 【终极核心修复】剥离 GTK 自动注入的环境变量，防止触发双开 Bug！
             clean_env = os.environ.copy()
             clean_env.pop("DESKTOP_STARTUP_ID", None)
             clean_env.pop("GIO_LAUNCHED_DESKTOP_FILE", None)
@@ -175,7 +162,7 @@ class TrayProcess:
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                env=clean_env  # 👈 传入洗干净的环境变量
+                env=clean_env
             )
         except Exception as e:
             log_crash(f"Cmd Error: {e}")
@@ -186,7 +173,6 @@ class TrayProcess:
 
 if __name__ == "__main__":
     try:
-        # 接收参数: script.py <icon_path> <parent_pid>
         icon = sys.argv[1] if len(sys.argv) > 1 else ""
         pid = sys.argv[2] if len(sys.argv) > 2 else "0"
         

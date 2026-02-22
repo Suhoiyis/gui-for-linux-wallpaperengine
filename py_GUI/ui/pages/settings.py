@@ -123,8 +123,16 @@ class SettingsPage(Gtk.Box):
         stop_btn = Gtk.Button(label="Stop Wallpaper")
         stop_btn.add_css_class("action-btn")
         stop_btn.add_css_class("danger")
-        stop_btn.connect("clicked", lambda _: self.controller.stop())
+
+        stop_btn.connect("clicked", self.on_stop_clicked)
         actions.append(stop_btn)
+
+    def on_stop_clicked(self, _button):
+        """安全停止壁纸，防止 window 或 app 为 None 导致崩溃"""
+        if self.window is not None:
+            app = self.window.get_application()
+            if app is not None and hasattr(app, "stop_wallpaper"):
+                app.stop_wallpaper()
 
     def on_nav_toggled(self, btn, section_id):
         if btn.get_active():

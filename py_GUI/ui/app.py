@@ -396,6 +396,9 @@ class WallpaperApp(Adw.Application):
             wp = self.wp_manager._wallpapers.get(wp_id)
             if wp:
                 self.wallpapers_page.active_wp_label.set_markup(markdown_to_pango(wp['title']))
+            
+            # 【新增】确保自动应用壁纸时激活计时器
+            self.setup_cycle_timer()
         return False
 
     def on_window_close(self, win):
@@ -501,6 +504,9 @@ class WallpaperApp(Adw.Application):
         self.controller.stop()
         self.config.set("active_monitors", {})
         self.wallpapers_page.update_active_wallpaper_label()
+        
+        # 【新增】停止播放时，顺便把轮换计时器也停掉
+        self.setup_cycle_timer()
     
     def random_wallpaper(self):
         # Triggered by cycle timer or CLI or Menu
@@ -567,18 +573,29 @@ class WallpaperApp(Adw.Application):
             self.wallpapers_page.update_active_wallpaper_label()
             
             self.log_manager.add_info(f"Cycled wallpaper ({cycle_order})", "App")
+            
+            # 【新增】每次切完随机壁纸，重置/启动一轮新的倒计时
+            self.setup_cycle_timer()
 
     def on_cycle_trigger(self):
         self.log_manager.add_info("Cycling wallpaper...", "App")
         self.random_wallpaper()
-        return True # Keep running
+        
+        # 【终极修复】必须返回 False！
+        # 因为 random_wallpaper 内部会调用 setup_cycle_timer 创建全新的计时器。
+        # 如果这里返回 True，旧计时器就会被 GLib 强行复活，变成无法被 stop 杀掉的幽灵！
+        return False
 
     def setup_cycle_timer(self):
         if self.cycle_timer_id:
             GLib.source_remove(self.cycle_timer_id)
             self.cycle_timer_id = None
             
-        if self.config.get("cycleEnabled"):
+        # 获取当前正在播放的显示器字典
+        active_monitors = self.config.get("active_monitors", {})
+            
+        # 只有在设置开启，且当前确有壁纸在播放时，才启动计时器
+        if self.config.get("cycleEnabled") and active_monitors:
             interval_mins = self.config.get("cycleInterval") or 15
             # Minimum 1 minute safety
             interval_mins = max(1, interval_mins)
@@ -588,7 +605,9 @@ class WallpaperApp(Adw.Application):
             )
             self.log_manager.add_info(f"Wallpaper cycling enabled (every {interval_mins} mins)", "App")
         else:
-            self.log_manager.add_info("Wallpaper cycling disabled", "App")
+            # 打印更精准的日志状态
+            state = "disabled" if not self.config.get("cycleEnabled") else "paused (no active wallpaper)"
+            self.log_manager.add_info(f"Wallpaper cycling {state}", "App")
 
     def check_onboarding(self):
         needs_onboarding = not self.config.get("onboarding_completed", False) and not self.history_manager.has_history()
