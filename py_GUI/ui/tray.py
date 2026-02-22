@@ -210,8 +210,27 @@ class TrayIcon:
             log_dir = os.path.expanduser("~/.cache/linux-wallpaperengine-gui")
             os.makedirs(log_dir, exist_ok=True)
             log_path = os.path.join(log_dir, "tray_crash.log")
-            # 用 'w' 模式打开并立即关闭，直接清空文件内容
-            open(log_path, 'w').close()
+            
+            # --- 采用 Copilot 建议的日志轮转 (Log Rotation) ---
+            max_log_size = 512 * 1024  # 最大 512KB
+            if os.path.exists(log_path):
+                try:
+                    current_size = os.path.getsize(log_path)
+                except OSError:
+                    current_size = 0
+                    
+                if current_size > max_log_size:
+                    rotated_path = log_path + ".1"
+                    try:
+                        if os.path.exists(rotated_path):
+                            os.remove(rotated_path)
+                        os.replace(log_path, rotated_path)
+                    except OSError:
+                        pass
+            else:
+                # 文件不存在时，创建一个空文件
+                open(log_path, 'a').close()
+                
         except Exception:
             pass
         
@@ -322,6 +341,6 @@ class TrayIcon:
         if self.process:
             try:
                 self.process.terminate()
-            except:
+            except Exception:
                 pass
         self.process = None
