@@ -43,7 +43,7 @@ target/
 build/
 dist/
 *.egg-info/
-
+*bin*
 
 environment_test/
 squashfs-root/
