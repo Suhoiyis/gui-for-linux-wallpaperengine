@@ -43,6 +43,9 @@ else
     exit 1
 fi
 
+cp tray-rs-bin AppDir/usr/share/linux-wallpaperengine-gui/
+chmod +x AppDir/usr/share/linux-wallpaperengine-gui/tray-rs-bin
+
 # 【核弹级清理】彻底铲除所有 __pycache__ 和 .pyc，防止旧字节码污染 AppImage
 echo "🧹 清除 Python 缓存幽灵..."
 find AppDir -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -60,13 +63,13 @@ fi
 echo "🔧 手动修补：植入托盘所需的 GTK3 和 Ayatana 依赖..."
 mkdir -p AppDir/usr/lib/girepository-1.0
 
-# 拷贝 typelib 让 Python 能够 import 它们 (加 || true 防止 set -e 导致脚本意外中断)
-cp /usr/lib/girepository-1.0/Gtk-3.0.typelib AppDir/usr/lib/girepository-1.0/ 2>/dev/null || echo "⚠️ 未找到 GTK3 typelib"
-cp /usr/lib/girepository-1.0/Gdk-3.0.typelib AppDir/usr/lib/girepository-1.0/ 2>/dev/null || true
-cp /usr/lib/girepository-1.0/AyatanaAppIndicator3-0.1.typelib AppDir/usr/lib/girepository-1.0/ 2>/dev/null || echo "⚠️ 未找到 Ayatana typelib"
+# # 拷贝 typelib 让 Python 能够 import 它们 (加 || true 防止 set -e 导致脚本意外中断)
+# cp /usr/lib/girepository-1.0/Gtk-3.0.typelib AppDir/usr/lib/girepository-1.0/ 2>/dev/null || echo "⚠️ 未找到 GTK3 typelib"
+# cp /usr/lib/girepository-1.0/Gdk-3.0.typelib AppDir/usr/lib/girepository-1.0/ 2>/dev/null || true
+# cp /usr/lib/girepository-1.0/AyatanaAppIndicator3-0.1.typelib AppDir/usr/lib/girepository-1.0/ 2>/dev/null || echo "⚠️ 未找到 Ayatana typelib"
 
-# 拷贝底层的 Ayatana C语言动态库
-cp /usr/lib/libayatana-appindicator3.so* AppDir/usr/lib/ 2>/dev/null || echo "⚠️ 未找到 libayatana-appindicator3.so"
+# # 拷贝底层的 Ayatana C语言动态库
+# cp /usr/lib/libayatana-appindicator3.so* AppDir/usr/lib/ 2>/dev/null || echo "⚠️ 未找到 libayatana-appindicator3.so"
 
 # 6. 【终极绝杀】将图标 Base64 内嵌进 Python 模块，彻底绕开 FUSE 路径问题
 echo "🔐 正在将图标转码为 Python 内存数据..."
