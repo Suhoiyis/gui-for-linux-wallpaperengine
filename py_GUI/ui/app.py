@@ -410,9 +410,13 @@ class WallpaperApp(Adw.Application):
         if is_compact:
             self.compact_win.set_visible(True)
             self.compact_win.present()
+            # 加上这句：给 WM 100ms 的反应时间后，再强行夺取一次焦点
+            GLib.timeout_add(100, lambda: self.compact_win.present() or False)
         else:
             self.win.set_visible(True)
             self.win.present()
+            # 加上这句：给 WM 100ms 的反应时间后，再强行夺取一次焦点
+            GLib.timeout_add(100, lambda: self.win.present() or False)
 
     def show_toast(self, message: str, timeout: int = 3):
         if hasattr(self, 'toast_overlay'):
