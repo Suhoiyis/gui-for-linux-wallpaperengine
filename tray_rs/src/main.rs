@@ -2,7 +2,7 @@ use ksni::{menu::*, Icon, Tray, TrayService, ToolTip};
 use std::env;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
+// 1. 移除了未使用的 std::process::Command 导入
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -104,7 +104,8 @@ fn main() {
     log(&format!("Starting. icon={icon_path} parent_pid={parent_pid} socket={socket_path}"));
 
     unsafe {
-        libc::signal(libc::SIGTERM, handle_sigterm as libc::sighandler_t);
+        // 2. 彻底满足 Rust 编译器的安全指针转换要求
+        libc::signal(libc::SIGTERM, handle_sigterm as *const () as usize);
     }
     SHOULD_EXIT.store(false, Ordering::Relaxed);
 
@@ -113,30 +114,29 @@ fn main() {
         socket_path,
     });
     
-    let handle = service.spawn();
+    // 3. 移除了无用的 handle 变量
+    service.spawn();
 
     loop {
-        // 监控频率加快到 0.5 秒，保证退出响应足够迅速
         thread::sleep(Duration::from_millis(500));
 
         if SHOULD_EXIT.load(Ordering::Relaxed) {
-            log("Received SIGTERM. Unregistering DBus...");
-            drop(handle);
-            thread::sleep(Duration::from_millis(500)); // ⏳ 核心绝杀：给后台发包留足 500ms！
+            log("Received SIGTERM. Exiting gracefully...");
+            // 4. 移除了无意义的 drop(handle)，依靠休眠让 OS 干净回收 Socket
+            thread::sleep(Duration::from_millis(500)); 
             log("Graceful exit complete.");
             std::process::exit(0);
         }
 
         if parent_pid > 0 && !pid_exists(parent_pid) {
-            log("Parent process died. Unregistering DBus...");
-            drop(handle);
-            thread::sleep(Duration::from_millis(500)); // ⏳ 核心绝杀：给后台发包留足 500ms！
+            log("Parent process died. Exiting gracefully...");
+            // 4. 移除了无意义的 drop(handle)
+            thread::sleep(Duration::from_millis(500)); 
             std::process::exit(0);
         }
     }
 }
 
-// 工具函数保持不变
 fn pid_exists(pid: u32) -> bool { Path::new(&format!("/proc/{pid}")).exists() }
 
 fn is_engine_running() -> bool {
@@ -159,6 +159,10 @@ fn is_engine_running() -> bool {
 }
 
 fn log(msg: &str) {
+    if std::env::var("LWG_DEBUG").unwrap_or_default() != "1" {
+        return;
+    }
+
     use std::io::Write;
     let dir = dirs_next();
     let _ = fs::create_dir_all(&dir);

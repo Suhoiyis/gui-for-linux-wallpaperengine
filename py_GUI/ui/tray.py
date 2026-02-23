@@ -5,6 +5,9 @@ import time
 _GLOBAL_TRAY_PROCESS = None
 
 def log_main(msg):
+    if os.getenv("LWG_DEBUG") != "1":
+        return
+
     try:
         log_dir = os.path.expanduser("~/.cache/linux-wallpaperengine-gui")
         os.makedirs(log_dir, exist_ok=True)
