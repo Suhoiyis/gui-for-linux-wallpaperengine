@@ -21,6 +21,10 @@
 * **Full-Duplex IPC Communication**: Established a robust Unix Domain Sockets (UDS) link between the Python core and Rust tray. Combined with status debouncing, it guarantees millisecond-sync while maintaining zero payload overhead when idle.
 * **Micro-Footprint Optimization**: Deprecated the inefficient dynamic downscaling of massive 2000px+ application icons. The tray daemon now uses a purpose-built 59x64 miniature icon, slashing its memory footprint from multi-megabytes to mere kilobytes while entirely eliminating downscaling blurriness.
 * **AppImage Sandbox Penetration**: Engineered a safe-zone extraction mechanism to bypass the notorious AppImage FUSE mount limitations. By routing tray assets directly to standard local paths, it eliminates reliance on Desktop Environment cache updates, ensuring a 100% icon rendering success rate across all Linux distributions.
+* **Kernel-Level Abstract Sockets Upgrade**: 
+  * Completely overhauled the underlying IPC pipeline between the Python core and the Rust tray daemon. Transitioned from traditional physical file-based Unix Domain Sockets (in `/tmp`) to Linux-exclusive **Abstract Namespace Sockets**.
+  * **Zero Residue & Absolute Self-Healing**: Completely eliminated the creation of physical socket files. Communication channels now reside exclusively in kernel memory and are strictly bound to the process lifecycle. Even in the event of an extreme crash or SIGKILL (`kill -9`), the Linux kernel instantly reclaims the socket memory. This permanently eradicates "Address already in use" startup errors caused by leftover ghost files, pushing the application's crash resilience to 100%.
+  * **Codebase Debloat**: Successfully stripped out all legacy defensive boilerplate previously required for file cleanup and permission enforcement, achieving minimalist architectural elegance.
 
 ### Stability & Security Enhancements
 * **Smart Socket Polling**: Developed an auto-retry logic for cold-start scenarios, preventing status payload loss during the initial initialization lag of the Rust tray.
