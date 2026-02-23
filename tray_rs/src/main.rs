@@ -123,7 +123,12 @@ impl WallpaperTray {
             if let Ok(addr) = SocketAddr::from_abstract_name(socket_name.as_bytes()) {
                 match std::os::unix::net::UnixStream::connect_addr(&addr) {
                     Ok(mut stream) => {
-                        let _ = stream.write_all(format!("{}\n", cmd_str).as_bytes());
+                        if let Err(e) = stream.write_all(format!("{}\n", cmd_str).as_bytes()) {
+                            log(&format!(
+                                "Failed to send command '{}' to IPC socket {}: {}",
+                                cmd_str, socket_name, e
+                            ));
+                        }
                     }
                     Err(e) => log(&format!("Failed to connect to IPC socket {}: {}", socket_name, e)),
                 }
