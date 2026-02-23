@@ -2,7 +2,6 @@ import subprocess
 import os
 import time
 
-_GLOBAL_TRAY_PROCESS = None
 
 def log_main(msg):
     if os.getenv("LWG_DEBUG") != "1":
@@ -40,19 +39,15 @@ class TrayIcon:
     def __init__(self, app):
         self.app = app
         if not self.initialized:
+            self.process = None  # ✨ 干净利落，直接绑定在单例对象上
             log_main("TrayIcon Initialized")
             self.initialized = True
 
-    @property
-    def process(self):
-        global _GLOBAL_TRAY_PROCESS
-        return _GLOBAL_TRAY_PROCESS
-
-    @process.setter
-    def process(self, value):
-        global _GLOBAL_TRAY_PROCESS
-        _GLOBAL_TRAY_PROCESS = value
-
+    # @property
+    # def process(self): ...
+    # @process.setter
+    # def process(self, value): ...
+    
     def _resolve_icon(self):
         try:
             from py_GUI.const import APP_ID

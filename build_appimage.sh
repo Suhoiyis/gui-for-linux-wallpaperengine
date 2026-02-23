@@ -49,8 +49,17 @@ rm -f AppDir/usr/share/linux-wallpaperengine-gui/tray-rs-bin
 # ✅ 新增：现场编译 Rust 托盘并放入系统标准可执行目录
 echo "🦀 正在现场编译 Rust 托盘引擎..."
 cd tray_rs
-cargo build --release
+if ! cargo build --release; then
+    echo "❌ 致命错误: Rust 托盘引擎编译失败，请检查 Rust 环境或报错信息。"
+    exit 1
+fi
 cd ..
+
+if [ ! -f "tray_rs/target/release/tray-rs" ]; then
+    echo "❌ 致命错误: 未找到已编译的托盘二进制文件。"
+    exit 1
+fi
+
 # 将拷贝目标从 usr/share/... 改为 usr/bin/
 cp tray_rs/target/release/tray-rs AppDir/usr/bin/tray-rs-bin
 chmod +x AppDir/usr/bin/tray-rs-bin

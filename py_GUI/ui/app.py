@@ -409,6 +409,7 @@ class WallpaperApp(Adw.Application):
         def _server_thread():
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as srv:
                 srv.bind(socket_path)
+                os.chmod(socket_path, 0o600)
                 srv.listen(5)
                 while True:
                     try:

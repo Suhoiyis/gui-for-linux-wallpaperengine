@@ -85,8 +85,17 @@ impl WallpaperTray {
         thread::spawn(move || {
             use std::os::unix::net::UnixStream;
             use std::io::Write;
-            if let Ok(mut stream) = UnixStream::connect(&socket_path) {
-                let _ = stream.write_all(format!("{}\n", cmd_str).as_bytes());
+            
+            // 使用 match 精准捕获并记录连接和写入的双重错误
+            match UnixStream::connect(&socket_path) {
+                Ok(mut stream) => {
+                    if let Err(e) = stream.write_all(format!("{}\n", cmd_str).as_bytes()) {
+                        log(&format!("Failed to write to IPC socket {}: {}", socket_path, e));
+                    }
+                }
+                Err(e) => {
+                    log(&format!("Failed to connect to IPC socket {}: {}", socket_path, e));
+                }
             }
         });
     }
@@ -145,12 +154,28 @@ fn is_engine_running() -> bool {
         let name = entry.file_name();
         let name = name.to_string_lossy();
         if !name.chars().all(|c| c.is_ascii_digit()) { continue; }
-        let cmdline_path = entry.path().join("cmdline");
-        if let Ok(bytes) = fs::read(&cmdline_path) {
-            if let Some(pos) = bytes.iter().position(|&b| b == 0) {
-                let exec_path = String::from_utf8_lossy(&bytes[..pos]);
-                if exec_path.ends_with("/linux-wallpaperengine") || exec_path == "linux-wallpaperengine" {
+        
+        // 优先检查 /proc/[pid]/exe 软链接，获取最真实的执行文件名
+        let exe_path = entry.path().join("exe");
+        if let Ok(target) = fs::read_link(&exe_path) {
+            if let Some(fname) = target.file_name().and_then(|s| s.to_str()) {
+                if fname == "linux-wallpaperengine" {
                     return true;
+                }
+            }
+        } else {
+            // Fallback: 如果权限不够读取 exe，回退到 cmdline 安全解析
+            let cmdline_path = entry.path().join("cmdline");
+            if let Ok(bytes) = fs::read(&cmdline_path) {
+                if let Some(pos) = bytes.iter().position(|&b| b == 0) {
+                    let exec_path = String::from_utf8_lossy(&bytes[..pos]);
+                    let exec_name = Path::new(exec_path.as_ref())
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("");
+                    if exec_name == "linux-wallpaperengine" {
+                        return true;
+                    }
                 }
             }
         }

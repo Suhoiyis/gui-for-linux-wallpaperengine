@@ -57,6 +57,7 @@ GUI 现在使用 Toast 通知提供即时错误反馈，无需检查日志：
    ```bash
    LWG_DEBUG=1 python3 run_gui.py
    # 或者 LWG_DEBUG=1 ./<你的_appimage_文件>
+   ```
 随后请检查 ~/.cache/linux-wallpaperengine-gui/tray_crash.log 文件，并在提交 Issue 时附上该日志内容。
 
 ---

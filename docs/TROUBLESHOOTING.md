@@ -60,6 +60,7 @@ When a Toast notification mentions "check logs":
    ```bash
    LWG_DEBUG=1 python3 run_gui.py
    # Or LWG_DEBUG=1 ./<your_appimage_file>
+   ```
 Then inspect the output at ~/.cache/linux-wallpaperengine-gui/tray_crash.log and include it when submitting an Issue.
 
 ---
