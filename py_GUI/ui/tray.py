@@ -48,39 +48,47 @@ class TrayIcon:
     # @process.setter
     # def process(self, value): ...
     
-    def _resolve_icon(self):
+    def _install_tray_icons(self):
+        """核心黑魔法：将托盘图标释放到用户本地目录，彻底绕开 AppImage 的 FUSE 权限阻拦"""
+        import shutil
+        import os
         try:
-            # 专属托盘图标的名称
-            tray_icon_name = "com.wallpaperengine.tray"
-            
-            # 0. 检查源码开发目录 (供 python3 run_gui.py 直接测试使用)
+            # 找到源码/AppDir内部的源图标
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            dev_icon_path = os.path.join(base_dir, "pic", "icons", "gui_tray_rounded.png")
-            if os.path.exists(dev_icon_path):
-                return dev_icon_path
-                
-            # 1. 检查本地用户路径 (开发/本地安装环境)
-            local_path = os.path.expanduser(f"~/.local/share/icons/hicolor/512x512/apps/{tray_icon_name}.png")
-            if os.path.exists(local_path):
-                return local_path
-                
-            # 2. 检查系统全局路径 (Arch Linux PKGBUILD 安装环境)
-            sys_path = f"/usr/share/icons/hicolor/512x512/apps/{tray_icon_name}.png"
-            if os.path.exists(sys_path):
-                return sys_path
-                
-            # 3. 检查 AppImage 挂载路径
-            appdir = os.environ.get("APPDIR")
-            if appdir:
-                appimage_path = f"{appdir}/usr/share/icons/hicolor/512x512/apps/{tray_icon_name}.png"
-                if os.path.exists(appimage_path):
-                    return appimage_path
+            src_normal = os.path.join(base_dir, "pic", "icons", "gui_tray_rounded.png")
+            src_stopped = os.path.join(base_dir, "pic", "icons", "gui_tray_rounded-stopped.png")
+            
+            # 目标本地 XDG 标准目录 (安全区)
+            local_icon_dir = os.path.expanduser("~/.local/share/icons/hicolor/512x512/apps")
+            os.makedirs(local_icon_dir, exist_ok=True)
+            
+            target_normal = os.path.join(local_icon_dir, "com.wallpaperengine.tray.png")
+            target_stopped = os.path.join(local_icon_dir, "com.wallpaperengine.tray-stopped.png")
+            
+            # 如果源文件存在，且本地不存在或源文件较新，则进行覆盖拷贝
+            for src, target in [(src_normal, target_normal), (src_stopped, target_stopped)]:
+                if os.path.exists(src):
+                    if not os.path.exists(target) or os.path.getmtime(src) > os.path.getmtime(target):
+                        shutil.copy2(src, target)
+                        
+            # ✨ 核心修复：返回这个位于安全区的【绝对路径】！
+            return target_normal
+            
+        except Exception as e:
+            log_main(f"Failed to install local tray icons: {e}")
+            return None
 
-            # 如果都没找到硬盘实体文件，就直接传名字让桌面环境自己猜
-            return tray_icon_name
-        except Exception:
-            # 兜底也必须是 tray！
-            return "com.wallpaperengine.tray"
+    def _resolve_icon(self):
+        # 1. 释放到本地，拿回安全的绝对路径
+        safe_path = self._install_tray_icons()
+        
+        # 2. 如果成功，直接把绝对路径扔给 Rust！
+        # 桌面环境拿到绝对路径后，既不需要刷新缓存，又不会被 AppImage 拦截！
+        if safe_path and os.path.exists(safe_path):
+            return safe_path
+            
+        # 兜底
+        return "com.wallpaperengine.tray"
 
     def start(self):
         if self.process is not None:

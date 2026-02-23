@@ -51,22 +51,23 @@ impl Tray for WallpaperTray {
     fn icon_pixmap(&self) -> Vec<Icon> { vec![] } 
 
     fn icon_name(&self) -> String {
-        // ✨ 如果是停止状态，换图标！
         if !self.is_running {
-            let stopped_path = self.icon_path.replace(".png", "-stopped.png");
-            if std::path::Path::new(&stopped_path).exists() {
-                return stopped_path; // 用你生成的黑白图标
+            // 如果传来的是绝对路径 (兼容老模式)
+            if self.icon_path.starts_with('/') {
+                let stopped_path = self.icon_path.replace(".png", "-stopped.png");
+                if std::path::Path::new(&stopped_path).exists() {
+                    return stopped_path;
+                }
             } else {
-                return "media-playback-pause".into(); // 兜底：用系统自带的暂停符号
+                // ✨ 核心修复：如果传来的是干净的名字 "com.wallpaperengine.tray"
+                // 直接凭借 DE 规范，加上 "-stopped" 发送给桌面环境！
+                return format!("{}-stopped", self.icon_path);
             }
+            return "media-playback-pause".into();
         }
 
-        // 原本的运行状态图标逻辑
-        if self.icon_path.starts_with('/') {
-            self.icon_path.clone()
-        } else {
-            "preferences-desktop-wallpaper".into()
-        }
+        // 运行状态：直接原样返回（无论是路径还是名字）
+        self.icon_path.clone()
     }
 
     // ✨ 捕获左键单击（Activate）事件
