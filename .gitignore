@@ -28,7 +28,8 @@ issues/
 tools/
 docs/reference_doc/
 
-AppDir
+AppDir/
+gui-for-linux-wallpaperengine/
 *.AppImage
 runtime-x86_64
 requirements.txt
