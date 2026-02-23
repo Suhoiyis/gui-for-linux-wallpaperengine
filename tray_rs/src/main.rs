@@ -63,7 +63,7 @@ impl Tray for WallpaperTray {
                 // 直接凭借 DE 规范，加上 "-stopped" 发送给桌面环境！
                 return format!("{}-stopped", self.icon_path);
             }
-            return "media-playback-pause".into();
+            return "media-playback-stop".into();
         }
 
         // 运行状态：直接原样返回（无论是路径还是名字）
