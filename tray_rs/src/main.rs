@@ -187,6 +187,7 @@ fn main() {
                                     tray.current_tooltip = tooltip.to_string();
                                 } else {
                                     // 兼容老格式（防挂）
+                                    tray.is_running = false;
                                     tray.current_tooltip = text;
                                 }
                             });
