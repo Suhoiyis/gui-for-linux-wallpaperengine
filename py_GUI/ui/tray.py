@@ -67,27 +67,27 @@ class TrayIcon:
         log_main("Initiating Tray Start Sequence...")
         import shutil
 
-        # 1. 尝试使用 AppImage 环境提供的二进制
-        rust_tray_path = os.getenv('LWG_TRAY_BIN')
-        if not rust_tray_path or not os.path.exists(rust_tray_path):
-            rust_tray_path = shutil.which('tray-rs-bin')
-
-        # 2. 回退到开发源码目录
-        if not rust_tray_path or not os.path.exists(rust_tray_path):
-            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            dev_path = os.path.join(base, 'tray_rs', 'target', 'release', 'tray-rs')
-            if os.path.exists(dev_path):
-                rust_tray_path = dev_path
-                os.environ['LWG_IPC_SOCKET'] = f"/tmp/lwg-ipc-{os.getuid()}.sock"
+        # 【极其关键】：明确指定最新的双向通信版
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        dev_path = os.path.join(base, 'tray_rs', 'target', 'release', 'tray-rs')
+        
+        if os.path.exists(dev_path):
+            rust_tray_path = dev_path
+            os.environ['LWG_IPC_SOCKET'] = f"/tmp/lwg-ipc-{os.getuid()}.sock"
+            log_main(f"Using dev Rust tray: {rust_tray_path}")
+        else:
+            rust_tray_path = os.getenv('LWG_TRAY_BIN')
+            if not rust_tray_path or not os.path.exists(rust_tray_path):
+                rust_tray_path = shutil.which('tray-rs-bin')
+            log_main(f"Using fallback Rust tray: {rust_tray_path}")
 
         if not rust_tray_path or not os.path.exists(rust_tray_path):
             log_main("CRITICAL: tray-rs-bin missing.")
             return
 
-        cmd = [rust_tray_path, self._resolve_icon(), str(os.getpid()), ""]
+        cmd = [rust_tray_path, self._resolve_icon(), str(os.getpid())]
         
         try:
-            # 去除所有的 Sleep 阻塞，光速启动！
             proc = subprocess.Popen(
                 cmd, 
                 stdout=subprocess.DEVNULL,
@@ -111,3 +111,26 @@ class TrayIcon:
             except Exception:
                 pass
             self.process = None
+
+    def update_tooltip(self, text: str):
+        """向 Rust 托盘发送最新的悬浮提示文本，带有智能重试机制"""
+        try:
+            import socket
+            sock_path = f"/tmp/lwg-tray-rx-{os.getuid()}.sock"
+            
+            # ✅ 修复 Bug 2：如果 Rust 还没建好管道，绝不静默放弃，等 1 秒后再试！
+            if not os.path.exists(sock_path):
+                import threading
+                import time
+                def _retry():
+                    time.sleep(1)
+                    self.update_tooltip(text)
+                threading.Thread(target=_retry, daemon=True).start()
+                return
+
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.settimeout(0.5)
+                s.connect(sock_path)
+                s.sendall((text + "\n").encode('utf-8'))
+        except Exception as e:
+            log_main(f"Tooltip update failed: {e}")
