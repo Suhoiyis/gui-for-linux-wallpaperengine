@@ -38,11 +38,12 @@ packages.md
 *.tar.gz
 *.tar.zst
 
-src/
+./src/
+target/
 build/
 dist/
 *.egg-info/
-
+*bin*
 
 environment_test/
 squashfs-root/

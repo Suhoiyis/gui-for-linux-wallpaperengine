@@ -1,0 +1,19 @@
+[package]
+name = "tray-rs"
+version = "0.11.2"    # 完美对齐你的主项目版本！
+edition = "2021"      # 锁定 2021 语法世代，确保绝对的兼容性和稳定性
+
+[dependencies]
+# 纯 Rust 的托盘库，直接走 DBus，彻底抛弃 C 语言和 GTK3 依赖！
+ksni = "0.2" 
+libc = "0.2"  # ✅ 新增：用于捕获 SIGTERM 信号
+# 极其高效的跨平台系统进程扫描库
+# sysinfo = "0.30"
+# 用于简化错误处理
+# anyhow = "1.0"
+
+[profile.release]
+opt-level = "z"       # 最小化体积优化
+lto = true            # 开启链接时优化 (Link Time Optimization)
+codegen-units = 1     # 单线程死磕，追求极致的体积压缩
+strip = true          # 剔除所有的调试符号，给二进制文件“疯狂瘦身”

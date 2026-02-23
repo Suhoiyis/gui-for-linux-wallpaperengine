@@ -4,6 +4,10 @@ import platform
 import shutil
 import html
 import gi
+
+import socket
+import threading
+
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, Gio, Gdk, GLib
@@ -81,7 +85,7 @@ def get_debug_info():
 def get_latest_changelog():
      import os
      import re
-     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "docs/CHANGELOG.md")
      if not os.path.exists(changelog_path):
          return "<p>No changelog found.</p>"
      
@@ -381,12 +385,56 @@ class WallpaperApp(Adw.Application):
         self.check_onboarding()
         self._check_shortcut_updates()
         self.setup_cycle_timer()
+
+        self.start_ipc_server()
+
         self.tray.start()
         
         if self.tray.process and self.tray.process.pid:
             self.controller.perf_monitor.start_monitoring("tray", self.tray.process.pid)
         
         self.consume_cli_actions()
+
+
+    def start_ipc_server(self):
+        """监听来自 Rust 托盘的极速 Socket 指令"""
+        socket_path = os.getenv('LWG_IPC_SOCKET', f"/tmp/lwg-ipc-{os.getuid()}.sock")
+        
+        # 清理可能残留的死 Socket 文件
+        try:
+            os.unlink(socket_path)
+        except FileNotFoundError:
+            pass
+
+        def _server_thread():
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as srv:
+                srv.bind(socket_path)
+                os.chmod(socket_path, 0o600)
+                srv.listen(5)
+                while True:
+                    try:
+                        conn, _ = srv.accept()
+                        with conn:
+                            data = conn.recv(1024).decode().strip()
+                            if not data: continue
+                            
+                            # ⚠️ 必须用 GLib.idle_add 把操作转发回 GTK 主线程，否则会引发线程崩溃
+                            if data == "--show":
+                                GLib.idle_add(self.show_window)
+                            elif data == "--stop":
+                                GLib.idle_add(self.stop_wallpaper)
+                            elif data == "--apply-last":
+                                GLib.idle_add(self.apply_last_from_cli)
+                            elif data == "--random":
+                                GLib.idle_add(self.random_wallpaper)
+                            elif data == "--quit":
+                                GLib.idle_add(self.quit_app)
+                    except Exception:
+                        pass
+
+        # 作为守护线程启动，随主程序同生共死
+        t = threading.Thread(target=_server_thread, daemon=True)
+        t.start()
 
     def auto_apply(self, wp_id):
         if wp_id:
@@ -410,9 +458,13 @@ class WallpaperApp(Adw.Application):
         if is_compact:
             self.compact_win.set_visible(True)
             self.compact_win.present()
+            # 加上这句：给 WM 100ms 的反应时间后，再强行夺取一次焦点
+            GLib.timeout_add(100, lambda: self.compact_win.present() or False)
         else:
             self.win.set_visible(True)
             self.win.present()
+            # 加上这句：给 WM 100ms 的反应时间后，再强行夺取一次焦点
+            GLib.timeout_add(100, lambda: self.win.present() or False)
 
     def show_toast(self, message: str, timeout: int = 3):
         if hasattr(self, 'toast_overlay'):

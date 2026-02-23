@@ -1,0 +1,207 @@
+use ksni::{menu::*, Icon, Tray, TrayService, ToolTip};
+use std::env;
+use std::fs;
+use std::path::Path;
+// 1. 移除了未使用的 std::process::Command 导入
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
+use std::time::Duration;
+
+static SHOULD_EXIT: AtomicBool = AtomicBool::new(false);
+
+extern "C" fn handle_sigterm(_: libc::c_int) {
+    SHOULD_EXIT.store(true, Ordering::Relaxed);
+}
+
+fn get_uid() -> u32 { unsafe { libc::getuid() } }
+
+struct WallpaperTray {
+    icon_path: String,
+    socket_path: String,
+}
+
+impl Tray for WallpaperTray {
+    fn title(&self) -> String { "Wallpaper Engine GUI".into() }
+
+    fn tool_tip(&self) -> ToolTip {
+        ToolTip {
+            title: "Linux Wallpaper Engine GUI".into(),
+            description: "".into(),
+            icon_name: "".into(),
+            icon_pixmap: vec![],
+        }
+    }
+
+    fn icon_pixmap(&self) -> Vec<Icon> { vec![] } 
+
+    fn icon_name(&self) -> String {
+        if self.icon_path.starts_with('/') {
+            self.icon_path.clone()
+        } else {
+            "preferences-desktop-wallpaper".into()
+        }
+    }
+
+    fn menu(&self) -> Vec<MenuItem<Self>> {
+        vec![
+            MenuItem::Standard(StandardItem {
+                label: "Show Window".into(),
+                activate: Box::new(|tray: &mut Self| tray.exec("--show")),
+                ..Default::default()
+            }),
+            MenuItem::Separator,
+            MenuItem::Standard(StandardItem {
+                label: "Play/Stop".into(),
+                activate: Box::new(move |tray: &mut Self| {
+                    if is_engine_running() {
+                        tray.exec("--stop");
+                    } else {
+                        tray.exec("--apply-last");
+                    }
+                }),
+                ..Default::default()
+            }),
+            MenuItem::Standard(StandardItem {
+                label: "Random Wallpaper".into(),
+                activate: Box::new(|tray: &mut Self| tray.exec("--random")),
+                ..Default::default()
+            }),
+            MenuItem::Separator,
+            MenuItem::Standard(StandardItem {
+                label: "Quit Application".into(),
+                activate: Box::new(|tray: &mut Self| tray.exec("--quit")),
+                ..Default::default()
+            }),
+        ]
+    }
+}
+
+impl WallpaperTray {
+    fn exec(&self, arg: &str) {
+        let socket_path = self.socket_path.clone();
+        let cmd_str = arg.to_string();
+        log(&format!("Exec clicked: {}", cmd_str));
+        
+        thread::spawn(move || {
+            use std::os::unix::net::UnixStream;
+            use std::io::Write;
+            
+            // 使用 match 精准捕获并记录连接和写入的双重错误
+            match UnixStream::connect(&socket_path) {
+                Ok(mut stream) => {
+                    if let Err(e) = stream.write_all(format!("{}\n", cmd_str).as_bytes()) {
+                        log(&format!("Failed to write to IPC socket {}: {}", socket_path, e));
+                    }
+                }
+                Err(e) => {
+                    log(&format!("Failed to connect to IPC socket {}: {}", socket_path, e));
+                }
+            }
+        });
+    }
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let icon_path = args.get(1).cloned().unwrap_or_default();
+    let parent_pid: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    let socket_path = std::env::var("LWG_IPC_SOCKET").unwrap_or_else(|_| {
+        format!("/tmp/lwg-ipc-{}.sock", get_uid())
+    });
+
+    log(&format!("Starting. icon={icon_path} parent_pid={parent_pid} socket={socket_path}"));
+
+    unsafe {
+        // 2. 彻底满足 Rust 编译器的安全指针转换要求
+        libc::signal(libc::SIGTERM, handle_sigterm as *const () as usize);
+    }
+    SHOULD_EXIT.store(false, Ordering::Relaxed);
+
+    let service = TrayService::new(WallpaperTray {
+        icon_path,
+        socket_path,
+    });
+    
+    // 3. 移除了无用的 handle 变量
+    service.spawn();
+
+    loop {
+        thread::sleep(Duration::from_millis(500));
+
+        if SHOULD_EXIT.load(Ordering::Relaxed) {
+            log("Received SIGTERM. Exiting gracefully...");
+            // 4. 移除了无意义的 drop(handle)，依靠休眠让 OS 干净回收 Socket
+            thread::sleep(Duration::from_millis(500)); 
+            log("Graceful exit complete.");
+            std::process::exit(0);
+        }
+
+        if parent_pid > 0 && !pid_exists(parent_pid) {
+            log("Parent process died. Exiting gracefully...");
+            // 4. 移除了无意义的 drop(handle)
+            thread::sleep(Duration::from_millis(500)); 
+            std::process::exit(0);
+        }
+    }
+}
+
+fn pid_exists(pid: u32) -> bool { Path::new(&format!("/proc/{pid}")).exists() }
+
+fn is_engine_running() -> bool {
+    let Ok(entries) = fs::read_dir("/proc") else { return false; };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if !name.chars().all(|c| c.is_ascii_digit()) { continue; }
+        
+        // 优先检查 /proc/[pid]/exe 软链接，获取最真实的执行文件名
+        let exe_path = entry.path().join("exe");
+        if let Ok(target) = fs::read_link(&exe_path) {
+            if let Some(fname) = target.file_name().and_then(|s| s.to_str()) {
+                if fname == "linux-wallpaperengine" {
+                    return true;
+                }
+            }
+        } else {
+            // Fallback: 如果权限不够读取 exe，回退到 cmdline 安全解析
+            let cmdline_path = entry.path().join("cmdline");
+            if let Ok(bytes) = fs::read(&cmdline_path) {
+                if let Some(pos) = bytes.iter().position(|&b| b == 0) {
+                    let exec_path = String::from_utf8_lossy(&bytes[..pos]);
+                    let exec_name = Path::new(exec_path.as_ref())
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("");
+                    if exec_name == "linux-wallpaperengine" {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
+}
+
+fn log(msg: &str) {
+    if std::env::var("LWG_DEBUG").unwrap_or_default() != "1" {
+        return;
+    }
+
+    use std::io::Write;
+    let dir = dirs_next();
+    let _ = fs::create_dir_all(&dir);
+    let path = format!("{dir}/tray_crash.log");
+    if let Ok(mut f) = fs::OpenOptions::new().append(true).create(true).open(&path) {
+        let ts = chrono_now();
+        let _ = writeln!(f, "[{ts}] [TRAY-RS] {msg}");
+    }
+}
+
+fn dirs_next() -> String {
+    env::var("HOME").unwrap_or_else(|_| "/tmp".into()) + "/.cache/linux-wallpaperengine-gui"
+}
+
+fn chrono_now() -> String {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string()
+}

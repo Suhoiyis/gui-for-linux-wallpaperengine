@@ -486,8 +486,19 @@ The GUI automatically detects displays using:
 
 - **GUI Log**: `~/.config/linux-wallpaperengine-gui/app.log`
 - **Engine Log**: `~/.config/linux-wallpaperengine-gui/engine_<wallpaper_id>.log`
+- **Tray Debug Log**: `~/.cache/linux-wallpaperengine-gui/tray_crash.log` *(Note: To optimize performance and achieve zero disk I/O, tray logging is strictly disabled by default. It must be manually triggered via environment variable.)*
 
 ### Viewing Logs
+
+If you experience issues with the system tray (e.g., icon missing or unresponsive), you can force enable the underlying IPC and Rust tray logs by prefixing the launch command with `LWG_DEBUG=1`:
+
+```bash
+# For AppImage users
+LWG_DEBUG=1 ./linux-wallpaperengine-gui-0.11.2-x86_64.AppImage
+
+# For Arch / Source users
+LWG_DEBUG=1 python3 run_gui.py
+```
 
 **In the GUI**:
 - Go to **Settings > Logs**.

@@ -53,6 +53,12 @@ GUI 现在使用 Toast 通知提供即时错误反馈，无需检查日志：
    - `Failed to initialize GLEW` → OpenGL/GLX 环境问题。
    - `Permission denied` → 文件权限不足。
    - `Process exited immediately` → 后端启动失败；请检查详细输出。
+4. **抓取深度崩溃日志**：如果托盘依然无法启动或点击后崩溃消失，可能是后台的 Rust 托盘进程遇到了系统底层的 DBus 注册拦截。请带上调试开关运行程序，以抓取最原始的 IPC 通信日志：
+   ```bash
+   LWG_DEBUG=1 python3 run_gui.py
+   # 或者 LWG_DEBUG=1 ./<你的_appimage_文件>
+   ```
+随后请检查 ~/.cache/linux-wallpaperengine-gui/tray_crash.log 文件，并在提交 Issue 时附上该日志内容。
 
 ---
 
