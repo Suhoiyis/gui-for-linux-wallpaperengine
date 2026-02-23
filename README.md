@@ -55,7 +55,7 @@
 - 📜 **Playback History**: Automatically tracks your last 30 played wallpapers with timestamps, thumbnails, and one-click replay
 - ✏️ **Nickname System**: Assign custom nicknames to wallpapers for easier identification; supports batch management and search integration
 - 🔍 **Search & Sort**: Real-time keyword search across titles, descriptions, and tags; sort by name, size, type, or folder ID
-- 📺 **System Tray**: Runs in background with quick actions — random switch, stop, show/hide window
+- 📺 **Smart System Tray**: State-aware dynamic icon (switches between color/grayscale based on playback) with native left-click to instantly toggle the main window, backed by a zero-overhead Abstract Socket IPC.
 - ⌨️ **Command-Line Control**: Full CLI support for headless operation and remote control via single-instance architecture
 
 ### Advanced Features
@@ -286,10 +286,9 @@ If Xvfb is installed, the app uses CPU software rendering to produce 4K screensh
 
 ### System tray icon is not showing
 
-1. Verify `libayatana-appindicator` is installed
-2. GNOME users: Install the "AppIndicator Support" extension
-3. Waybar users: Ensure the `tray` module is configured
-4. i3/Sway users: You may need `waybar` or another status bar with tray support
+1. GNOME users: Install the "AppIndicator Support" extension
+2. Waybar users: Ensure the `tray` module is configured
+3. i3/Sway users: You may need `waybar` or another status bar with tray support
 
 ### How do I set different wallpapers for each monitor?
 
@@ -297,7 +296,7 @@ Select the target display from the top bar dropdown, then browse and apply a wal
 
 ### Can I use this with Flatpak or AppImage?
 
-**AppImage**: Fully supported since v0.10.4 with zero-config desktop integration. The app auto-creates `.desktop` shortcuts and self-heals if the file is moved.
+**AppImage**: Fully supported with zero-config desktop integration. The app auto-creates `.desktop` shortcuts, self-heals if the file is moved, and features a built-in FUSE sandbox-penetration mechanism to guarantee 100% system tray icon rendering across all Linux desktop environments.
 
 **Flatpak**: Not officially supported yet. File access and sandbox restrictions may affect functionality.
 
@@ -357,7 +356,7 @@ suw/
 │  └──────────────────────────────────────────────┘│
 │                                                  │
 │  ┌─────────────────────────────────────────────┐ │
-│  │         System Tray (libayatana)            │ │
+│  │         System Tray (Rust + Ksní)           │ │
 │  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
 ```
@@ -382,7 +381,7 @@ suw/
 
 - **Language**: Python 3.10+
 - **UI Framework**: PyGObject (GTK4 + Libadwaita)
-- **System Tray**: libayatana-appindicator
+- **System Tray**: Rust + Ksní
 - **Backend**: Almamu/linux-wallpaperengine (C++)
 - **Charts**: Cairo-based sparkline components
 
@@ -406,8 +405,8 @@ GPL-3.0 license
 
 ---
 
-**Current Version**: v0.11.2
+**Current Version**: v1.0.0-pre
 
-**Last Updated**: 2026-02-22
+**Last Updated**: 2026-02-24
 
 *A Vibe Coding experiment project*

@@ -1,6 +1,6 @@
 # Maintainer: Suhoiyis
 pkgname=linux-wallpaperengine-gui
-pkgver=0.11.2
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux"
 arch=('any')

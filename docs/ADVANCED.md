@@ -499,6 +499,9 @@ LWG_DEBUG=1 ./linux-wallpaperengine-gui-0.11.2-x86_64.AppImage
 # For Arch / Source users
 LWG_DEBUG=1 python3 run_gui.py
 ```
+> 💡 Debugging Tips:
+> IPC communication now runs entirely in kernel memory. If you encounter icons not showing up or clicks not working, turn on `LWG_DEBUG=1`. This will record the handshake process of the abstract socket and help you troubleshoot whether there are kernel namespace conflicts caused by multiple applications.
+
 
 **In the GUI**:
 - Go to **Settings > Logs**.

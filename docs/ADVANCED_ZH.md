@@ -496,6 +496,10 @@ LWG_DEBUG=1 ./linux-wallpaperengine-gui-0.11.2-x86_64.AppImage
 LWG_DEBUG=1 python3 run_gui.py
 ```
 
+> 💡 调试小贴士：
+> 现在的 IPC 通信完全运行在内核内存中。如果您遇到图标未显示或点击无效的情况，请开启 `LWG_DEBUG=1` 环境变量。这会记录抽象套接字的握手过程，帮助您排查是否存在由于多开应用导致的内核命名空间冲突。
+
+
 ### 查看日志
 
 **在 GUI 中**:
