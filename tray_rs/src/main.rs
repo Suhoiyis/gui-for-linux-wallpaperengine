@@ -21,6 +21,7 @@ struct WallpaperTray {
     icon_path: String,
     socket_path: String,
     current_tooltip: String, // ✅ 新增：用于存储动态显示的文本
+    is_running: bool, // 👈 新增：用来记住当前的运行状态
 }
 
 impl Tray for WallpaperTray {
@@ -50,6 +51,17 @@ impl Tray for WallpaperTray {
     fn icon_pixmap(&self) -> Vec<Icon> { vec![] } 
 
     fn icon_name(&self) -> String {
+        // ✨ 如果是停止状态，换图标！
+        if !self.is_running {
+            let stopped_path = self.icon_path.replace(".png", "-stopped.png");
+            if std::path::Path::new(&stopped_path).exists() {
+                return stopped_path; // 用你生成的黑白图标
+            } else {
+                return "media-playback-pause".into(); // 兜底：用系统自带的暂停符号
+            }
+        }
+
+        // 原本的运行状态图标逻辑
         if self.icon_path.starts_with('/') {
             self.icon_path.clone()
         } else {
@@ -153,13 +165,13 @@ fn main() {
         icon_path,
         socket_path,
         current_tooltip: "Waiting for status...".into(),
+        is_running: false, // 👈 初始默认没运行
     });
 
     let handle = service.handle();
     service.spawn();
 
     let handle_clone = handle.clone();
-    // ✅ 开启独立后台线程，死循环监听 Python 的汇报
     thread::spawn(move || {
         for stream in listener.incoming() {
             match stream {
@@ -167,9 +179,15 @@ fn main() {
                     let reader = BufReader::new(stream);
                     for line in reader.lines() {
                         if let Ok(text) = line {
-                            // 收到新文本，通过 handle 安全地跨线程更新托盘状态！
                             handle_clone.update(|tray: &mut WallpaperTray| {
-                                tray.current_tooltip = text;
+                                // ✨ 解析 Python 发来的 "ACTIVE|<b>Running...</b>"
+                                if let Some((state, tooltip)) = text.split_once('|') {
+                                    tray.is_running = state == "ACTIVE";
+                                    tray.current_tooltip = tooltip.to_string();
+                                } else {
+                                    // 兼容老格式（防挂）
+                                    tray.current_tooltip = text;
+                                }
                             });
                         }
                     }

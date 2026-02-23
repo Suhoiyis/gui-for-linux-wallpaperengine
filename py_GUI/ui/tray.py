@@ -50,11 +50,37 @@ class TrayIcon:
     
     def _resolve_icon(self):
         try:
-            from py_GUI.const import APP_ID
-            safe = os.path.expanduser(f"~/.local/share/icons/hicolor/512x512/apps/{APP_ID}.png")
-            return safe if os.path.exists(safe) else APP_ID
+            # 专属托盘图标的名称
+            tray_icon_name = "com.wallpaperengine.tray"
+            
+            # 0. 检查源码开发目录 (供 python3 run_gui.py 直接测试使用)
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            dev_icon_path = os.path.join(base_dir, "pic", "icons", "gui_tray_rounded.png")
+            if os.path.exists(dev_icon_path):
+                return dev_icon_path
+                
+            # 1. 检查本地用户路径 (开发/本地安装环境)
+            local_path = os.path.expanduser(f"~/.local/share/icons/hicolor/512x512/apps/{tray_icon_name}.png")
+            if os.path.exists(local_path):
+                return local_path
+                
+            # 2. 检查系统全局路径 (Arch Linux PKGBUILD 安装环境)
+            sys_path = f"/usr/share/icons/hicolor/512x512/apps/{tray_icon_name}.png"
+            if os.path.exists(sys_path):
+                return sys_path
+                
+            # 3. 检查 AppImage 挂载路径
+            appdir = os.environ.get("APPDIR")
+            if appdir:
+                appimage_path = f"{appdir}/usr/share/icons/hicolor/512x512/apps/{tray_icon_name}.png"
+                if os.path.exists(appimage_path):
+                    return appimage_path
+
+            # 如果都没找到硬盘实体文件，就直接传名字让桌面环境自己猜
+            return tray_icon_name
         except Exception:
-            return "com.wallpaperengine.gui"
+            # 兜底也必须是 tray！
+            return "com.wallpaperengine.tray"
 
     def start(self):
         if self.process is not None:

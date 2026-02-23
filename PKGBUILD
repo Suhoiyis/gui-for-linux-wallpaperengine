@@ -58,8 +58,18 @@ EOF
     chmod +x "$pkgdir/usr/bin/$pkgname"
 
     # 5. 配置桌面入口
+    ## 1. 主程序图标 (大图，给 Dock 栏和应用列表用) - 保持不变
     install -Dm644 pic/icons/GUI_rounded.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/com.wallpaperengine.gui.png"
+
+    ## 2. 托盘图标 (小图，给系统托盘专用) - 改用小图文件！
+    ## 注意：为了符合 Linux 规范，小图最好放到适合它的尺寸目录，比如 64x64，但放 512 也能用，为了稳妥先放 512 或者 scalable
+    install -Dm644 pic/icons/gui_tray_rounded.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/com.wallpaperengine.tray.png"
     
+    ## 3. 托盘停止图标 (小图黑白版)
+    install -Dm644 pic/icons/gui_tray_rounded-stopped.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/com.wallpaperengine.tray-stopped.png"
+    
+
+
     cat << EOF > "$pkgdir/usr/share/applications/com.wallpaperengine.gui.desktop"
 [Desktop Entry]
 Name=Wallpaper Engine GUI
