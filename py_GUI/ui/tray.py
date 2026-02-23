@@ -70,10 +70,12 @@ class TrayIcon:
                 if os.path.exists(src):
                     if not os.path.exists(target) or os.path.getmtime(src) > os.path.getmtime(target):
                         shutil.copy2(src, target)
-                        
+
             # ✨ 核心修复：返回这个位于安全区的【绝对路径】！
-            return target_normal
-            
+            # 仅在目标图标实际存在时返回路径，否则返回 None 以触发上层兜底逻辑
+            if os.path.exists(target_normal):
+                return target_normal
+            return None
         except Exception as e:
             log_main(f"Failed to install local tray icons: {e}")
             return None
