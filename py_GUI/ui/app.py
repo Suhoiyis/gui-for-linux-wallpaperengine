@@ -574,30 +574,27 @@ class WallpaperApp(Adw.Application):
         GLib.timeout_add(500, self.update_tray_status)
 
     def update_tray_status(self):
-        """智能计算当前的播放状态，并发送给托盘"""
+        """直接抓取 UI 界面上的现成文本，彻底终结别名计算 Bug"""
         try:
             active = self.config.get("active_monitors", {})
             text = "Stopped"
+            
             if active:
                 if len(active) == 1:
-                    wp_id = list(active.values())[0]
-                    # 安全获取壁纸名称
-                    name = wp_id
-                    try:
-                        res = self.nickname_manager.get_display_name(wp_id)
-                        name = res[0] if isinstance(res, tuple) else res
-                    except Exception:
-                        if hasattr(self, 'wp_manager') and self.wp_manager and wp_id in self.wp_manager._wallpapers:
-                            name = self.wp_manager._wallpapers[wp_id].get("title", wp_id)
-                    text = f"Running: {name}"
+                    # 💡 绝杀：直接从 wallpapers_page 的 Label 组件里“抓”纯文本！
+                    # get_text() 会自动剥离 markup 标签，拿到的就是干干净净的别名或原名
+                    ui_name = self.wallpapers_page.active_wp_label.get_text()
+                    
+                    # 兜底：如果刚启动还没渲染完
+                    if not ui_name or ui_name in ["-", "None"]:
+                        ui_name = "Loading..."
+                        
+                    text = f"Running: {ui_name}"
                 else:
                     text = f"Running {len(active)} wallpapers"
             
-            # 【核心绝杀】：状态防抖机制，只在文本真的发生变化时才写入 Socket！
-            if not hasattr(self, '_last_tray_text'):
-                self._last_tray_text = ""
-                
-            if text != self._last_tray_text:
+            # 【状态防抖机制】：只在文本真正改变时才发送给托盘
+            if getattr(self, '_last_tray_text', None) != text:
                 self.tray.update_tooltip(text)
                 self._last_tray_text = text
 
