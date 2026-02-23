@@ -133,6 +133,9 @@ export PYTHONPATH="$APPDIR/usr/lib/python__PY_VER__/site-packages:$APPDIR/usr/sh
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="/tmp/lwg-pycache-$(id -u)"
 
+# ✅ 新增：把 UDS Socket 路径硬编码到全家桶的环境变量里
+export LWG_IPC_SOCKET="/tmp/lwg-ipc-$(id -u).sock"
+
 cd "$APPDIR/usr/share/linux-wallpaperengine-gui"
 exec python3 run_gui.py "$@"
 EOF

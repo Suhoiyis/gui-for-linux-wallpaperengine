@@ -34,7 +34,7 @@ package() {
     # 2. 拷贝源码和资源 (修复断行)
     cp -r py_GUI pic run_gui.py "$pkgdir/usr/share/$pkgname/"
 
-    install -Dm755 tray_rs/target/release/tray-rs "$pkgdir/usr/share/$pkgname/tray-rs-bin"
+    install -Dm755 tray_rs/target/release/tray-rs "$pkgdir/usr/bin/tray-rs-bin"
 
     # 3. 抹杀源码包自带的幽灵缓存 (修复断行)
     find "$pkgdir/usr/share/$pkgname" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

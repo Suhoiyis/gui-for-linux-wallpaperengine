@@ -6,6 +6,7 @@ edition = "2021"      # 锁定 2021 语法世代，确保绝对的兼容性和�
 [dependencies]
 # 纯 Rust 的托盘库，直接走 DBus，彻底抛弃 C 语言和 GTK3 依赖！
 ksni = "0.2" 
+libc = "0.2"  # ✅ 新增：用于捕获 SIGTERM 信号
 # 极其高效的跨平台系统进程扫描库
 # sysinfo = "0.30"
 # 用于简化错误处理

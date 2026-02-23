@@ -3,29 +3,26 @@ use std::env;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
-// ── 共享状态 ──────────────────────────────────────────────
-#[derive(Clone)]
-struct State {
-    is_engine_running: bool,
+static SHOULD_EXIT: AtomicBool = AtomicBool::new(false);
+
+extern "C" fn handle_sigterm(_: libc::c_int) {
+    SHOULD_EXIT.store(true, Ordering::Relaxed);
 }
 
-// ── Tray 定义 ─────────────────────────────────────────────
+fn get_uid() -> u32 { unsafe { libc::getuid() } }
+
 struct WallpaperTray {
     icon_path: String,
-    run_gui_path: String,
-    state: Arc<Mutex<State>>,
+    socket_path: String,
 }
 
 impl Tray for WallpaperTray {
-    fn title(&self) -> String {
-        "Wallpaper Engine GUI".into()
-    }
+    fn title(&self) -> String { "Wallpaper Engine GUI".into() }
 
-    // 🌟 修复 1：加上完美的鼠标悬浮提示 Tooltip
     fn tool_tip(&self) -> ToolTip {
         ToolTip {
             title: "Linux Wallpaper Engine GUI".into(),
@@ -46,9 +43,6 @@ impl Tray for WallpaperTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        // 动态获取当前状态，供闭包内部使用
-        let is_running = self.state.lock().unwrap().is_engine_running;
-
         vec![
             MenuItem::Standard(StandardItem {
                 label: "Show Window".into(),
@@ -56,12 +50,10 @@ impl Tray for WallpaperTray {
                 ..Default::default()
             }),
             MenuItem::Separator,
-            // 🌟 修复 2：恢复为你熟悉的 Play/Stop 单一菜单项
             MenuItem::Standard(StandardItem {
                 label: "Play/Stop".into(),
                 activate: Box::new(move |tray: &mut Self| {
-                    // 点击时根据真实状态下发不同命令
-                    if is_running {
+                    if is_engine_running() {
                         tray.exec("--stop");
                     } else {
                         tray.exec("--apply-last");
@@ -86,109 +78,77 @@ impl Tray for WallpaperTray {
 
 impl WallpaperTray {
     fn exec(&self, arg: &str) {
-        let path = self.run_gui_path.clone();
-        let arg = arg.to_string();
+        let socket_path = self.socket_path.clone();
+        let cmd_str = arg.to_string();
+        log(&format!("Exec clicked: {}", cmd_str));
         
         thread::spawn(move || {
-            let mut cmd = if path.ends_with(".py") {
-                let mut c = Command::new("python3");
-                c.arg(&path).arg(&arg);
-                c
-            } else {
-                let mut c = Command::new(&path);
-                c.arg(&arg);
-                c
-            };
-
-            cmd.env_remove("DESKTOP_STARTUP_ID")
-               .env_remove("GIO_LAUNCHED_DESKTOP_FILE")
-               .env_remove("LD_LIBRARY_PATH")
-               .env_remove("PYTHONPATH")
-               .env_remove("APPDIR")
-               .env_remove("APPIMAGE")
-               .env_remove("GTK_PATH")
-               .env_remove("GTK_EXE_PREFIX")
-               .env_remove("GTK_DATA_PREFIX")
-               .env_remove("GDK_BACKEND")
-               .env_remove("GDK_PIXBUF_MODULE_FILE")
-               .env_remove("GI_TYPELIB_PATH");
-
-            if let Err(e) = cmd.spawn() {
-                log(&format!("Exec error: {e}"));
+            use std::os::unix::net::UnixStream;
+            use std::io::Write;
+            if let Ok(mut stream) = UnixStream::connect(&socket_path) {
+                let _ = stream.write_all(format!("{}\n", cmd_str).as_bytes());
             }
         });
     }
 }
 
-// ── 入口 ──────────────────────────────────────────────────
 fn main() {
     let args: Vec<String> = env::args().collect();
     let icon_path = args.get(1).cloned().unwrap_or_default();
     let parent_pid: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
-    let run_gui_path = args.get(3).cloned().unwrap_or_else(|| "run_gui.py".into());
 
-    log(&format!("Starting. icon={icon_path} parent_pid={parent_pid} run_gui={run_gui_path}"));
+    let socket_path = std::env::var("LWG_IPC_SOCKET").unwrap_or_else(|_| {
+        format!("/tmp/lwg-ipc-{}.sock", get_uid())
+    });
 
-    let state = Arc::new(Mutex::new(State {
-        is_engine_running: false,
-    }));
+    log(&format!("Starting. icon={icon_path} parent_pid={parent_pid} socket={socket_path}"));
+
+    unsafe {
+        libc::signal(libc::SIGTERM, handle_sigterm as libc::sighandler_t);
+    }
+    SHOULD_EXIT.store(false, Ordering::Relaxed);
 
     let service = TrayService::new(WallpaperTray {
         icon_path,
-        run_gui_path,
-        state: state.clone(),
+        socket_path,
     });
     
-    let handle = service.handle();
-    service.spawn();
+    let handle = service.spawn();
 
-    let state_bg = state.clone();
-    let handle_bg = handle.clone();
-    
-    thread::spawn(move || loop {
-        thread::sleep(Duration::from_secs(2));
+    loop {
+        // 监控频率加快到 0.5 秒，保证退出响应足够迅速
+        thread::sleep(Duration::from_millis(500));
 
-        if parent_pid > 0 && !pid_exists(parent_pid) {
-            log("Parent process died. Exiting.");
+        if SHOULD_EXIT.load(Ordering::Relaxed) {
+            log("Received SIGTERM. Unregistering DBus...");
+            drop(handle);
+            thread::sleep(Duration::from_millis(500)); // ⏳ 核心绝杀：给后台发包留足 500ms！
+            log("Graceful exit complete.");
             std::process::exit(0);
         }
 
-        let running = is_engine_running();
-        let mut s = state_bg.lock().unwrap();
-        
-        if s.is_engine_running != running {
-            s.is_engine_running = running;
-            drop(s);
-            handle_bg.update(|_| {}); 
+        if parent_pid > 0 && !pid_exists(parent_pid) {
+            log("Parent process died. Unregistering DBus...");
+            drop(handle);
+            thread::sleep(Duration::from_millis(500)); // ⏳ 核心绝杀：给后台发包留足 500ms！
+            std::process::exit(0);
         }
-    });
-
-    loop {
-        thread::sleep(Duration::from_secs(3600));
     }
 }
 
-// ── 工具函数 ──────────────────────────────────────────────
+// 工具函数保持不变
+fn pid_exists(pid: u32) -> bool { Path::new(&format!("/proc/{pid}")).exists() }
 
-fn pid_exists(pid: u32) -> bool {
-    Path::new(&format!("/proc/{pid}")).exists()
-}
-
-// 🌟 修复 3：硬核且精准的进程甄别器
 fn is_engine_running() -> bool {
     let Ok(entries) = fs::read_dir("/proc") else { return false; };
     for entry in entries.flatten() {
         let name = entry.file_name();
         let name = name.to_string_lossy();
         if !name.chars().all(|c| c.is_ascii_digit()) { continue; }
-        
         let cmdline_path = entry.path().join("cmdline");
         if let Ok(bytes) = fs::read(&cmdline_path) {
-            // 解析出 cmdline 中的第一个参数（即可执行文件路径）
-            if let Some(first_null_pos) = bytes.iter().position(|&b| b == 0) {
-                let exec_path = String::from_utf8_lossy(&bytes[..first_null_pos]);
-                // 只有当真正的执行文件是 linux-wallpaperengine 时，才算作引擎运行
-                // 这样能完美避开目录名包含该字符串造成的误伤
+            if let Some(pos) = bytes.iter().position(|&b| b == 0) {
+                let exec_path = String::from_utf8_lossy(&bytes[..pos]);
                 if exec_path.ends_with("/linux-wallpaperengine") || exec_path == "linux-wallpaperengine" {
                     return true;
                 }
@@ -210,14 +170,9 @@ fn log(msg: &str) {
 }
 
 fn dirs_next() -> String {
-    env::var("HOME").unwrap_or_else(|_| "/tmp".into())
-        + "/.cache/linux-wallpaperengine-gui"
+    env::var("HOME").unwrap_or_else(|_| "/tmp".into()) + "/.cache/linux-wallpaperengine-gui"
 }
 
 fn chrono_now() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-        .to_string()
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string()
 }

@@ -185,6 +185,7 @@ name = "tray-rs"
 version = "0.11.2"
 dependencies = [
  "ksni",
+ "libc",
 ]
 
 [[package]]
