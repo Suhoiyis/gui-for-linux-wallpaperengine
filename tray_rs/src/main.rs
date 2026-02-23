@@ -40,7 +40,7 @@ impl Tray for WallpaperTray {
         ToolTip {
             // 💡 绝杀：直接把动态状态拼接到主标题里，利用 \n 强制换行！
             // 这样不管什么桌面环境，都绝对拦截不了我们的状态显示！
-            title: format!("Wallpaper Engine GUI\n{}", self.current_tooltip),
+            title: format!("<b>Wallpaper Engine GUI</b>\n{}", self.current_tooltip),
             description: "".into(),
             icon_name: "".into(),
             icon_pixmap: vec![],

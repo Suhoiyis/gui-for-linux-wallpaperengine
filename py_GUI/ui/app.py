@@ -574,26 +574,39 @@ class WallpaperApp(Adw.Application):
         GLib.timeout_add(500, self.update_tray_status)
 
     def update_tray_status(self):
-        """直接抓取 UI 界面上的现成文本，彻底终结别名计算 Bug"""
+        """利用 Pango Markup 增强多屏 ToolTip 的视觉表现力"""
         try:
             active = self.config.get("active_monitors", {})
             text = "Stopped"
             
             if active:
                 if len(active) == 1:
-                    # 💡 绝杀：直接从 wallpapers_page 的 Label 组件里“抓”纯文本！
-                    # get_text() 会自动剥离 markup 标签，拿到的就是干干净净的别名或原名
                     ui_name = self.wallpapers_page.active_wp_label.get_text()
-                    
-                    # 兜底：如果刚启动还没渲染完
                     if not ui_name or ui_name in ["-", "None"]:
                         ui_name = "Loading..."
-                        
-                    text = f"Running: {ui_name}"
+                    # ✨ 加粗“Running”，并给壁纸名加个斜体
+                    text = f"Running: <i>{ui_name}</i>"
                 else:
-                    text = f"Running {len(active)} wallpapers"
+                    names = []
+                    for screen_name, wp_id in active.items():
+                        display_name = wp_id
+                        wp = getattr(self, 'wp_manager', None) and self.wp_manager._wallpapers.get(wp_id)
+                        if wp:
+                            try:
+                                res = self.nickname_manager.get_display_name(wp)
+                                display_name = res[0] if isinstance(res, tuple) else res
+                            except Exception:
+                                display_name = wp.get("title", wp_id)
+                        
+                        if len(display_name) > 18:
+                            display_name = display_name[:17] + "…"
+                        
+                        # ✨ 每个显示器名字加粗，壁纸名用灰色或小号字（取决于 DE 支持程度）
+                        names.append(f"  • <b>{screen_name}</b>: <i>{display_name}</i>")
+                    
+                    joined_names = "\n".join(names)
+                    text = f"Running:\n{joined_names}"
             
-            # 【状态防抖机制】：只在文本真正改变时才发送给托盘
             if getattr(self, '_last_tray_text', None) != text:
                 self.tray.update_tooltip(text)
                 self._last_tray_text = text
