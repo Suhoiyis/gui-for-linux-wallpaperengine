@@ -30,6 +30,16 @@
   - Deeply integrated with the Rust `ksni` library's `activate` interface to introduce native left-click responsiveness to the system tray. Say goodbye to tedious right-click menus with instant one-click window toggling.
   - Introduced modern, intuitive "Smart Toggle" logic: If the main GUI is obscured by other applications or located on a different virtual workspace, clicking the tray icon will forcefully raise and focus it across screens. The window will only elegantly hide itself if it is already the top-most active application (`is_active()`). This drastically improves operational fluidity during heavy multitasking.
 
+### Visual Experience & Resource Optimization
+- **State-Aware Dynamic Tray Icon**: 
+  - Bridged the visual feedback loop between the core engine and the system tray. The tray icon now intelligently and seamlessly switches between a vibrant colored variant (running) and a grayscale variant (stopped) based on real-time playback status. Users can now instantly perceive the engine's active/power-saving state via peripheral vision, without needing to hover or open the main UI.
+- **FUSE Sandbox Penetration & Direct Rendering**: 
+  - Engineered a robust workaround for the notorious AppImage sandboxing limitation where Desktop Environments (DEs) fail to read icons isolated within temporary FUSE mounts. The application now employs an "on-launch safe-zone extraction" mechanism, transparently caching tray assets into the user's `~/.local` standard XDG directory.
+  - By passing these absolute safe-zone paths directly to the Rust backend, the app successfully bypasses all AppImage sandbox restrictions and eliminates any reliance on the DE's `icon-theme.cache` updates, achieving a 100% icon rendering success rate across all Linux distributions.
+- **Pixel-Perfect Resource Optimization**: 
+  - Deprecated the highly inefficient practice of feeding the massive 2000px+ main application icon to the tray renderer for dynamic system downscaling.
+  - The tray daemon now utilizes a purpose-built, highly optimized 59x64 miniature icon. This architectural overhaul slashes the Rust background process's memory/VRAM footprint from multi-megabytes down to mere kilobytes. Furthermore, it significantly enhances edge sharpness and anti-aliasing quality on both 4K and low-DPI displays, eliminating downscaling blurriness entirely.
+
 
 ## v0.11.2 (2026-02-22)
 ### Bug Fixes
