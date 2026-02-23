@@ -25,6 +25,11 @@
 - Hardened Security Sandbox: Enforced strict `0o600` permission control for all UDS pipes, ensuring IPC communication is restricted to the current user and defending against local privilege escalation risks.
 - Process Lifecycle Optimization: Fixed re-entry bugs during the `do_activate` phase. Strict initialization state validation ensures no redundant tray components or IPC services are created when the application is re-activated.
 
+### UX & Window Management
+- **Native Tray Left-Click & Smart Toggle**:
+  - Deeply integrated with the Rust `ksni` library's `activate` interface to introduce native left-click responsiveness to the system tray. Say goodbye to tedious right-click menus with instant one-click window toggling.
+  - Introduced modern, intuitive "Smart Toggle" logic: If the main GUI is obscured by other applications or located on a different virtual workspace, clicking the tray icon will forcefully raise and focus it across screens. The window will only elegantly hide itself if it is already the top-most active application (`is_active()`). This drastically improves operational fluidity during heavy multitasking.
+
 
 ## v0.11.2 (2026-02-22)
 ### Bug Fixes
