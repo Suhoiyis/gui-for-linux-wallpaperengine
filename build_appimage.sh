@@ -169,6 +169,15 @@ else
     cp "$SOURCE_ICON" "$TARGET_ICON"
 fi
 
+echo "📦 植入托盘专用小图标..."
+# 源文件路径
+TRAY_SRC_SMALL="AppDir/usr/share/linux-wallpaperengine-gui/pic/icons/gui_tray_rounded.png"
+TRAY_STOPPED_SMALL="AppDir/usr/share/linux-wallpaperengine-gui/pic/icons/gui_tray_rounded-stopped.png"
+
+# 目标文件名 (注意命名要和 Python 代码里的逻辑一致)
+cp "$TRAY_SRC_SMALL" "$ICON_DIR/com.wallpaperengine.tray.png"
+cp "$TRAY_STOPPED_SMALL" "$ICON_DIR/com.wallpaperengine.tray-stopped.png"
+
 # 满足 AppImage 根目录规范
 cp "$TARGET_ICON" AppDir/${APP_NAME}.png
 cp "$TARGET_ICON" AppDir/.DirIcon

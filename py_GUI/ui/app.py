@@ -431,6 +431,8 @@ class WallpaperApp(Adw.Application):
                             # ⚠️ 必须用 GLib.idle_add 把操作转发回 GTK 主线程，否则会引发线程崩溃
                             if data == "--show":
                                 GLib.idle_add(self.show_window)
+                            elif data == "--toggle":                     # 👈 ✨ 处理左键 Toggle 指令
+                                GLib.idle_add(self.toggle_window)
                             elif data == "--stop":
                                 GLib.idle_add(self.stop_wallpaper)
                             elif data == "--apply-last":
@@ -489,17 +491,24 @@ class WallpaperApp(Adw.Application):
             self.compact_win.set_visible(False)
 
     def toggle_window(self):
+        """智能 Toggle 逻辑 (Smart Toggle)"""
         is_compact = self.config.get("compact_mode", False)
-        if is_compact:
-            if self.compact_win.get_visible():
-                self.hide_window()
-            else:
-                self.show_window()
+        
+        # 确定当前应该操作哪个窗口
+        target_win = getattr(self, 'compact_win', None) if is_compact else self.win
+
+        if not target_win:
+            self.show_window()
+            return
+
+        # 核心逻辑：
+        # is_active() 能够判断该窗口是否是当前桌面系统里“正在被聚焦/置顶”的活跃窗口
+        if target_win.get_visible() and target_win.is_active():
+            # 状态 1：窗口已打开，并且就在最前面（拥有焦点） -> 隐藏它
+            self.hide_window()
         else:
-            if self.win.get_visible():
-                self.hide_window()
-            else:
-                self.show_window()
+            # 状态 2：窗口被关了，或者被别的窗口挡住了，或者在别的工作区 -> 唤醒并置顶！
+            self.show_window()
 
     def on_home_enter(self):
         try:
@@ -574,21 +583,23 @@ class WallpaperApp(Adw.Application):
         GLib.timeout_add(500, self.update_tray_status)
 
     def update_tray_status(self):
-        """利用 Pango Markup 增强多屏 ToolTip，并增加 HTML 转义防御"""
-        import html  # 确保导入 html
+        """利用 Pango Markup 增强多屏 ToolTip，并附带状态 Flag 让 Rust 切换图标"""
+        import html
         try:
             active = self.config.get("active_monitors", {})
             text = "Stopped"
+            state_flag = "STOPPED"  # 👈 默认状态为停止
             
             if active:
+                state_flag = "ACTIVE"  # 👈 如果有壁纸，状态改为运行
                 if len(active) == 1:
                     ui_name = self.wallpapers_page.active_wp_label.get_text()
                     if not ui_name or ui_name in ["-", "None"]:
                         ui_name = "Loading..."
-                    # ✨ 核心修复：转义危险字符
                     safe_name = html.escape(ui_name)
-                    text = f"Running: <i>{safe_name}</i>"
+                    text = f"<b>Running:</b> <i>{safe_name}</i>"
                 else:
+                    # ... (这里的多屏遍历拼接逻辑保持完全不变) ...
                     names = []
                     for screen_name, wp_id in active.items():
                         display_name = wp_id
@@ -603,17 +614,19 @@ class WallpaperApp(Adw.Application):
                         if len(display_name) > 18:
                             display_name = display_name[:17] + "…"
                         
-                        # ✨ 核心修复：转义屏幕名和显示名
                         safe_screen = html.escape(screen_name)
                         safe_display = html.escape(display_name)
                         names.append(f"  • <b>{safe_screen}</b>: <i>{safe_display}</i>")
                     
                     joined_names = "\n".join(names)
-                    text = f"Running:\n{joined_names}"
+                    text = f"<b>Running:</b>\n{joined_names}"
             
-            if getattr(self, '_last_tray_text', None) != text:
-                self.tray.update_tooltip(text)
-                self._last_tray_text = text
+            # ✨ 核心改动：把状态和文本用 "|" 拼起来一起发过去
+            payload = f"{state_flag}|{text}"
+            
+            if getattr(self, '_last_tray_text', None) != payload:
+                self.tray.update_tooltip(payload)
+                self._last_tray_text = payload
 
         except Exception as e:
             from py_GUI.ui.tray import log_main

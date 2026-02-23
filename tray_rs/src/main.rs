@@ -21,6 +21,7 @@ struct WallpaperTray {
     icon_path: String,
     socket_path: String,
     current_tooltip: String, // ✅ 新增：用于存储动态显示的文本
+    is_running: bool, // 👈 新增：用来记住当前的运行状态
 }
 
 impl Tray for WallpaperTray {
@@ -50,12 +51,31 @@ impl Tray for WallpaperTray {
     fn icon_pixmap(&self) -> Vec<Icon> { vec![] } 
 
     fn icon_name(&self) -> String {
-        if self.icon_path.starts_with('/') {
-            self.icon_path.clone()
-        } else {
-            "preferences-desktop-wallpaper".into()
+        if !self.is_running {
+            // 如果传来的是绝对路径 (兼容老模式)
+            if self.icon_path.starts_with('/') {
+                let stopped_path = self.icon_path.replace(".png", "-stopped.png");
+                if std::path::Path::new(&stopped_path).exists() {
+                    return stopped_path;
+                }
+            } else {
+                // ✨ 核心修复：如果传来的是干净的名字 "com.wallpaperengine.tray"
+                // 直接凭借 DE 规范，加上 "-stopped" 发送给桌面环境！
+                return format!("{}-stopped", self.icon_path);
+            }
+            return "media-playback-stop".into();
         }
+
+        // 运行状态：直接原样返回（无论是路径还是名字）
+        self.icon_path.clone()
     }
+
+    // ✨ 捕获左键单击（Activate）事件
+    fn activate(&mut self, _x: i32, _y: i32) {
+        // 左键点击时，直接向 Python 发送 --toggle 指令！
+        self.exec("--toggle");
+    }
+
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
         vec![
@@ -146,13 +166,13 @@ fn main() {
         icon_path,
         socket_path,
         current_tooltip: "Waiting for status...".into(),
+        is_running: false, // 👈 初始默认没运行
     });
 
     let handle = service.handle();
     service.spawn();
 
     let handle_clone = handle.clone();
-    // ✅ 开启独立后台线程，死循环监听 Python 的汇报
     thread::spawn(move || {
         for stream in listener.incoming() {
             match stream {
@@ -160,9 +180,16 @@ fn main() {
                     let reader = BufReader::new(stream);
                     for line in reader.lines() {
                         if let Ok(text) = line {
-                            // 收到新文本，通过 handle 安全地跨线程更新托盘状态！
                             handle_clone.update(|tray: &mut WallpaperTray| {
-                                tray.current_tooltip = text;
+                                // ✨ 解析 Python 发来的 "ACTIVE|<b>Running...</b>"
+                                if let Some((state, tooltip)) = text.split_once('|') {
+                                    tray.is_running = state == "ACTIVE";
+                                    tray.current_tooltip = tooltip.to_string();
+                                } else {
+                                    // 兼容老格式（防挂）
+                                    tray.is_running = false;
+                                    tray.current_tooltip = text;
+                                }
                             });
                         }
                     }
