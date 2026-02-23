@@ -56,6 +56,11 @@ When a Toast notification mentions "check logs":
    - `Failed to initialize GLEW` → OpenGL/GLX environment issues.
    - `Permission denied` → Insufficient file permissions.
    - `Process exited immediately` → Backend failed to start; check detailed output.
+4. **Capture deep crash logs**: If the tray still fails to launch or crashes upon clicking, the background Rust process might be encountering an OS-level DBus error. Run the app with the debug flag to capture the raw IPC logs:
+   ```bash
+   LWG_DEBUG=1 python3 run_gui.py
+   # Or LWG_DEBUG=1 ./<your_appimage_file>
+Then inspect the output at ~/.cache/linux-wallpaperengine-gui/tray_crash.log and include it when submitting an Issue.
 
 ---
 

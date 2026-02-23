@@ -483,6 +483,18 @@ GUI 使用以下方式自动检测显示器：
 
 - **GUI 日志**: `~/.config/linux-wallpaperengine-gui/app.log`
 - **引擎日志**: `~/.config/linux-wallpaperengine-gui/engine_<wallpaper_id>.log`
+- **托盘调试日志**: `~/.cache/linux-wallpaperengine-gui/tray_crash.log` *(注意：为了极致优化性能并实现零磁盘 I/O 损耗，托盘日志默认处于严格关闭状态，必须通过环境变量手动唤醒。)*
+
+### 开启托盘调试模式
+如果您遇到与系统托盘相关的任何问题（例如：图标丢失、菜单无响应或闪退），您可以通过在启动命令前添加 `LWG_DEBUG=1` 环境变量，来强制开启底层的 IPC 通信和 Rust 托盘日志：
+
+```bash
+# AppImage 用户
+LWG_DEBUG=1 ./linux-wallpaperengine-gui-0.11.2-x86_64.AppImage
+
+# Arch 极客包 / 源码用户
+LWG_DEBUG=1 python3 run_gui.py
+```
 
 ### 查看日志
 
