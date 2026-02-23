@@ -574,7 +574,8 @@ class WallpaperApp(Adw.Application):
         GLib.timeout_add(500, self.update_tray_status)
 
     def update_tray_status(self):
-        """利用 Pango Markup 增强多屏 ToolTip 的视觉表现力"""
+        """利用 Pango Markup 增强多屏 ToolTip，并增加 HTML 转义防御"""
+        import html  # 确保导入 html
         try:
             active = self.config.get("active_monitors", {})
             text = "Stopped"
@@ -584,8 +585,9 @@ class WallpaperApp(Adw.Application):
                     ui_name = self.wallpapers_page.active_wp_label.get_text()
                     if not ui_name or ui_name in ["-", "None"]:
                         ui_name = "Loading..."
-                    # ✨ 加粗“Running”，并给壁纸名加个斜体
-                    text = f"Running: <i>{ui_name}</i>"
+                    # ✨ 核心修复：转义危险字符
+                    safe_name = html.escape(ui_name)
+                    text = f"Running: <i>{safe_name}</i>"
                 else:
                     names = []
                     for screen_name, wp_id in active.items():
@@ -601,8 +603,10 @@ class WallpaperApp(Adw.Application):
                         if len(display_name) > 18:
                             display_name = display_name[:17] + "…"
                         
-                        # ✨ 每个显示器名字加粗，壁纸名用灰色或小号字（取决于 DE 支持程度）
-                        names.append(f"  • <b>{screen_name}</b>: <i>{display_name}</i>")
+                        # ✨ 核心修复：转义屏幕名和显示名
+                        safe_screen = html.escape(screen_name)
+                        safe_display = html.escape(display_name)
+                        names.append(f"  • <b>{safe_screen}</b>: <i>{safe_display}</i>")
                     
                     joined_names = "\n".join(names)
                     text = f"Running:\n{joined_names}"

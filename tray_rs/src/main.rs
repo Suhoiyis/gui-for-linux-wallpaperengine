@@ -132,8 +132,15 @@ fn main() {
     let rx_socket_path = format!("/tmp/lwg-tray-rx-{}.sock", get_uid());
     let _ = fs::remove_file(&rx_socket_path); 
     
-    let listener = UnixListener::bind(&rx_socket_path).expect("Failed to bind RX socket");
-    fs::set_permissions(&rx_socket_path, fs::Permissions::from_mode(0o600)).ok(); // 绝对安全防御
+    // 【核心修复】：防止 Socket 被占用时引发脏崩溃
+    let listener = match UnixListener::bind(&rx_socket_path) {
+        Ok(l) => l,
+        Err(e) => {
+            log(&format!("Failed to bind RX socket at {}: {}", rx_socket_path, e));
+            std::process::exit(1);
+        }
+    };
+    fs::set_permissions(&rx_socket_path, fs::Permissions::from_mode(0o600)).ok();
 
     let service = TrayService::new(WallpaperTray {
         icon_path,
@@ -170,13 +177,15 @@ fn main() {
 
         if SHOULD_EXIT.load(Ordering::Relaxed) {
             log("Received SIGTERM. Exiting gracefully...");
-            thread::sleep(Duration::from_millis(500)); 
+            let _ = fs::remove_file(&rx_socket_path);
+            thread::sleep(Duration::from_millis(500));
             log("Graceful exit complete.");
             std::process::exit(0);
         }
 
         if parent_pid > 0 && !pid_exists(parent_pid) {
             log("Parent process died. Exiting gracefully...");
+            let _ = fs::remove_file(&rx_socket_path);
             thread::sleep(Duration::from_millis(500)); 
             std::process::exit(0);
         }

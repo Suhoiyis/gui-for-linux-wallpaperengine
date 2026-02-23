@@ -18,7 +18,7 @@
 - Dynamic Multi-dimensional Tooltip System:
   - Full Multi-monitor Compatibility: The tray now intelligently senses multi-screen layouts. In multi-monitor setups, it elegantly displays the status of each screen in a vertical list, breaking the limitation of single-screen monitoring.
   - Deep Nickname Integration: Tooltip status now fully supports custom nicknames. By directly capturing the rendered text from the GUI layer, it ensures 100% visual consistency between the tray and the user's custom naming.
-  - Visual Enhancement via Pango Markup: Optimized tooltip layout using Pango markup language. Enhanced the visual hierarchy with bold titles, italicized status names, and custom line-spacing "spacers" within the system native tooltip bubbles.
+  - Visual Enhancement via Pango Markup: Optimized tooltip layout using Pango markup language. Enhanced the visual hierarchy with bold titles, italicized status names, and ~~custom line-spacing "spacers"~~ within the system native tooltip bubbles.
 
 ### Stability & Robustness Improvements
 - Smart Socket Polling & Retry: Developed an auto-retry mechanism for cold-start scenarios. This effectively resolves potential status loss during initial startup caused by the Rust tray's initialization lag.
