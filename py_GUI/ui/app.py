@@ -431,6 +431,8 @@ class WallpaperApp(Adw.Application):
                             # ⚠️ 必须用 GLib.idle_add 把操作转发回 GTK 主线程，否则会引发线程崩溃
                             if data == "--show":
                                 GLib.idle_add(self.show_window)
+                            elif data == "--toggle":                     # 👈 ✨ 处理左键 Toggle 指令
+                                GLib.idle_add(self.toggle_window)
                             elif data == "--stop":
                                 GLib.idle_add(self.stop_wallpaper)
                             elif data == "--apply-last":
@@ -489,17 +491,24 @@ class WallpaperApp(Adw.Application):
             self.compact_win.set_visible(False)
 
     def toggle_window(self):
+        """智能 Toggle 逻辑 (Smart Toggle)"""
         is_compact = self.config.get("compact_mode", False)
-        if is_compact:
-            if self.compact_win.get_visible():
-                self.hide_window()
-            else:
-                self.show_window()
+        
+        # 确定当前应该操作哪个窗口
+        target_win = getattr(self, 'compact_win', None) if is_compact else self.win
+
+        if not target_win:
+            self.show_window()
+            return
+
+        # 核心逻辑：
+        # is_active() 能够判断该窗口是否是当前桌面系统里“正在被聚焦/置顶”的活跃窗口
+        if target_win.get_visible() and target_win.is_active():
+            # 状态 1：窗口已打开，并且就在最前面（拥有焦点） -> 隐藏它
+            self.hide_window()
         else:
-            if self.win.get_visible():
-                self.hide_window()
-            else:
-                self.show_window()
+            # 状态 2：窗口被关了，或者被别的窗口挡住了，或者在别的工作区 -> 唤醒并置顶！
+            self.show_window()
 
     def on_home_enter(self):
         try:

@@ -57,6 +57,13 @@ impl Tray for WallpaperTray {
         }
     }
 
+    // ✨ 捕获左键单击（Activate）事件
+    fn activate(&mut self, _x: i32, _y: i32) {
+        // 左键点击时，直接向 Python 发送 --toggle 指令！
+        self.exec("--toggle");
+    }
+
+
     fn menu(&self) -> Vec<MenuItem<Self>> {
         vec![
             MenuItem::Standard(StandardItem {
