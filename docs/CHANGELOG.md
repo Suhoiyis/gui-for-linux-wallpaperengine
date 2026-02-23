@@ -20,10 +20,10 @@
   - Deep Nickname Integration: Tooltip status now fully supports custom nicknames. By directly capturing the rendered text from the GUI layer, it ensures 100% visual consistency between the tray and the user's custom naming.
   - Visual Enhancement via Pango Markup: Optimized tooltip layout using Pango markup language. Enhanced the visual hierarchy with bold titles, italicized status names, and custom line-spacing "spacers" within the system native tooltip bubbles.
 
-- Stability & Robustness Improvements
-  - Smart Socket Polling & Retry: Developed an auto-retry mechanism for cold-start scenarios. This effectively resolves potential status loss during initial startup caused by the Rust tray's initialization lag.
-  - Hardened Security Sandbox: Enforced strict 0o600 permission control for all UDS pipes, ensuring IPC communication is restricted to the current user and defending against local privilege escalation risks.
-  - Process Lifecycle Optimization: Fixed re-entry bugs during the do_activate phase. Strict initialization state validation ensures no redundant tray components or IPC services are created when the application is re-activated.
+### Stability & Robustness Improvements
+- Smart Socket Polling & Retry: Developed an auto-retry mechanism for cold-start scenarios. This effectively resolves potential status loss during initial startup caused by the Rust tray's initialization lag.
+- Hardened Security Sandbox: Enforced strict `0o600` permission control for all UDS pipes, ensuring IPC communication is restricted to the current user and defending against local privilege escalation risks.
+- Process Lifecycle Optimization: Fixed re-entry bugs during the `do_activate` phase. Strict initialization state validation ensures no redundant tray components or IPC services are created when the application is re-activated.
 
 
 ## v0.11.2 (2026-02-22)
