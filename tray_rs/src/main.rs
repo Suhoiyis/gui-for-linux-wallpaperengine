@@ -2,10 +2,12 @@ use ksni::{menu::*, Icon, Tray, TrayService, ToolTip};
 use std::env;
 use std::fs;
 use std::path::Path;
-// 1. 移除了未使用的 std::process::Command 导入
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
+use std::os::unix::net::{UnixStream, UnixListener};
+use std::io::{Write, BufRead, BufReader};
+use std::os::unix::fs::PermissionsExt;
 
 static SHOULD_EXIT: AtomicBool = AtomicBool::new(false);
 
@@ -18,14 +20,27 @@ fn get_uid() -> u32 { unsafe { libc::getuid() } }
 struct WallpaperTray {
     icon_path: String,
     socket_path: String,
+    current_tooltip: String, // ✅ 新增：用于存储动态显示的文本
 }
 
 impl Tray for WallpaperTray {
     fn title(&self) -> String { "Wallpaper Engine GUI".into() }
 
+    // fn tool_tip(&self) -> ToolTip {
+    //     ToolTip {
+    //         title: "Linux Wallpaper Engine GUI".into(),
+    //         // ✅ 动态读取当前的壁纸状态
+    //         description: self.current_tooltip.clone(),
+    //         icon_name: "".into(),
+    //         icon_pixmap: vec![],
+    //     }
+    // }
+
     fn tool_tip(&self) -> ToolTip {
         ToolTip {
-            title: "Linux Wallpaper Engine GUI".into(),
+            // 💡 绝杀：直接把动态状态拼接到主标题里，利用 \n 强制换行！
+            // 这样不管什么桌面环境，都绝对拦截不了我们的状态显示！
+            title: format!("<b>Wallpaper Engine GUI</b>\n{}", self.current_tooltip),
             description: "".into(),
             icon_name: "".into(),
             icon_pixmap: vec![],
@@ -83,10 +98,6 @@ impl WallpaperTray {
         log(&format!("Exec clicked: {}", cmd_str));
         
         thread::spawn(move || {
-            use std::os::unix::net::UnixStream;
-            use std::io::Write;
-            
-            // 使用 match 精准捕获并记录连接和写入的双重错误
             match UnixStream::connect(&socket_path) {
                 Ok(mut stream) => {
                     if let Err(e) = stream.write_all(format!("{}\n", cmd_str).as_bytes()) {
@@ -113,33 +124,68 @@ fn main() {
     log(&format!("Starting. icon={icon_path} parent_pid={parent_pid} socket={socket_path}"));
 
     unsafe {
-        // 2. 彻底满足 Rust 编译器的安全指针转换要求
         libc::signal(libc::SIGTERM, handle_sigterm as *const () as usize);
     }
     SHOULD_EXIT.store(false, Ordering::Relaxed);
 
+    // ✅ 建立第二根 Socket 管道：专门用于接收 Python 发来的 Tooltip
+    let rx_socket_path = format!("/tmp/lwg-tray-rx-{}.sock", get_uid());
+    let _ = fs::remove_file(&rx_socket_path); 
+    
+    // 【核心修复】：防止 Socket 被占用时引发脏崩溃
+    let listener = match UnixListener::bind(&rx_socket_path) {
+        Ok(l) => l,
+        Err(e) => {
+            log(&format!("Failed to bind RX socket at {}: {}", rx_socket_path, e));
+            std::process::exit(1);
+        }
+    };
+    fs::set_permissions(&rx_socket_path, fs::Permissions::from_mode(0o600)).ok();
+
     let service = TrayService::new(WallpaperTray {
         icon_path,
         socket_path,
+        current_tooltip: "Waiting for status...".into(),
     });
-    
-    // 3. 移除了无用的 handle 变量
+
+    let handle = service.handle();
     service.spawn();
+
+    let handle_clone = handle.clone();
+    // ✅ 开启独立后台线程，死循环监听 Python 的汇报
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    let reader = BufReader::new(stream);
+                    for line in reader.lines() {
+                        if let Ok(text) = line {
+                            // 收到新文本，通过 handle 安全地跨线程更新托盘状态！
+                            handle_clone.update(|tray: &mut WallpaperTray| {
+                                tray.current_tooltip = text;
+                            });
+                        }
+                    }
+                }
+                Err(e) => log(&format!("RX socket accept error: {}", e)),
+            }
+        }
+    });
 
     loop {
         thread::sleep(Duration::from_millis(500));
 
         if SHOULD_EXIT.load(Ordering::Relaxed) {
             log("Received SIGTERM. Exiting gracefully...");
-            // 4. 移除了无意义的 drop(handle)，依靠休眠让 OS 干净回收 Socket
-            thread::sleep(Duration::from_millis(500)); 
+            let _ = fs::remove_file(&rx_socket_path);
+            thread::sleep(Duration::from_millis(500));
             log("Graceful exit complete.");
             std::process::exit(0);
         }
 
         if parent_pid > 0 && !pid_exists(parent_pid) {
             log("Parent process died. Exiting gracefully...");
-            // 4. 移除了无意义的 drop(handle)
+            let _ = fs::remove_file(&rx_socket_path);
             thread::sleep(Duration::from_millis(500)); 
             std::process::exit(0);
         }
@@ -155,16 +201,12 @@ fn is_engine_running() -> bool {
         let name = name.to_string_lossy();
         if !name.chars().all(|c| c.is_ascii_digit()) { continue; }
         
-        // 优先检查 /proc/[pid]/exe 软链接，获取最真实的执行文件名
         let exe_path = entry.path().join("exe");
         if let Ok(target) = fs::read_link(&exe_path) {
             if let Some(fname) = target.file_name().and_then(|s| s.to_str()) {
-                if fname == "linux-wallpaperengine" {
-                    return true;
-                }
+                if fname == "linux-wallpaperengine" { return true; }
             }
         } else {
-            // Fallback: 如果权限不够读取 exe，回退到 cmdline 安全解析
             let cmdline_path = entry.path().join("cmdline");
             if let Ok(bytes) = fs::read(&cmdline_path) {
                 if let Some(pos) = bytes.iter().position(|&b| b == 0) {
@@ -173,9 +215,7 @@ fn is_engine_running() -> bool {
                         .file_name()
                         .and_then(|s| s.to_str())
                         .unwrap_or("");
-                    if exec_name == "linux-wallpaperengine" {
-                        return true;
-                    }
+                    if exec_name == "linux-wallpaperengine" { return true; }
                 }
             }
         }
@@ -187,7 +227,6 @@ fn log(msg: &str) {
     if std::env::var("LWG_DEBUG").unwrap_or_default() != "1" {
         return;
     }
-
     use std::io::Write;
     let dir = dirs_next();
     let _ = fs::create_dir_all(&dir);

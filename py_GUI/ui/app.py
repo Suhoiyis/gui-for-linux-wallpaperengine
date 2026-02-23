@@ -83,79 +83,79 @@ def get_debug_info():
     return "\n".join(info)
 
 def get_latest_changelog():
-     import os
-     import re
-     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "docs/CHANGELOG.md")
-     if not os.path.exists(changelog_path):
-         return "<p>No changelog found.</p>"
-     
-     try:
-         with open(changelog_path, "r", encoding="utf-8") as f:
-             content = f.read()
-             
-         sections = re.split(r'\n## ', content)
-         for section in sections:
-             section = section.strip()
-             if not section:
-                 continue
-                 
-             is_version = section.startswith('v')
-             is_latest = "最新更新" in section
-             
-             if is_version or is_latest:
-                 lines = section.split('\n')
-                 header = lines[0].strip()
-                 body_lines = lines[1:]
-                 
-                 processed_lines = []
-                 in_list = False
-                 
-                 for line in body_lines:
-                     line = line.strip()
-                     if line.startswith('---'):
-                         break
-                     
-                     if not line:
-                         continue
-                     
-                     if line.startswith('###'):
-                         if in_list:
-                             processed_lines.append("</ul>")
-                             in_list = False
-                         # Escape the text content before wrapping in tags
-                         section_title = html.escape(line.replace('###', '').strip())
-                         processed_lines.append(f"<p><em>{section_title}</em></p>")
-                     elif line.startswith('-'):
-                         if not in_list:
-                             processed_lines.append("<ul>")
-                             in_list = True
-                         item_text = line.replace('-', '', 1).strip()
-                         # Escape raw text first, then apply formatting
-                         item_text = html.escape(item_text)
-                         item_text = item_text.replace('**', '<em>', 1).replace('**', '</em>', 1)
-                         processed_lines.append(f"  <li>{item_text}</li>")
-                     else:
-                         if in_list:
-                             processed_lines.append("</ul>")
-                             in_list = False
-                         # Escape the paragraph text
-                         escaped_line = html.escape(line)
-                         processed_lines.append(f"<p>{escaped_line}</p>")
-                 
-                 if in_list:
-                     processed_lines.append("</ul>")
-                 
-                 content_html = "\n".join(processed_lines)
-                 if not content_html.strip() or content_html.strip() == "(暂无)":
-                     continue
-                 
-                 # Escape header before wrapping in tags
-                 escaped_header = html.escape(header)
-                 return f"<p><em>{escaped_header}</em></p>" + content_html
-     except Exception as e:
-         return f"<p>Error reading changelog: {str(e)}</p>"
-     
-     return "<p>Check CHANGELOG.md for details.</p>"
+    import os
+    import re
+    changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "docs/CHANGELOG.md")
+    if not os.path.exists(changelog_path):
+        return "<p>No changelog found.</p>"
+
+    try:
+        with open(changelog_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        sections = re.split(r'\n## ', content)
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            is_version = section.startswith('v')
+            is_latest = "最新更新" in section
+
+            if is_version or is_latest:
+                lines = section.split('\n')
+                header = lines[0].strip()
+                body_lines = lines[1:]
+
+                processed_lines = []
+                in_list = False
+
+                for line in body_lines:
+                    line = line.strip()
+                    if line.startswith('---'):
+                        break
+
+                    if not line:
+                        continue
+
+                    if line.startswith('###'):
+                        if in_list:
+                            processed_lines.append("</ul>")
+                            in_list = False
+                        # Escape the text content before wrapping in tags
+                        section_title = html.escape(line.replace('###', '').strip())
+                        processed_lines.append(f"<p><em>{section_title}</em></p>")
+                    elif line.startswith('-'):
+                        if not in_list:
+                            processed_lines.append("<ul>")
+                            in_list = True
+                        item_text = line.replace('-', '', 1).strip()
+                        # Escape raw text first, then apply formatting
+                        item_text = html.escape(item_text)
+                        item_text = item_text.replace('**', '<em>', 1).replace('**', '</em>', 1)
+                        processed_lines.append(f"  <li>{item_text}</li>")
+                    else:
+                        if in_list:
+                            processed_lines.append("</ul>")
+                            in_list = False
+                        # Escape the paragraph text
+                        escaped_line = html.escape(line)
+                        processed_lines.append(f"<p>{escaped_line}</p>")
+
+                if in_list:
+                    processed_lines.append("</ul>")
+
+                content_html = "\n".join(processed_lines)
+                if not content_html.strip() or content_html.strip() == "(暂无)":
+                    continue
+
+                # Escape header before wrapping in tags
+                escaped_header = html.escape(header)
+                return f"<p><em>{escaped_header}</em></p>" + content_html
+    except Exception as e:
+        return f"<p>Error reading changelog: {str(e)}</p>"
+
+    return "<p>Check CHANGELOG.md for details.</p>"
 
 
 class WallpaperApp(Adw.Application):
@@ -224,6 +224,8 @@ class WallpaperApp(Adw.Application):
             self._is_first_activation = False
             self.start_hidden = False
             self.consume_cli_actions()
+
+            GLib.timeout_add(1500, self.update_tray_status)
             return
 
         # Load CSS
@@ -395,6 +397,14 @@ class WallpaperApp(Adw.Application):
         
         self.consume_cli_actions()
 
+        # 1. 延迟 1.5 秒发送初始状态
+        GLib.timeout_add(1500, self.update_tray_status)
+        
+        # 2. 开启 1 秒一次的智能心跳守护线程 (通过 or True 强制保持循环)
+        # 无论用户通过什么刁钻的方式在内部换了壁纸，托盘绝对会在 1 秒内发现并跟上！
+        if not hasattr(self, '_tray_loop_started'):
+            self._tray_loop_started = True
+            GLib.timeout_add_seconds(1, lambda: self.update_tray_status() or True)
 
     def start_ipc_server(self):
         """监听来自 Rust 托盘的极速 Socket 指令"""
@@ -447,6 +457,7 @@ class WallpaperApp(Adw.Application):
             
             # 【新增】确保自动应用壁纸时激活计时器
             self.setup_cycle_timer()
+        GLib.timeout_add(500, self.update_tray_status)
         return False
 
     def on_window_close(self, win):
@@ -556,10 +567,60 @@ class WallpaperApp(Adw.Application):
         self.controller.stop()
         self.config.set("active_monitors", {})
         self.wallpapers_page.update_active_wallpaper_label()
-        
+
         # 【新增】停止播放时，顺便把轮换计时器也停掉
         self.setup_cycle_timer()
-    
+
+        GLib.timeout_add(500, self.update_tray_status)
+
+    def update_tray_status(self):
+        """利用 Pango Markup 增强多屏 ToolTip，并增加 HTML 转义防御"""
+        import html  # 确保导入 html
+        try:
+            active = self.config.get("active_monitors", {})
+            text = "Stopped"
+            
+            if active:
+                if len(active) == 1:
+                    ui_name = self.wallpapers_page.active_wp_label.get_text()
+                    if not ui_name or ui_name in ["-", "None"]:
+                        ui_name = "Loading..."
+                    # ✨ 核心修复：转义危险字符
+                    safe_name = html.escape(ui_name)
+                    text = f"Running: <i>{safe_name}</i>"
+                else:
+                    names = []
+                    for screen_name, wp_id in active.items():
+                        display_name = wp_id
+                        wp = getattr(self, 'wp_manager', None) and self.wp_manager._wallpapers.get(wp_id)
+                        if wp:
+                            try:
+                                res = self.nickname_manager.get_display_name(wp)
+                                display_name = res[0] if isinstance(res, tuple) else res
+                            except Exception:
+                                display_name = wp.get("title", wp_id)
+                        
+                        if len(display_name) > 18:
+                            display_name = display_name[:17] + "…"
+                        
+                        # ✨ 核心修复：转义屏幕名和显示名
+                        safe_screen = html.escape(screen_name)
+                        safe_display = html.escape(display_name)
+                        names.append(f"  • <b>{safe_screen}</b>: <i>{safe_display}</i>")
+                    
+                    joined_names = "\n".join(names)
+                    text = f"Running:\n{joined_names}"
+            
+            if getattr(self, '_last_tray_text', None) != text:
+                self.tray.update_tooltip(text)
+                self._last_tray_text = text
+
+        except Exception as e:
+            from py_GUI.ui.tray import log_main
+            log_main(f"Error computing tray status: {e}")
+
+        return False
+
     def random_wallpaper(self):
         # Triggered by cycle timer or CLI or Menu
         # Cycle order logic
@@ -628,6 +689,8 @@ class WallpaperApp(Adw.Application):
             
             # 【新增】每次切完随机壁纸，重置/启动一轮新的倒计时
             self.setup_cycle_timer()
+
+        GLib.timeout_add(500, self.update_tray_status)
 
     def on_cycle_trigger(self):
         self.log_manager.add_info("Cycling wallpaper...", "App")
@@ -756,6 +819,8 @@ class WallpaperApp(Adw.Application):
             self.wallpapers_page.select_wallpaper(wp_id)
             self.wallpapers_page.apply_wallpaper(wp_id)
             self.setup_cycle_timer()
+
+            GLib.timeout_add(500, self.update_tray_status)
 
     def on_action_stop(self, action, param):
         self.stop_wallpaper()
