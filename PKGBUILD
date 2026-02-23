@@ -13,7 +13,8 @@ makedepends=('git' 'cargo')
 
 # 标准的 Arch 打包来源写法，直接拉取对应的 tag
 source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#tag=v${pkgver}")
-# source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#branch=dev")
+# source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#branch=feature/tray")
+# source=()
 sha256sums=('SKIP')
 
 build() {
@@ -31,23 +32,23 @@ package() {
     install -dm755 "$pkgdir/usr/share/applications"
     install -dm755 "$pkgdir/usr/share/icons/hicolor/512x512/apps"
 
-    # 2. 拷贝源码和资源 (修复断行)
+    # 2. 拷贝源码和资源 (已修复致命断行)
     cp -r py_GUI pic run_gui.py "$pkgdir/usr/share/$pkgname/"
 
     install -Dm755 tray_rs/target/release/tray-rs "$pkgdir/usr/bin/tray-rs-bin"
 
-    # 3. 抹杀源码包自带的幽灵缓存 (修复断行)
+    # 3. 抹杀源码包自带的幽灵缓存 (已修复断行)
     find "$pkgdir/usr/share/$pkgname" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find "$pkgdir/usr/share/$pkgname" -name "*.pyc" -delete 2>/dev/null || true
 
-    # 4. 创建带缓存重定向黑魔法的启动 Wrapper
+    # 4. 创建带缓存重定向黑魔法和 IPC 通信的启动 Wrapper
     cat << EOF > "$pkgdir/usr/bin/$pkgname"
 #!/bin/bash
 export PYTHONPATH="/usr/share/$pkgname:\$PYTHONPATH"
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="/tmp/${pkgname}-pycache-\$(id -u)"
+export LWG_IPC_SOCKET="/tmp/lwg-ipc-\$(id -u).sock"
 
-# 修复断行
 cd "/usr/share/$pkgname" || exit 1
 
 # 绝不使用绝对路径，防止触发 pkill 自杀！
@@ -66,7 +67,7 @@ Exec=$pkgname %U
 Icon=com.wallpaperengine.gui
 Type=Application
 Categories=Utility;GTK;
-StartupWMClass=com.wallpaperengine.gui # [cite: 6]
+StartupWMClass=com.wallpaperengine.gui
 Terminal=false
 EOF
 
