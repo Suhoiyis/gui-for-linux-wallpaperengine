@@ -408,17 +408,20 @@ class WallpaperApp(Adw.Application):
 
     def start_ipc_server(self):
         """监听来自 Rust 托盘的极速 Abstract Socket 指令 (0 文件残留)"""
-        # 注意：这里我们只取名字，默认值不再带 /tmp/
         socket_name = os.getenv('LWG_IPC_SOCKET', f"lwg-ipc-{os.getuid()}")
-        
-        # ✨ 黑魔法：在名字前面拼上一个 Null Byte (\x00)，告诉 Linux 内核使用抽象命名空间
         abstract_addr = f"\x00{socket_name}"
 
         def _server_thread():
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as srv:
-                # 🗑️ 删除了 os.unlink() 和 os.chmod()，内核自动回收和管理！
-                srv.bind(abstract_addr)
-                srv.listen(5)
+                try:
+                    # 🛡️ Copilot 建议的保护罩：防止多开应用时因地址被占用导致线程脏崩溃
+                    srv.bind(abstract_addr)
+                    srv.listen(5)
+                except OSError as e:
+                    # 将错误安全地抛给主线程的日志管理器，然后体面地结束这个冗余线程
+                    GLib.idle_add(lambda: self.log_manager.add_info(f"IPC Server 绑定失败 (可能已有一个实例正在运行): {e}", "App"))
+                    return
+
                 while True:
                     try:
                         conn, _ = srv.accept()
