@@ -407,19 +407,17 @@ class WallpaperApp(Adw.Application):
             GLib.timeout_add_seconds(1, lambda: self.update_tray_status() or True)
 
     def start_ipc_server(self):
-        """监听来自 Rust 托盘的极速 Socket 指令"""
-        socket_path = os.getenv('LWG_IPC_SOCKET', f"/tmp/lwg-ipc-{os.getuid()}.sock")
+        """监听来自 Rust 托盘的极速 Abstract Socket 指令 (0 文件残留)"""
+        # 注意：这里我们只取名字，默认值不再带 /tmp/
+        socket_name = os.getenv('LWG_IPC_SOCKET', f"lwg-ipc-{os.getuid()}")
         
-        # 清理可能残留的死 Socket 文件
-        try:
-            os.unlink(socket_path)
-        except FileNotFoundError:
-            pass
+        # ✨ 黑魔法：在名字前面拼上一个 Null Byte (\x00)，告诉 Linux 内核使用抽象命名空间
+        abstract_addr = f"\x00{socket_name}"
 
         def _server_thread():
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as srv:
-                srv.bind(socket_path)
-                os.chmod(socket_path, 0o600)
+                # 🗑️ 删除了 os.unlink() 和 os.chmod()，内核自动回收和管理！
+                srv.bind(abstract_addr)
                 srv.listen(5)
                 while True:
                     try:
@@ -428,10 +426,9 @@ class WallpaperApp(Adw.Application):
                             data = conn.recv(1024).decode().strip()
                             if not data: continue
                             
-                            # ⚠️ 必须用 GLib.idle_add 把操作转发回 GTK 主线程，否则会引发线程崩溃
                             if data == "--show":
                                 GLib.idle_add(self.show_window)
-                            elif data == "--toggle":                     # 👈 ✨ 处理左键 Toggle 指令
+                            elif data == "--toggle":
                                 GLib.idle_add(self.toggle_window)
                             elif data == "--stop":
                                 GLib.idle_add(self.stop_wallpaper)
@@ -444,7 +441,6 @@ class WallpaperApp(Adw.Application):
                     except Exception:
                         pass
 
-        # 作为守护线程启动，随主程序同生共死
         t = threading.Thread(target=_server_thread, daemon=True)
         t.start()
 

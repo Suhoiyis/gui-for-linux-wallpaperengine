@@ -47,7 +47,7 @@ package() {
 export PYTHONPATH="/usr/share/$pkgname:\$PYTHONPATH"
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="/tmp/${pkgname}-pycache-\$(id -u)"
-export LWG_IPC_SOCKET="/tmp/lwg-ipc-\$(id -u).sock"
+export LWG_IPC_SOCKET="lwg-ipc-\$(id -u)"
 
 cd "/usr/share/$pkgname" || exit 1
 
