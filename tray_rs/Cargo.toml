@@ -1,6 +1,6 @@
 [package]
 name = "tray-rs"
-version = "0.11.2"    # 完美对齐你的主项目版本！
+version = "1.0.0"    # 完美对齐你的主项目版本！
 edition = "2021"      # 锁定 2021 语法世代，确保绝对的兼容性和稳定性
 
 [dependencies]

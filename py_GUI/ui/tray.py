@@ -104,7 +104,7 @@ class TrayIcon:
         import shutil
 
         # 定义统一的 Socket 路径
-        socket_path = f"/tmp/lwg-ipc-{os.getuid()}.sock"
+        socket_name = f"lwg-ipc-{os.getuid()}"
         
         # 获取各环境可能的路径
         appimage_tray_path = os.getenv('LWG_TRAY_BIN')
@@ -116,20 +116,20 @@ class TrayIcon:
         # 1. 最高优先级：AppImage/生产环境变量提供的路径
         if appimage_tray_path and os.path.exists(appimage_tray_path):
             rust_tray_path = appimage_tray_path
-            os.environ.setdefault('LWG_IPC_SOCKET', socket_path)
+            os.environ.setdefault('LWG_IPC_SOCKET', socket_name)
             log_main(f"Using AppImage/env Rust tray: {rust_tray_path}")
             
         # 2. 次优级：本地源码编译出的开发版路径
         elif os.path.exists(dev_path):
             rust_tray_path = dev_path
-            os.environ['LWG_IPC_SOCKET'] = socket_path
+            os.environ['LWG_IPC_SOCKET'] = socket_name
             log_main(f"Using dev Rust tray: {rust_tray_path}")
             
         # 3. 兜底策略：从系统 PATH 环境变量寻找
         else:
             rust_tray_path = shutil.which('tray-rs-bin')
             if rust_tray_path:
-                os.environ.setdefault('LWG_IPC_SOCKET', socket_path)
+                os.environ.setdefault('LWG_IPC_SOCKET', socket_name)
                 log_main(f"Using fallback system Rust tray: {rust_tray_path}")
 
         # 最终安全检查
@@ -164,27 +164,29 @@ class TrayIcon:
                 pass
             self.process = None
 
-    def update_tooltip(self, text: str, retries: int = 3):  # 👈 增加 retries 参数
-        """向 Rust 托盘发送最新的悬浮提示文本，带有防止无限递归的重试机制"""
+    def update_tooltip(self, text: str, retries: int = 3):
+        """向 Rust 托盘发送提示文本，使用 Abstract Sockets"""
         try:
             import socket
-            sock_path = f"/tmp/lwg-tray-rx-{os.getuid()}.sock"
-            
-            if not os.path.exists(sock_path):
-                if retries > 0:
-                    import threading
-                    import time
-                    def _retry():
-                        time.sleep(1)
-                        self.update_tooltip(text, retries - 1)  # 👈 递减重试次数
-                    threading.Thread(target=_retry, daemon=True).start()
-                else:
-                    log_main("Tooltip update failed: RX Socket missing after max retries.")
-                return
+            sock_name = f"lwg-tray-rx-{os.getuid()}"
+            abstract_addr = f"\x00{sock_name}" # ✨ 拼接 \x00
 
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
                 s.settimeout(0.5)
-                s.connect(sock_path)
-                s.sendall((text + "\n").encode('utf-8'))
+                try:
+                    # 尝试直接连接抽象套接字
+                    s.connect(abstract_addr)
+                    s.sendall((text + "\n").encode('utf-8'))
+                except (ConnectionRefusedError, FileNotFoundError, socket.error):
+                    # 如果被拒绝（Rust 还没准备好），则进行重试
+                    if retries > 0:
+                        import threading
+                        import time
+                        def _retry():
+                            time.sleep(1)
+                            self.update_tooltip(text, retries - 1)
+                        threading.Thread(target=_retry, daemon=True).start()
+                    else:
+                        log_main("Tooltip update failed: RX Socket missing after max retries.")
         except Exception as e:
             log_main(f"Tooltip update failed: {e}")

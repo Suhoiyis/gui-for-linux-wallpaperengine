@@ -118,10 +118,10 @@ if [ -z "$APPDIR" ]; then
     export APPDIR="$(dirname "$(dirname "$(dirname "$SCRIPT_REAL")")")"
 fi
 
-# ╔══════════════════════════════════════════════════════════╗
+# ╔═════════════════════════════════════════════════════════════╗
 # ║  在 FUSE 挂载还 100% 存活时，提前把 Rust 二进制复制到 /tmp  ║
-# ║  这是唯一能绕过 FUSE 挂载点在 Python 启动后可能被回收的方法    ║
-# ╚══════════════════════════════════════════════════════════╝
+# ║  这是唯一能绕过 FUSE 挂载点在 Python 启动后可能被回收的方法 ║
+# ╚═════════════════════════════════════════════════════════════╝
 TRAY_SRC="$APPDIR/usr/bin/tray-rs-bin"
 TRAY_DEST="/tmp/lwg-tray-rs-$(id -u)"
 
@@ -142,8 +142,7 @@ export PYTHONPATH="$APPDIR/usr/lib/python__PY_VER__/site-packages:$APPDIR/usr/sh
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="/tmp/lwg-pycache-$(id -u)"
 
-# ✅ 新增：把 UDS Socket 路径硬编码到全家桶的环境变量里
-export LWG_IPC_SOCKET="/tmp/lwg-ipc-$(id -u).sock"
+export LWG_IPC_SOCKET="lwg-ipc-$(id -u)"
 
 cd "$APPDIR/usr/share/linux-wallpaperengine-gui"
 exec python3 run_gui.py "$@"

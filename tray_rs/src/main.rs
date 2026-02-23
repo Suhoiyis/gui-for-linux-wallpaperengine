@@ -5,9 +5,11 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use std::os::unix::net::{UnixStream, UnixListener};
+use std::os::unix::net::UnixListener;
 use std::io::{Write, BufRead, BufReader};
-use std::os::unix::fs::PermissionsExt;
+
+use std::os::linux::net::SocketAddrExt;
+use std::os::unix::net::SocketAddr;
 
 static SHOULD_EXIT: AtomicBool = AtomicBool::new(false);
 
@@ -113,19 +115,22 @@ impl Tray for WallpaperTray {
 
 impl WallpaperTray {
     fn exec(&self, arg: &str) {
-        let socket_path = self.socket_path.clone();
+        let socket_name = self.socket_path.clone(); // 这里现在存的是名字，不是路径
         let cmd_str = arg.to_string();
-        log(&format!("Exec clicked: {}", cmd_str));
         
         thread::spawn(move || {
-            match UnixStream::connect(&socket_path) {
-                Ok(mut stream) => {
-                    if let Err(e) = stream.write_all(format!("{}\n", cmd_str).as_bytes()) {
-                        log(&format!("Failed to write to IPC socket {}: {}", socket_path, e));
+            // ✨ 利用 Linux 专属 API 生成抽象地址
+            if let Ok(addr) = SocketAddr::from_abstract_name(socket_name.as_bytes()) {
+                match std::os::unix::net::UnixStream::connect_addr(&addr) {
+                    Ok(mut stream) => {
+                        if let Err(e) = stream.write_all(format!("{}\n", cmd_str).as_bytes()) {
+                            log(&format!(
+                                "Failed to send command '{}' to IPC socket {}: {}",
+                                cmd_str, socket_name, e
+                            ));
+                        }
                     }
-                }
-                Err(e) => {
-                    log(&format!("Failed to connect to IPC socket {}: {}", socket_path, e));
+                    Err(e) => log(&format!("Failed to connect to IPC socket {}: {}", socket_name, e)),
                 }
             }
         });
@@ -138,7 +143,7 @@ fn main() {
     let parent_pid: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
 
     let socket_path = std::env::var("LWG_IPC_SOCKET").unwrap_or_else(|_| {
-        format!("/tmp/lwg-ipc-{}.sock", get_uid())
+        format!("lwg-ipc-{}", get_uid()) // 不再带 /tmp/
     });
 
     log(&format!("Starting. icon={icon_path} parent_pid={parent_pid} socket={socket_path}"));
@@ -148,19 +153,18 @@ fn main() {
     }
     SHOULD_EXIT.store(false, Ordering::Relaxed);
 
-    // ✅ 建立第二根 Socket 管道：专门用于接收 Python 发来的 Tooltip
-    let rx_socket_path = format!("/tmp/lwg-tray-rx-{}.sock", get_uid());
-    let _ = fs::remove_file(&rx_socket_path); 
+    // ✨ 建立 RX 管道：完全存在于内存中
+    let rx_name = format!("lwg-tray-rx-{}", get_uid());
+    let addr = SocketAddr::from_abstract_name(rx_name.as_bytes()).expect("Failed to create abstract address");
     
-    // 【核心修复】：防止 Socket 被占用时引发脏崩溃
-    let listener = match UnixListener::bind(&rx_socket_path) {
+    // 🗑️ 删除了所有的 fs::remove_file 垃圾清理代码！
+    let listener = match UnixListener::bind_addr(&addr) {
         Ok(l) => l,
         Err(e) => {
-            log(&format!("Failed to bind RX socket at {}: {}", rx_socket_path, e));
+            log(&format!("Failed to bind abstract RX socket {}: {}", rx_name, e));
             std::process::exit(1);
         }
     };
-    fs::set_permissions(&rx_socket_path, fs::Permissions::from_mode(0o600)).ok();
 
     let service = TrayService::new(WallpaperTray {
         icon_path,
@@ -204,7 +208,7 @@ fn main() {
 
         if SHOULD_EXIT.load(Ordering::Relaxed) {
             log("Received SIGTERM. Exiting gracefully...");
-            let _ = fs::remove_file(&rx_socket_path);
+            // let _ = fs::remove_file(&rx_socket_path);
             thread::sleep(Duration::from_millis(500));
             log("Graceful exit complete.");
             std::process::exit(0);
@@ -212,7 +216,7 @@ fn main() {
 
         if parent_pid > 0 && !pid_exists(parent_pid) {
             log("Parent process died. Exiting gracefully...");
-            let _ = fs::remove_file(&rx_socket_path);
+            // let _ = fs::remove_file(&rx_socket_path);
             thread::sleep(Duration::from_millis(500)); 
             std::process::exit(0);
         }

@@ -407,20 +407,21 @@ class WallpaperApp(Adw.Application):
             GLib.timeout_add_seconds(1, lambda: self.update_tray_status() or True)
 
     def start_ipc_server(self):
-        """监听来自 Rust 托盘的极速 Socket 指令"""
-        socket_path = os.getenv('LWG_IPC_SOCKET', f"/tmp/lwg-ipc-{os.getuid()}.sock")
-        
-        # 清理可能残留的死 Socket 文件
-        try:
-            os.unlink(socket_path)
-        except FileNotFoundError:
-            pass
+        """监听来自 Rust 托盘的极速 Abstract Socket 指令 (0 文件残留)"""
+        socket_name = os.getenv('LWG_IPC_SOCKET', f"lwg-ipc-{os.getuid()}")
+        abstract_addr = f"\x00{socket_name}"
 
         def _server_thread():
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as srv:
-                srv.bind(socket_path)
-                os.chmod(socket_path, 0o600)
-                srv.listen(5)
+                try:
+                    # 🛡️ Copilot 建议的保护罩：防止多开应用时因地址被占用导致线程脏崩溃
+                    srv.bind(abstract_addr)
+                    srv.listen(5)
+                except OSError as e:
+                    # 将错误安全地抛给主线程的日志管理器，然后体面地结束这个冗余线程
+                    GLib.idle_add(lambda: self.log_manager.add_info(f"IPC Server 绑定失败 (可能已有一个实例正在运行): {e}", "App"))
+                    return
+
                 while True:
                     try:
                         conn, _ = srv.accept()
@@ -428,10 +429,9 @@ class WallpaperApp(Adw.Application):
                             data = conn.recv(1024).decode().strip()
                             if not data: continue
                             
-                            # ⚠️ 必须用 GLib.idle_add 把操作转发回 GTK 主线程，否则会引发线程崩溃
                             if data == "--show":
                                 GLib.idle_add(self.show_window)
-                            elif data == "--toggle":                     # 👈 ✨ 处理左键 Toggle 指令
+                            elif data == "--toggle":
                                 GLib.idle_add(self.toggle_window)
                             elif data == "--stop":
                                 GLib.idle_add(self.stop_wallpaper)
@@ -444,7 +444,6 @@ class WallpaperApp(Adw.Application):
                     except Exception:
                         pass
 
-        # 作为守护线程启动，随主程序同生共死
         t = threading.Thread(target=_server_thread, daemon=True)
         t.start()
 
