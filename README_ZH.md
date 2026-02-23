@@ -366,10 +366,10 @@ suw/
 
 | 文档 | 描述 |
 |----------|-------------|
-| [CHANGELOG_CN.md](CHANGELOG_CN.md) | 版本历史和发布说明 |
-| [docs/ADVANCED_CN.md](docs/ADVANCED_CN.md) | 进阶功能、配置参考及窗口管理器集成 |
-| [docs/COMPATIBILITY_CN.md](docs/COMPATIBILITY_CN.md) | 壁纸类型兼容性、Wayland 限制及硬件要求 |
-| [docs/TROUBLESHOOTING_CN.md](docs/TROUBLESHOOTING_CN.md) | 常见错误、后端日志分析及修复方案 |
+| [CHANGELOG_CN.md](docs/CHANGELOG_ZH.md) | 版本历史和发布说明 |
+| [docs/ADVANCED_CN.md](docs/ADVANCED_ZH.md) | 进阶功能、配置参考及窗口管理器集成 |
+| [docs/COMPATIBILITY_CN.md](docs/COMPATIBILITY_ZH.md) | 壁纸类型兼容性、Wayland 限制及硬件要求 |
+| [docs/TROUBLESHOOTING_CN.md](docs/TROUBLESHOOTING_ZH.md) | 常见错误、后端日志分析及修复方案 |
 
 ## 🔧 技术栈
 

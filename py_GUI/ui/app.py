@@ -85,7 +85,7 @@ def get_debug_info():
 def get_latest_changelog():
      import os
      import re
-     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+     changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "docs/CHANGELOG.md")
      if not os.path.exists(changelog_path):
          return "<p>No changelog found.</p>"
      

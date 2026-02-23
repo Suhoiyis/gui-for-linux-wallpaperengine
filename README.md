@@ -373,7 +373,7 @@ suw/
 
 | Document | Description |
 |----------|-------------|
-| [CHANGELOG.md](CHANGELOG.md) | Version history and release notes |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Version history and release notes |
 | [docs/ADVANCED.md](docs/ADVANCED.md) | Advanced features, configuration reference, and WM integration |
 | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | Wallpaper type compatibility, Wayland limitations, hardware requirements |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors, backend log analysis, and fixes |
