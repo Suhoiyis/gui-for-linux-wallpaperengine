@@ -1,5 +1,4 @@
 use gtk4::prelude::*;
-use libadwaita::{self, prelude::*};
 use relm4::prelude::*;
 
 pub struct SettingsPage {
@@ -23,13 +22,13 @@ impl SettingsSection {
             SettingsSection::Logs => "日志",
         }
     }
-
-    fn icon(&self) -> &'static str {
+    
+    fn as_str(&self) -> &'static str {
         match self {
-            SettingsSection::General => "preferences-system-symbolic",
-            SettingsSection::Audio => "audio-volume-high-symbolic",
-            SettingsSection::Advanced => "preferences-system-symbolic",
-            SettingsSection::Logs => "text-x-generic-symbolic",
+            SettingsSection::General => "general",
+            SettingsSection::Audio => "audio",
+            SettingsSection::Advanced => "advanced",
+            SettingsSection::Logs => "logs",
         }
     }
 }
@@ -71,10 +70,8 @@ impl Component for SettingsPage {
 
                 gtk4::ListBox {
                     set_selection_mode: gtk4::SelectionMode::Single,
-                    add_css_class: "navigation-sidebar",
 
                     gtk4::ListBoxRow {
-                        set_selectable: true,
                         gtk4::Box {
                             set_orientation: gtk4::Orientation::Horizontal,
                             set_spacing: 12,
@@ -138,7 +135,7 @@ impl Component for SettingsPage {
                         },
                     },
 
-                    connect_row_selected(sender) => move |_, row| {
+                    connect_row_selected[sender] => move |_, row| {
                         if let Some(row) = row {
                             let section = match row.index() {
                                 0 => SettingsSection::General,
@@ -164,6 +161,7 @@ impl Component for SettingsPage {
                 set_margin_all: 24,
                 set_transition_type: gtk4::StackTransitionType::Crossfade,
 
+                // 通用设置
                 add_child: &gtk4::Box {
                     set_orientation: gtk4::Orientation::Vertical,
                     set_spacing: 16,
@@ -174,38 +172,48 @@ impl Component for SettingsPage {
                         set_halign: gtk4::Align::Start,
                     },
 
-                    libadwaita::PreferencesGroup {
-                        set_title: "启动",
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Horizontal,
+                        set_spacing: 12,
 
-                        libadwaita::ActionRow {
-                            set_title: "开机自启",
-                            set_subtitle: "系统启动时自动运行",
-                            add_suffix = &gtk4::Switch {
-                                set_valign: gtk4::Align::Center,
-                            },
+                        gtk4::Label {
+                            set_label: "开机自启",
+                            set_hexpand: true,
                         },
 
-                        libadwaita::ActionRow {
-                            set_title: "最小化到托盘",
-                            set_subtitle: "关闭窗口时最小化到系统托盘",
-                            add_suffix = &gtk4::Switch {
-                                set_valign: gtk4::Align::Center,
-                                set_active: true,
-                            },
+                        gtk4::Switch {
+                            set_valign: gtk4::Align::Center,
                         },
                     },
 
-                    libadwaita::PreferencesGroup {
-                        set_title: "路径",
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Horizontal,
+                        set_spacing: 12,
 
-                        libadwaita::EntryRow {
-                            set_title: "Steam Workshop 路径",
+                        gtk4::Label {
+                            set_label: "最小化到托盘",
+                            set_hexpand: true,
                         },
+
+                        gtk4::Switch {
+                            set_valign: gtk4::Align::Center,
+                            set_active: true,
+                        },
+                    },
+
+                    gtk4::Label {
+                        set_label: "Steam Workshop 路径:",
+                        set_halign: gtk4::Align::Start,
+                    },
+
+                    gtk4::Entry {
+                        set_placeholder_text: Some("/path/to/workshop")],
                     },
                 } -> {
                     set_name: "general",
                 },
 
+                // 音频设置
                 add_child: &gtk4::Box {
                     set_orientation: gtk4::Orientation::Vertical,
                     set_spacing: 16,
@@ -216,18 +224,25 @@ impl Component for SettingsPage {
                         set_halign: gtk4::Align::Start,
                     },
 
-                    libadwaita::PreferencesGroup {
-                        set_title: "音量",
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Horizontal,
+                        set_spacing: 12,
 
-                        libadwaita::SpinRow {
-                            set_title: "默认音量",
-                            set_subtitle: "0-100",
+                        gtk4::Label {
+                            set_label: "默认音量 (0-100):",
+                            set_hexpand: true,
+                        },
+
+                        gtk4::SpinButton {
+                            set_range: (0.0, 100.0),
+                            set_value: 50.0,
                         },
                     },
                 } -> {
                     set_name: "audio",
                 },
 
+                // 高级设置
                 add_child: &gtk4::Box {
                     set_orientation: gtk4::Orientation::Vertical,
                     set_spacing: 16,
@@ -238,18 +253,25 @@ impl Component for SettingsPage {
                         set_halign: gtk4::Align::Start,
                     },
 
-                    libadwaita::PreferencesGroup {
-                        set_title: "性能",
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Horizontal,
+                        set_spacing: 12,
 
-                        libadwaita::SpinRow {
-                            set_title: "FPS 限制",
-                            set_subtitle: "建议 30 或 60",
+                        gtk4::Label {
+                            set_label: "FPS 限制:",
+                            set_hexpand: true,
+                        },
+
+                        gtk4::SpinButton {
+                            set_range: (15.0, 240.0),
+                            set_value: 60.0,
                         },
                     },
                 } -> {
                     set_name: "advanced",
                 },
 
+                // 日志
                 add_child: &gtk4::Box {
                     set_orientation: gtk4::Orientation::Vertical,
                     set_spacing: 16,
@@ -285,23 +307,12 @@ impl Component for SettingsPage {
         ComponentParts { model, widgets }
     }
 
-    fn update(
-        &mut self,
-        msg: Self::Input,
-        _sender: ComponentSender<Self>,
-        widgets: &mut Self::Widgets,
-    ) {
+    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
         match msg {
             SettingsPageInput::NavigateTo(section) => {
                 if self.current_section != section {
                     self.current_section = section;
-                    let page_name = match section {
-                        SettingsSection::General => "general",
-                        SettingsSection::Audio => "audio",
-                        SettingsSection::Advanced => "advanced",
-                        SettingsSection::Logs => "logs",
-                    };
-                    widgets.content_stack.set_visible_child_name(page_name);
+                    widgets.content_stack.set_visible_child_name(section.as_str());
                 }
             }
         }

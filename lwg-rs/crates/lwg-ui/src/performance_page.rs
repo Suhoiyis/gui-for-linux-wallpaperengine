@@ -1,5 +1,5 @@
 use gtk4::prelude::*;
-use libadwaita::{self, prelude::*};
+
 use relm4::prelude::*;
 
 pub struct PerformancePage {
@@ -40,7 +40,7 @@ impl Component for PerformancePage {
                 },
 
                 // 资源使用卡片
-                libadwaita::PreferencesGroup {
+                gtk4::PreferencesGroup {
                     set_title: "资源使用",
 
                     gtk4::Box {
@@ -124,7 +124,7 @@ impl Component for PerformancePage {
                 },
 
                 // 进程信息
-                libadwaita::PreferencesGroup {
+                gtk4::PreferencesGroup {
                     set_title: "进程信息",
 
                     gtk4::ListBox {
@@ -203,7 +203,7 @@ impl Component for PerformancePage {
                 },
 
                 // 截图历史
-                libadwaita::PreferencesGroup {
+                gtk4::PreferencesGroup {
                     set_title: "截图历史",
 
                     gtk4::Label {
