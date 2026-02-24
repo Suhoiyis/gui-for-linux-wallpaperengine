@@ -5,6 +5,7 @@ pub mod toolbar;
 pub mod grid_view;
 pub mod list_view;
 pub mod status_panel;
+pub mod sidebar;
 
 pub use app::App;
 pub use wallpaper_list::{WallpaperList, WallpaperListOutput};
@@ -13,3 +14,4 @@ pub use toolbar::{Toolbar, ToolbarInput, ToolbarOutput, ViewMode, SortOrder};
 pub use grid_view::{GridView, GridViewInput, GridViewOutput};
 pub use list_view::{ListView, ListViewInput, ListViewOutput};
 pub use status_panel::{StatusPanel, StatusPanelInput, StatusPanelOutput};
+pub use sidebar::{Sidebar, SidebarInput, SidebarOutput, WallpaperInfo};
