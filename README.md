@@ -28,6 +28,21 @@
 
 > Built on [Almamu/linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) backend, optimized for GNOME / Wayland desktop environments.
 
+> ## 🚀 Architecture Upgrade Announcement
+> **We are rewriting the entire project in Rust!**
+> ### ⚡ Performance Revolution
+>- We are planning a major architecture upgrade — a complete core rewrite in Rust. By replacing the existing Python architecture, we will bring you:
+> 
+>   - 🚀 Native-level Performance — Eliminate interpreter overhead, significantly faster execution
+>   - 💾 Lower Resource Usage — Reduced memory footprint, lightweight operation
+>   - 🔒 Enhanced Type Safety — Compile-time checks, fewer runtime errors
+>   - 🛠️ Better Concurrency Support — Full utilization of multi-core processors
+> 
+> - 📍 View Progress: Switch to [main-pre](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/tree/main-pre) branch for the latest development updates
+> - 📥 Try Early Builds: Download the latest builds from [Pre-release](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases) (Assets)
+> 
+> - ⚠️ Note: The Rust version is currently in development and may be unstable. Please continue using the stable version for production environments.
+
 
 <div align="center">
   <table width="100%">

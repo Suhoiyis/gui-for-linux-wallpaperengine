@@ -24,6 +24,22 @@
 
 > 基于 [linux-wallpaperengine](https://github.com/Almamu/linux-wallpaperengine) 后端构建，针对 GNOME / Wayland 桌面环境进行了优化。
 
+> ## 🚀 架构升级公告
+> **我们正在用 Rust 重写整个项目！**
+> ### ⚡ 性能革新
+> - 我们正计划进行一次重大架构升级——使用 Rust 完全重写核心模块。通过替换现有的 Python 架构，我们将为您带来：
+>   - 🚀 原生级极致性能 — 摆脱解释器开销，运行速度大幅提升
+>   - 💾 更低资源占用 — 内存消耗显著降低，轻量级运行
+>   - 🔒 更强的类型安全 — 编译时检查，减少运行时错误
+>   - 🛠️ 更好的并发支持 — 充分利用多核处理器
+> 
+> - 📍 查看进展：切换至 [main-pre](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/tree/main-pre) 分支 了解最新开发动态
+> - 📥 尝鲜体验：在 [Pre-release](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases) 中下载最新构建版本 (Assets)
+> 
+> - ⚠️ 注意：Rust 版本目前处于开发阶段，可能存在不稳定因素，建议生产环境继续使用稳定版。
+
+
+
 <div align="center">
   <table width="100%">
     <tr>
