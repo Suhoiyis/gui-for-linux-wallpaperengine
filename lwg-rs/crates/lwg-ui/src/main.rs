@@ -1,8 +1,5 @@
-use gtk4::prelude::*;
 use relm4::prelude::*;
-
-mod app;
-use app::{App, AppMsg};
+use lwg_ui::App;
 
 fn main() {
     let app = RelmApp::new("com.wallpaperengine.gui");

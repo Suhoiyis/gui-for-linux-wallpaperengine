@@ -21,4 +21,6 @@ libadwaita = { workspace = true }
 gdk4 = { workspace = true }
 gdk-pixbuf = { workspace = true }
 tokio = { workspace = true }
-tracing = { workspace = true }
+image = { workspace = true }
+lru = { workspace = true }
+libc = "0.2"
