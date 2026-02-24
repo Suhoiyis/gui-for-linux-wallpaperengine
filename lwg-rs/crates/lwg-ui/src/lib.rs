@@ -1,6 +1,7 @@
 pub mod app;
 pub mod wallpaper_list;
 pub mod thumbnail_cache;
+pub mod grid_view;
 pub mod toolbar;
 
 pub use app::App;
