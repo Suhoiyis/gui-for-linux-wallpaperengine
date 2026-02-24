@@ -6,6 +6,8 @@ use crate::toolbar::{Toolbar, ToolbarInput, ToolbarOutput, ViewMode};
 use crate::grid_view::{GridView, GridViewInput, GridViewOutput};
 use crate::list_view::{ListView, ListViewInput, ListViewOutput};
 use crate::status_panel::{StatusPanel, StatusPanelInput};
+use crate::settings_page::{SettingsPage, SettingsPageInput};
+use crate::performance_page::{PerformancePage, PerformancePageInput};
 use lwg_core::{ConfigManager, WallpaperController};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -16,6 +18,8 @@ pub struct App {
     grid_view: Controller<GridView>,
     list_view: Controller<ListView>,
     status_panel: Controller<StatusPanel>,
+    settings_page: Controller<SettingsPage>,
+    performance_page: Controller<PerformancePage>,
     controller: Arc<Mutex<WallpaperController>>,
     current_page: Page,
     view_mode: ViewMode,
@@ -65,7 +69,6 @@ impl Component for App {
             set_content = &gtk4::Box {
                 set_orientation: gtk4::Orientation::Vertical,
 
-                // HeaderBar
                 libadwaita::HeaderBar {
                     set_title_widget: Some(&gtk4::Label::new(Some("Linux Wallpaper Engine"))),
 
@@ -80,7 +83,6 @@ impl Component for App {
                     },
                 },
 
-                // 页面切换按钮
                 gtk4::Box {
                     set_orientation: gtk4::Orientation::Horizontal,
                     set_spacing: 6,
@@ -126,7 +128,6 @@ impl Component for App {
                     },
                 },
 
-                // 页面 Stack
                 #[name = "stack"]
                 gtk4::Stack {
                     set_hexpand: true,
@@ -138,15 +139,12 @@ impl Component for App {
                     add_child: &gtk4::Box {
                         set_orientation: gtk4::Orientation::Vertical,
 
-                        // 工具栏
                         #[local_ref]
                         toolbar_widget -> gtk4::Box {},
 
-                        // 状态面板
                         #[local_ref]
                         status_panel_widget -> gtk4::Box {},
 
-                        // 视图区域
                         #[name = "view_stack"]
                         gtk4::Stack {
                             set_hexpand: true,
@@ -171,44 +169,12 @@ impl Component for App {
                     },
 
                     // 设置页面
-                    add_child: &gtk4::Box {
-                        set_orientation: gtk4::Orientation::Vertical,
-                        set_spacing: 12,
-                        set_margin_all: 24,
-
-                        gtk4::Label {
-                            set_label: "设置",
-                            add_css_class: "title-1",
-                            set_halign: gtk4::Align::Start,
-                        },
-
-                        gtk4::Label {
-                            set_label: "设置页面内容待实现",
-                            set_halign: gtk4::Align::Start,
-                        },
-                    } -> {
-                        set_name: "settings",
-                    },
+                    #[local_ref]
+                    settings_page_widget -> gtk4::Box {},
 
                     // 性能页面
-                    add_child: &gtk4::Box {
-                        set_orientation: gtk4::Orientation::Vertical,
-                        set_spacing: 12,
-                        set_margin_all: 24,
-
-                        gtk4::Label {
-                            set_label: "性能监控",
-                            add_css_class: "title-1",
-                            set_halign: gtk4::Align::Start,
-                        },
-
-                        gtk4::Label {
-                            set_label: "性能监控页面内容待实现",
-                            set_halign: gtk4::Align::Start,
-                        },
-                    } -> {
-                        set_name: "performance",
-                    },
+                    #[local_ref]
+                    performance_page_widget -> gtk4::Box {},
                 },
             },
         }
@@ -219,7 +185,6 @@ impl Component for App {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        // 初始化组件
         let wallpaper_list = WallpaperList::builder()
             .launch(())
             .forward(sender.input_sender(), |msg| match msg {
@@ -246,6 +211,14 @@ impl Component for App {
             .launch(())
             .detach();
 
+        let settings_page = SettingsPage::builder()
+            .launch(())
+            .detach();
+
+        let performance_page = PerformancePage::builder()
+            .launch(())
+            .detach();
+
         let config = Arc::new(Mutex::new(
             ConfigManager::new().map(|c| c.config).unwrap_or_default()
         ));
@@ -257,6 +230,8 @@ impl Component for App {
             grid_view,
             list_view,
             status_panel,
+            settings_page,
+            performance_page,
             controller,
             current_page: Page::Wallpapers,
             view_mode: ViewMode::Grid,
@@ -267,6 +242,8 @@ impl Component for App {
         let grid_view_widget = model.grid_view.widget();
         let list_view_widget = model.list_view.widget();
         let status_panel_widget = model.status_panel.widget();
+        let settings_page_widget = model.settings_page.widget();
+        let performance_page_widget = model.performance_page.widget();
 
         let widgets = view_output!();
 
