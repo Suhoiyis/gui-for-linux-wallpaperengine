@@ -17,3 +17,5 @@ pub use status_panel::{StatusPanel, StatusPanelInput, StatusPanelOutput};
 pub use sidebar::{Sidebar, SidebarInput, SidebarOutput, WallpaperInfo};
 pub mod settings_page;
 pub use settings_page::{SettingsPage, SettingsPageInput, SettingsSection};
+pub mod performance_page;
+pub use performance_page::{PerformancePage, PerformancePageInput};
