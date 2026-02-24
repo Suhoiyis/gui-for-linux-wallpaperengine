@@ -1,0 +1,24 @@
+[package]
+name = "lwg-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "GUI for Linux Wallpaper Engine GUI"
+
+[[bin]]
+name = "lwg-gui"
+path = "src/main.rs"
+
+[dependencies]
+lwg-core = { path = "../lwg-core" }
+lwg-ipc = { path = "../lwg-ipc" }
+relm4 = { workspace = true }
+relm4-components = { workspace = true }
+gtk4 = { workspace = true }
+libadwaita = { workspace = true }
+gdk4 = { workspace = true }
+gdk-pixbuf = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
