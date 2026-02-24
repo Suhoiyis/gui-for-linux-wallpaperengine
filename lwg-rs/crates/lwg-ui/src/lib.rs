@@ -15,3 +15,5 @@ pub use grid_view::{GridView, GridViewInput, GridViewOutput};
 pub use list_view::{ListView, ListViewInput, ListViewOutput};
 pub use status_panel::{StatusPanel, StatusPanelInput, StatusPanelOutput};
 pub use sidebar::{Sidebar, SidebarInput, SidebarOutput, WallpaperInfo};
+pub mod settings_page;
+pub use settings_page::{SettingsPage, SettingsPageInput, SettingsSection};
