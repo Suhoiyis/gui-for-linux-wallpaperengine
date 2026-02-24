@@ -48,3 +48,4 @@ dist/
 
 environment_test/
 squashfs-root/
+push.sh
