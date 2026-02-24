@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "linux-wallpaperengine-gui"
 # 【关键】：必须保持这种格式，让 build_appimage.sh 能 grep 到
-version = "1.0.0"
+version = "1.0.0-pre"
 description = "A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux"
 readme = "README.md"
 authors = [

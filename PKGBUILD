@@ -1,6 +1,6 @@
 # Maintainer: Suhoiyis
 pkgname=linux-wallpaperengine-gui
-pkgver=1.0.0
+pkgver=1.0.0.pre
 pkgrel=1
 pkgdesc="A modern GTK4 GUI for managing dynamic wallpapers from Steam Workshop on Linux"
 arch=('any')
@@ -12,7 +12,8 @@ depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'python-pillow' 'linux-wa
 makedepends=('git' 'cargo')
 
 # 标准的 Arch 打包来源写法，直接拉取对应的 tag
-source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#tag=v${pkgver}")
+# source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#tag=v${pkgver}")
+source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#tag=v1.0.0-pre")
 # source=("git+https://github.com/Suhoiyis/gui-for-linux-wallpaperengine.git#branch=feature/tray")
 # source=()
 sha256sums=('SKIP')
