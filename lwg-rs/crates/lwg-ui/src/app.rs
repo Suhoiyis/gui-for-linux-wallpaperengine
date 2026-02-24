@@ -19,6 +19,24 @@ pub enum Page {
     Performance,
 }
 
+impl Page {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Page::Wallpapers => "wallpapers",
+            Page::Settings => "settings",
+            Page::Performance => "performance",
+        }
+    }
+    
+    fn name(&self) -> &'static str {
+        match self {
+            Page::Wallpapers => "壁纸",
+            Page::Settings => "设置",
+            Page::Performance => "性能",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum AppMsg {
     WallpaperSelected(String),
@@ -36,6 +54,7 @@ impl Component for App {
     type CommandOutput = ();
 
     view! {
+        #[name = "main_window"]
         libadwaita::ApplicationWindow {
             set_title: Some("Linux Wallpaper Engine"),
             set_default_width: 1200,
@@ -45,7 +64,6 @@ impl Component for App {
             set_content = &gtk4::Box {
                 set_orientation: gtk4::Orientation::Vertical,
 
-                // 导航栏
                 libadwaita::HeaderBar {
                     set_title_widget: Some(&gtk4::Label::new(Some("Linux Wallpaper Engine"))),
 
@@ -60,46 +78,65 @@ impl Component for App {
                     },
                 },
 
-                // 视图切换器
+                #[name = "nav_box"]
                 gtk4::Box {
                     set_orientation: gtk4::Orientation::Horizontal,
-                    set_spacing: 0,
+                    set_spacing: 6,
                     set_halign: gtk4::Align::Center,
                     set_margin_top: 6,
                     set_margin_bottom: 6,
 
-                    gtk4::Button {
+                    #[name = "btn_wallpapers"]
+                    gtk4::ToggleButton {
                         set_icon_name: "emblem-photos-symbolic",
                         set_label: "壁纸",
                         add_css_class: "flat",
-                        connect_clicked => AppMsg::NavigateTo(Page::Wallpapers),
+                        set_active: true,
+                        connect_toggled[sender] => move |btn| {
+                            if btn.is_active() {
+                                sender.input(AppMsg::NavigateTo(Page::Wallpapers));
+                            }
+                        },
                     },
 
-                    gtk4::Button {
+                    #[name = "btn_settings"]
+                    gtk4::ToggleButton {
                         set_icon_name: "preferences-system-symbolic",
                         set_label: "设置",
                         add_css_class: "flat",
-                        connect_clicked => AppMsg::NavigateTo(Page::Settings),
+                        set_group: Some(&btn_wallpapers),
+                        connect_toggled[sender] => move |btn| {
+                            if btn.is_active() {
+                                sender.input(AppMsg::NavigateTo(Page::Settings));
+                            }
+                        },
                     },
 
-                    gtk4::Button {
+                    #[name = "btn_performance"]
+                    gtk4::ToggleButton {
                         set_icon_name: "utilities-system-monitor-symbolic",
                         set_label: "性能",
                         add_css_class: "flat",
-                        connect_clicked => AppMsg::NavigateTo(Page::Performance),
+                        set_group: Some(&btn_wallpapers),
+                        connect_toggled[sender] => move |btn| {
+                            if btn.is_active() {
+                                sender.input(AppMsg::NavigateTo(Page::Performance));
+                            }
+                        },
                     },
                 },
 
-                // 页面内容
+                #[name = "stack"]
                 gtk4::Stack {
                     set_hexpand: true,
                     set_vexpand: true,
+                    set_transition_type: gtk4::StackTransitionType::SlideLeftRight,
+                    set_transition_duration: 300,
 
-                    add_child: wallpapers_page = &gtk4::Box {
+                    add_child: &gtk4::Box {
                         set_orientation: gtk4::Orientation::Horizontal,
                         set_spacing: 0,
 
-                        // 左侧边栏
                         gtk4::Box {
                             set_orientation: gtk4::Orientation::Vertical,
                             set_spacing: 12,
@@ -129,7 +166,6 @@ impl Component for App {
                             set_orientation: gtk4::Orientation::Vertical,
                         },
 
-                        // 主内容区
                         #[local_ref]
                         wallpaper_list_widget -> gtk4::ScrolledWindow {
                             set_hexpand: true,
@@ -140,7 +176,7 @@ impl Component for App {
                         set_title: "壁纸",
                     },
 
-                    add_child: settings_page = &gtk4::Box {
+                    add_child: &gtk4::Box {
                         set_orientation: gtk4::Orientation::Vertical,
                         set_spacing: 12,
                         set_margin_all: 24,
@@ -160,7 +196,7 @@ impl Component for App {
                         set_title: "设置",
                     },
 
-                    add_child: performance_page = &gtk4::Box {
+                    add_child: &gtk4::Box {
                         set_orientation: gtk4::Orientation::Vertical,
                         set_spacing: 12,
                         set_margin_all: 24,
@@ -227,19 +263,21 @@ impl Component for App {
                 });
             }
             AppMsg::NavigateTo(page) => {
-                println!("导航到页面：{:?}", page);
-                self.current_page = page;
-                
-                // 获取 Stack 并切换页面
-                if let Some(content) = root.content() {
-                    if let Some(stack) = content.downcast_ref::<gtk4::Stack>() {
-                        let page_name = match page {
-                            Page::Wallpapers => "wallpapers",
-                            Page::Settings => "settings",
-                            Page::Performance => "performance",
-                        };
-                        stack.set_visible_child_name(page_name);
+                if self.current_page != page {
+                    println!("导航到页面：{:?}", page);
+                    self.current_page = page;
+                    
+                    if let Some(content) = root.content() {
+                        if let Some(vbox) = content.downcast_ref::<gtk4::Box>() {
+                            if let Some(stack) = vbox.last_child() {
+                                if let Some(stack) = stack.downcast_ref::<gtk4::Stack>() {
+                                    stack.set_visible_child_name(page.as_str());
+                                }
+                            }
+                        }
                     }
+                    
+                    root.set_title(Some(&format!("Linux Wallpaper Engine - {}", page.name())));
                 }
             }
             AppMsg::ShowAbout => {
