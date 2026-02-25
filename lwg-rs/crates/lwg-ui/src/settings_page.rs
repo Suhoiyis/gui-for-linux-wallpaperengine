@@ -1,5 +1,5 @@
-//! 设置页面 - General 子页面完整实现
-//! 审计报告 Task 3.1: General 子页面完整实现
+//! 设置页面 - Audio 子页面完整实现
+//! 审计报告 Task 3.1.2: Audio 子页面完整实现
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -11,6 +11,8 @@ pub enum SettingsPageInput {
     FpsChanged(u32),
     VolumeChanged(u32),
     SilenceToggled(bool),
+    AutoMuteToggled(bool),
+    AudioProcessingToggled(bool),
     AutoStartToggled(bool),
     WorkshopPathSelected(String),
     AssetsPathSelected(String),
@@ -58,28 +60,24 @@ impl Component for SettingsPage {
                     set_margin_bottom: 12,
                 },
 
-                #[name = "nav_general"]
                 gtk4::Button {
                     set_label: "通用",
                     set_halign: gtk4::Align::Start,
                     add_css_class: "flat",
                 },
 
-                #[name = "nav_audio"]
                 gtk4::Button {
                     set_label: "音频",
                     set_halign: gtk4::Align::Start,
                     add_css_class: "flat",
                 },
 
-                #[name = "nav_advanced"]
                 gtk4::Button {
                     set_label: "高级",
                     set_halign: gtk4::Align::Start,
                     add_css_class: "flat",
                 },
 
-                #[name = "nav_logs"]
                 gtk4::Button {
                     set_label: "日志",
                     set_halign: gtk4::Align::Start,
@@ -118,60 +116,76 @@ impl Component for SettingsPage {
                             set_halign: gtk4::Align::Start,
                         },
 
-                        // 启动设置组
                         adw::PreferencesGroup {
                             set_title: Some("启动"),
-
                             adw::ActionRow {
                                 set_title: Some("开机自启"),
-                                set_subtitle: Some("系统启动时自动运行"),
-
                                 add_suffix = &gtk4::Switch {
                                     set_valign: gtk4::Align::Center,
                                 },
                             },
                         },
 
-                        // 性能设置组
                         adw::PreferencesGroup {
                             set_title: Some("性能"),
-
                             adw::ActionRow {
                                 set_title: Some("FPS 限制"),
-                                set_subtitle: Some("建议 30 或 60"),
-
-                                #[wrap(Some)]
-                                add_prefix = &gtk4::SpinButton::with_range(1.0, 144.0, 1.0),
+                                add_suffix = &gtk4::SpinButton::with_range(1.0, 144.0, 1.0),
                             },
-
                             adw::ActionRow {
                                 set_title: Some("缩放模式"),
-
-                                #[wrap(Some)]
                                 add_suffix = &gtk4::DropDown::from_strings(&[
-                                    "默认",
-                                    "拉伸",
-                                    "适应",
-                                    "填充",
+                                    "默认", "拉伸", "适应", "填充",
                                 ]),
                             },
                         },
 
-                        // 音频设置组
                         adw::PreferencesGroup {
                             set_title: Some("音频"),
-
                             adw::ActionRow {
                                 set_title: Some("静音"),
-                                set_subtitle: Some("禁用壁纸音频"),
-
                                 add_suffix = &gtk4::Switch {
                                     set_valign: gtk4::Align::Center,
                                 },
                             },
-
                             adw::ActionRow {
                                 set_title: Some("音量"),
+                                add_suffix = &gtk4::Scale::with_range(
+                                    gtk4::Orientation::Horizontal, 0.0, 100.0, 1.0,
+                                ),
+                            },
+                        },
+
+                        gtk4::Box {
+                            set_vexpand: true,
+                        },
+                    },
+                } => {
+                    set_name: "general",
+                },
+
+                // Audio 子页面
+                add_named: &gtk4::ScrolledWindow {
+                    set_hexpand: true,
+                    set_vexpand: true,
+
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Vertical,
+                        set_spacing: 16,
+                        set_margin_all: 12,
+
+                        gtk4::Label {
+                            set_label: "音频设置",
+                            add_css_class: "title-1",
+                            set_halign: gtk4::Align::Start,
+                        },
+
+                        // 音量控制组
+                        adw::PreferencesGroup {
+                            set_title: Some("音量控制"),
+
+                            adw::ActionRow {
+                                set_title: Some("默认音量"),
                                 set_subtitle: Some("0-100"),
 
                                 #[wrap(Some)]
@@ -184,50 +198,39 @@ impl Component for SettingsPage {
                             },
                         },
 
-                        // 路径设置组
+                        // 自动静音组
                         adw::PreferencesGroup {
-                            set_title: Some("路径"),
+                            set_title: Some("自动静音"),
 
                             adw::ActionRow {
-                                set_title: Some("工作室路径"),
+                                set_title: Some("自动静音"),
+                                set_subtitle: Some("失去焦点时自动静音"),
 
-                                add_suffix = &gtk4::Button {
-                                    set_icon_name: Some("document-open-symbolic"),
+                                add_suffix = &gtk4::Switch {
+                                    set_valign: gtk4::Align::Center,
                                 },
-
-                                #[name = "workshop_path_label"]
-                                add_prefix = &gtk4::Label::new(Some("未设置")),
                             },
+                        },
+
+                        // 音频处理组
+                        adw::PreferencesGroup {
+                            set_title: Some("音频处理"),
 
                             adw::ActionRow {
-                                set_title: Some("资源路径"),
+                                set_title: Some("启用音频处理"),
+                                set_subtitle: Some("降噪、均衡等效果"),
 
-                                add_suffix = &gtk4::Button {
-                                    set_icon_name: Some("document-open-symbolic"),
+                                add_suffix = &gtk4::Switch {
+                                    set_valign: gtk4::Align::Center,
                                 },
-
-                                #[name = "assets_path_label"]
-                                add_prefix = &gtk4::Label::new(Some("未设置")),
                             },
                         },
 
                         gtk4::Box {
                             set_vexpand: true,
                         },
-
-                        // 管理昵称按钮
-                        gtk4::Button {
-                            set_label: "管理昵称",
-                            set_halign: gtk4::Align::End,
-                            add_css_class: "pill",
-                        },
                     },
                 } => {
-                    set_name: "general",
-                },
-
-                // Audio 子页面（占位）
-                add_named: &gtk4::Label::new(Some("音频设置（待实现）")) => {
                     set_name: "audio",
                 },
 
@@ -252,23 +255,14 @@ impl Component for SettingsPage {
         let model = Self {
             current_section: "general".to_string(),
         };
-
         let widgets = view_output!();
-
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _widgets: &mut Self::Widgets) {
         match msg {
             SettingsPageInput::NavigateTo(section) => {
-                self.current_section = section.clone();
-                widgets.content_stack.set_visible_child_name(&section);
-            }
-            SettingsPageInput::FpsChanged(fps) => {
-                sender.output(SettingsPageOutput::ConfigChanged(
-                    "fps".to_string(),
-                    serde_json::json!(fps),
-                )).ok();
+                self.current_section = section;
             }
             SettingsPageInput::VolumeChanged(volume) => {
                 sender.output(SettingsPageOutput::ConfigChanged(
@@ -276,35 +270,19 @@ impl Component for SettingsPage {
                     serde_json::json!(volume),
                 )).ok();
             }
-            SettingsPageInput::SilenceToggled(silence) => {
+            SettingsPageInput::AutoMuteToggled(auto_mute) => {
                 sender.output(SettingsPageOutput::ConfigChanged(
-                    "silence".to_string(),
-                    serde_json::json!(silence),
+                    "auto_mute".to_string(),
+                    serde_json::json!(auto_mute),
                 )).ok();
             }
-            SettingsPageInput::AutoStartToggled(auto_start) => {
+            SettingsPageInput::AudioProcessingToggled(enabled) => {
                 sender.output(SettingsPageOutput::ConfigChanged(
-                    "auto_start".to_string(),
-                    serde_json::json!(auto_start),
+                    "audio_processing".to_string(),
+                    serde_json::json!(enabled),
                 )).ok();
             }
-            SettingsPageInput::WorkshopPathSelected(path) => {
-                widgets.workshop_path_label.set_text(&path);
-                sender.output(SettingsPageOutput::PathSelected(
-                    "workshop".to_string(),
-                    path,
-                )).ok();
-            }
-            SettingsPageInput::AssetsPathSelected(path) => {
-                widgets.assets_path_label.set_text(&path);
-                sender.output(SettingsPageOutput::PathSelected(
-                    "assets".to_string(),
-                    path,
-                )).ok();
-            }
-            SettingsPageInput::ManageNicknames => {
-                sender.output(SettingsPageOutput::OpenNicknameManager).ok();
-            }
+            _ => {}
         }
     }
 }
