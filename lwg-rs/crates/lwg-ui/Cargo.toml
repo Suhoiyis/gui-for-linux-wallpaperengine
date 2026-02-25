@@ -12,6 +12,8 @@ name = "lwg-gui"
 path = "src/main.rs"
 
 [dependencies]
+dirs = "5.0"
+which = "6.0"
 gif = "0.13"
 lwg-core = { path = "../lwg-core" }
 lwg-ipc = { path = "../lwg-ipc" }
