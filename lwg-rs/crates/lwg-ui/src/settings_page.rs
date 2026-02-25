@@ -1,5 +1,5 @@
-//! 设置页面 - Audio 子页面完整实现
-//! 审计报告 Task 3.1.2: Audio 子页面完整实现
+//! 设置页面 - Advanced 子页面完整实现
+//! 审计报告 Task 3.1.3: Advanced 子页面完整实现
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -13,6 +13,13 @@ pub enum SettingsPageInput {
     SilenceToggled(bool),
     AutoMuteToggled(bool),
     AudioProcessingToggled(bool),
+    DisableMouseToggled(bool),
+    DisableParallaxToggled(bool),
+    DisableParticlesToggled(bool),
+    ClampingModeChanged(String),
+    WaylandOnlyActiveToggled(bool),
+    WaylandIgnoreAppidsChanged(String),
+    LogFilterChanged(String),
     AutoStartToggled(bool),
     WorkshopPathSelected(String),
     AssetsPathSelected(String),
@@ -43,7 +50,6 @@ impl Component for SettingsPage {
             set_hexpand: true,
             set_vexpand: true,
 
-            // 左侧导航
             gtk4::Box {
                 set_orientation: gtk4::Orientation::Vertical,
                 set_spacing: 6,
@@ -93,7 +99,6 @@ impl Component for SettingsPage {
                 set_orientation: gtk4::Orientation::Vertical,
             },
 
-            // 右侧内容区域
             #[name = "content_stack"]
             gtk4::Stack {
                 set_hexpand: true,
@@ -101,70 +106,16 @@ impl Component for SettingsPage {
                 set_margin_all: 24,
 
                 // General 子页面
-                add_named: &gtk4::ScrolledWindow {
-                    set_hexpand: true,
-                    set_vexpand: true,
-
-                    gtk4::Box {
-                        set_orientation: gtk4::Orientation::Vertical,
-                        set_spacing: 16,
-                        set_margin_all: 12,
-
-                        gtk4::Label {
-                            set_label: "通用设置",
-                            add_css_class: "title-1",
-                            set_halign: gtk4::Align::Start,
-                        },
-
-                        adw::PreferencesGroup {
-                            set_title: Some("启动"),
-                            adw::ActionRow {
-                                set_title: Some("开机自启"),
-                                add_suffix = &gtk4::Switch {
-                                    set_valign: gtk4::Align::Center,
-                                },
-                            },
-                        },
-
-                        adw::PreferencesGroup {
-                            set_title: Some("性能"),
-                            adw::ActionRow {
-                                set_title: Some("FPS 限制"),
-                                add_suffix = &gtk4::SpinButton::with_range(1.0, 144.0, 1.0),
-                            },
-                            adw::ActionRow {
-                                set_title: Some("缩放模式"),
-                                add_suffix = &gtk4::DropDown::from_strings(&[
-                                    "默认", "拉伸", "适应", "填充",
-                                ]),
-                            },
-                        },
-
-                        adw::PreferencesGroup {
-                            set_title: Some("音频"),
-                            adw::ActionRow {
-                                set_title: Some("静音"),
-                                add_suffix = &gtk4::Switch {
-                                    set_valign: gtk4::Align::Center,
-                                },
-                            },
-                            adw::ActionRow {
-                                set_title: Some("音量"),
-                                add_suffix = &gtk4::Scale::with_range(
-                                    gtk4::Orientation::Horizontal, 0.0, 100.0, 1.0,
-                                ),
-                            },
-                        },
-
-                        gtk4::Box {
-                            set_vexpand: true,
-                        },
-                    },
-                } => {
+                add_named: &gtk4::Label::new(Some("通用")) => {
                     set_name: "general",
                 },
 
                 // Audio 子页面
+                add_named: &gtk4::Label::new(Some("音频")) => {
+                    set_name: "audio",
+                },
+
+                // Advanced 子页面
                 add_named: &gtk4::ScrolledWindow {
                     set_hexpand: true,
                     set_vexpand: true,
@@ -175,54 +126,95 @@ impl Component for SettingsPage {
                         set_margin_all: 12,
 
                         gtk4::Label {
-                            set_label: "音频设置",
+                            set_label: "高级设置",
                             add_css_class: "title-1",
                             set_halign: gtk4::Align::Start,
                         },
 
-                        // 音量控制组
+                        // 显示效果组
                         adw::PreferencesGroup {
-                            set_title: Some("音量控制"),
+                            set_title: Some("显示效果"),
 
                             adw::ActionRow {
-                                set_title: Some("默认音量"),
-                                set_subtitle: Some("0-100"),
-
-                                #[wrap(Some)]
-                                add_prefix = &gtk4::Scale::with_range(
-                                    gtk4::Orientation::Horizontal,
-                                    0.0,
-                                    100.0,
-                                    1.0,
-                                ),
-                            },
-                        },
-
-                        // 自动静音组
-                        adw::PreferencesGroup {
-                            set_title: Some("自动静音"),
-
-                            adw::ActionRow {
-                                set_title: Some("自动静音"),
-                                set_subtitle: Some("失去焦点时自动静音"),
-
+                                set_title: Some("禁用鼠标交互"),
+                                set_subtitle: Some("禁用壁纸鼠标交互效果"),
                                 add_suffix = &gtk4::Switch {
                                     set_valign: gtk4::Align::Center,
                                 },
                             },
-                        },
-
-                        // 音频处理组
-                        adw::PreferencesGroup {
-                            set_title: Some("音频处理"),
 
                             adw::ActionRow {
-                                set_title: Some("启用音频处理"),
-                                set_subtitle: Some("降噪、均衡等效果"),
-
+                                set_title: Some("禁用视差效果"),
+                                set_subtitle: Some("禁用鼠标移动视差"),
                                 add_suffix = &gtk4::Switch {
                                     set_valign: gtk4::Align::Center,
                                 },
+                            },
+
+                            adw::ActionRow {
+                                set_title: Some("禁用粒子系统"),
+                                set_subtitle: Some("禁用壁纸粒子效果"),
+                                add_suffix = &gtk4::Switch {
+                                    set_valign: gtk4::Align::Center,
+                                },
+                            },
+
+                            adw::ActionRow {
+                                set_title: Some("夹紧模式"),
+                                add_suffix = &gtk4::DropDown::from_strings(&[
+                                    "clamp", "stretch", "repeat",
+                                ]),
+                            },
+                        },
+
+                        // Wayland 组
+                        adw::PreferencesGroup {
+                            set_title: Some("Wayland"),
+
+                            adw::ActionRow {
+                                set_title: Some("全屏暂停仅限活动显示器"),
+                                set_subtitle: Some("仅在全屏窗口所在显示器暂停"),
+                                add_suffix = &gtk4::Switch {
+                                    set_valign: gtk4::Align::Center,
+                                },
+                            },
+
+                            adw::ActionRow {
+                                set_title: Some("忽略的应用 ID"),
+                                set_subtitle: Some("逗号分隔的应用 ID 列表"),
+                                add_suffix = &gtk4::Entry {
+                                    set_placeholder_text: Some("com.example.app1,com.example.app2"),
+                                    set_hexpand: true,
+                                },
+                            },
+                        },
+
+                        // 日志组
+                        adw::PreferencesGroup {
+                            set_title: Some("日志"),
+
+                            adw::ActionRow {
+                                set_title: Some("日志过滤器"),
+                                add_suffix = &gtk4::DropDown::from_strings(&[
+                                    "全部", "Controller", "Engine", "GUI",
+                                ]),
+                            },
+
+                            adw::ActionRow {
+                                set_title: Some("日志查看器"),
+
+                                add_suffix = &gtk4::Button {
+                                    set_icon_name: Some("edit-copy-symbolic"),
+                                    set_tooltip_text: Some("复制日志"),
+                                },
+                            },
+
+                            #[name = "log_viewer"]
+                            gtk4::TextView {
+                                set_editable: false,
+                                set_monospace: true,
+                                set_vexpand: true,
+                                set_min_content_height: 200,
                             },
                         },
 
@@ -231,15 +223,10 @@ impl Component for SettingsPage {
                         },
                     },
                 } => {
-                    set_name: "audio",
-                },
-
-                // Advanced 子页面（占位）
-                add_named: &gtk4::Label::new(Some("高级设置（待实现）")) => {
                     set_name: "advanced",
                 },
 
-                // Logs 子页面（占位）
+                // Logs 子页面
                 add_named: &gtk4::Label::new(Some("日志（待实现）")) => {
                     set_name: "logs",
                 },
@@ -264,22 +251,46 @@ impl Component for SettingsPage {
             SettingsPageInput::NavigateTo(section) => {
                 self.current_section = section;
             }
-            SettingsPageInput::VolumeChanged(volume) => {
+            SettingsPageInput::DisableMouseToggled(disabled) => {
                 sender.output(SettingsPageOutput::ConfigChanged(
-                    "volume".to_string(),
-                    serde_json::json!(volume),
+                    "disable_mouse".to_string(),
+                    serde_json::json!(disabled),
                 )).ok();
             }
-            SettingsPageInput::AutoMuteToggled(auto_mute) => {
+            SettingsPageInput::DisableParallaxToggled(disabled) => {
                 sender.output(SettingsPageOutput::ConfigChanged(
-                    "auto_mute".to_string(),
-                    serde_json::json!(auto_mute),
+                    "disable_parallax".to_string(),
+                    serde_json::json!(disabled),
                 )).ok();
             }
-            SettingsPageInput::AudioProcessingToggled(enabled) => {
+            SettingsPageInput::DisableParticlesToggled(disabled) => {
                 sender.output(SettingsPageOutput::ConfigChanged(
-                    "audio_processing".to_string(),
+                    "disable_particles".to_string(),
+                    serde_json::json!(disabled),
+                )).ok();
+            }
+            SettingsPageInput::ClampingModeChanged(mode) => {
+                sender.output(SettingsPageOutput::ConfigChanged(
+                    "clamping".to_string(),
+                    serde_json::json!(mode),
+                )).ok();
+            }
+            SettingsPageInput::WaylandOnlyActiveToggled(enabled) => {
+                sender.output(SettingsPageOutput::ConfigChanged(
+                    "wayland_only_active".to_string(),
                     serde_json::json!(enabled),
+                )).ok();
+            }
+            SettingsPageInput::WaylandIgnoreAppidsChanged(appids) => {
+                sender.output(SettingsPageOutput::ConfigChanged(
+                    "wayland_ignore_appids".to_string(),
+                    serde_json::json!(appids),
+                )).ok();
+            }
+            SettingsPageInput::LogFilterChanged(filter) => {
+                sender.output(SettingsPageOutput::ConfigChanged(
+                    "log_filter".to_string(),
+                    serde_json::json!(filter),
                 )).ok();
             }
             _ => {}
