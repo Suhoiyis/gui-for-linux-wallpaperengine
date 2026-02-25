@@ -357,3 +357,130 @@ mod tests {
         assert_eq!(results.len(), 2);
     }
 }
+
+/// 壁纸排序模式
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SortMode {
+    Title,
+    Size,
+    Type,
+    Id,
+    Random,
+}
+
+impl WallpaperManager {
+    /// 排序壁纸列表
+    pub fn sort(&mut self, mode: SortMode, ascending: bool) {
+        let mut wallpapers: Vec<_> = self.wallpapers.values().collect();
+        
+        match mode {
+            SortMode::Title => {
+                wallpapers.sort_by(|a, b| {
+                    if ascending {
+                        a.title.cmp(&b.title)
+                    } else {
+                        b.title.cmp(&a.title)
+                    }
+                });
+            }
+            SortMode::Size => {
+                wallpapers.sort_by(|a, b| {
+                    if ascending {
+                        a.size.cmp(&b.size)
+                    } else {
+                        b.size.cmp(&a.size)
+                    }
+                });
+            }
+            SortMode::Type => {
+                wallpapers.sort_by(|a, b| {
+                    if ascending {
+                        a.wp_type.cmp(&b.wp_type)
+                    } else {
+                        b.wp_type.cmp(&a.wp_type)
+                    }
+                });
+            }
+            SortMode::Id => {
+                wallpapers.sort_by(|a, b| {
+                    if ascending {
+                        a.id.cmp(&b.id)
+                    } else {
+                        b.id.cmp(&a.id)
+                    }
+                });
+            }
+            SortMode::Random => {
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                
+                wallpapers.sort_by(|a, b| {
+                    let mut hasher_a = DefaultHasher::new();
+                    let mut hasher_b = DefaultHasher::new();
+                    a.id.hash(&mut hasher_a);
+                    b.id.hash(&mut hasher_b);
+                    hasher_a.finish().cmp(&hasher_b.finish())
+                });
+            }
+        }
+        
+        // 重建 HashMap（保持排序后的顺序）
+        let sorted: HashMap<String, Wallpaper> = wallpapers
+            .into_iter()
+            .map(|w| (w.id.clone(), w.clone()))
+            .collect();
+        
+        self.wallpapers = sorted;
+        debug!("壁纸已排序：{:?}, 升序：{}", mode, ascending);
+    }
+    
+    /// 获取排序后的壁纸列表
+    pub fn get_sorted(&self, mode: SortMode, ascending: bool) -> Vec<&Wallpaper> {
+        let mut wallpapers: Vec<_> = self.wallpapers.values().collect();
+        
+        match mode {
+            SortMode::Title => {
+                if ascending {
+                    wallpapers.sort_by(|a, b| a.title.cmp(&b.title));
+                } else {
+                    wallpapers.sort_by(|a, b| b.title.cmp(&a.title));
+                }
+            }
+            SortMode::Size => {
+                if ascending {
+                    wallpapers.sort_by(|a, b| a.size.cmp(&b.size));
+                } else {
+                    wallpapers.sort_by(|a, b| b.size.cmp(&a.size));
+                }
+            }
+            SortMode::Type => {
+                if ascending {
+                    wallpapers.sort_by(|a, b| a.wp_type.cmp(&b.wp_type));
+                } else {
+                    wallpapers.sort_by(|a, b| b.wp_type.cmp(&a.wp_type));
+                }
+            }
+            SortMode::Id => {
+                if ascending {
+                    wallpapers.sort_by(|a, b| a.id.cmp(&b.id));
+                } else {
+                    wallpapers.sort_by(|a, b| b.id.cmp(&a.id));
+                }
+            }
+            SortMode::Random => {
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                
+                wallpapers.sort_by(|a, b| {
+                    let mut hasher_a = DefaultHasher::new();
+                    let mut hasher_b = DefaultHasher::new();
+                    a.id.hash(&mut hasher_a);
+                    b.id.hash(&mut hasher_b);
+                    hasher_a.finish().cmp(&hasher_b.finish())
+                });
+            }
+        }
+        
+        wallpapers
+    }
+}
