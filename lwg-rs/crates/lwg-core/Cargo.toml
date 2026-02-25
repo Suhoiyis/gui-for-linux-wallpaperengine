@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Core logic for Linux Wallpaper Engine GUI"
 
 [dependencies]
+sysinfo = "0.30"
 num_cpus = "1.16"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
