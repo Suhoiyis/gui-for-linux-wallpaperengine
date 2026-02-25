@@ -5,5 +5,6 @@ pub mod dialogs;
 pub mod utils;
 pub mod navbar;
 pub mod sparkline;
+pub mod animated_preview;
 pub mod app;
 pub use app::App;
