@@ -1,5 +1,6 @@
 pub mod config;
 pub mod properties;
+pub mod performance;
 pub mod controller;
 pub mod error;
 pub mod history;
