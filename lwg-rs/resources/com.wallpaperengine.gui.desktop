@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Wallpaper Engine
+Comment=Wallpaper Engine for Linux (Rust GUI)
+Exec=lwg-gui
+Icon=com.wallpaperengine.gui
+Categories=Utility;Graphics;
+StartupNotify=true
+StartupWMClass=com.wallpaperengine.gui
