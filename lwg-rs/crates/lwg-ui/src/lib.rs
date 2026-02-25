@@ -4,5 +4,6 @@ pub mod welcome_dialog;
 pub mod dialogs;
 pub mod utils;
 pub mod navbar;
+pub mod sparkline;
 pub mod app;
 pub use app::App;
