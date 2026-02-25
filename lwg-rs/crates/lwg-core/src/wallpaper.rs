@@ -316,7 +316,7 @@ mod tests {
             "title": title,
             "type": wp_type,
             "description": "Test description",
-            "tags": ["test", "tag"],
+            "tags": ["other", "tag"],
             "file": "scene.json",
             "preview": "preview.jpg"
         });
@@ -344,7 +344,7 @@ mod tests {
     fn test_search_wallpapers() {
         let temp_dir = TempDir::new().unwrap();
         create_test_wallpaper(temp_dir.path(), "12345", "Test Wallpaper", "Scene");
-        create_test_wallpaper(temp_dir.path(), "67890", "Another Scene", "Video");
+        create_test_wallpaper(temp_dir.path(), "67890", "Another Wallpaper", "Video");
 
         let mut manager = WallpaperManager::new(temp_dir.path());
         manager.scan().unwrap();
