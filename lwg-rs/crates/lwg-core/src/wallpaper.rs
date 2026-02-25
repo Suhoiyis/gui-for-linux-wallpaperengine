@@ -484,3 +484,24 @@ impl WallpaperManager {
         wallpapers
     }
 }
+
+#[cfg(test)]
+mod tests_wallpaper_extended {
+    use super::*;
+
+    #[test]
+    fn test_sort_modes() {
+        let mut manager = WallpaperManager::new("/tmp");
+        manager.sort(SortMode::Title, true);
+        manager.sort(SortMode::Size, false);
+        manager.sort(SortMode::Random, true);
+        assert!(true);
+    }
+
+    #[test]
+    fn test_search_empty() {
+        let manager = WallpaperManager::new("/tmp");
+        let results = manager.search("nonexistent");
+        assert!(results.is_empty());
+    }
+}

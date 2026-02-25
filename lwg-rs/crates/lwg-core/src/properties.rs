@@ -267,3 +267,24 @@ mod tests {
         assert_eq!(value, serde_json::json!(50));
     }
 }
+
+#[cfg(test)]
+mod tests_properties_extended {
+    use super::*;
+
+    #[test]
+    fn test_properties_manager_creation() {
+        let config = ConfigManager::new().unwrap();
+        let manager = PropertiesManager::new(config);
+        assert!(manager.get_properties("test").is_ok());
+    }
+
+    #[test]
+    fn test_user_property_persistence() {
+        let mut config = ConfigManager::new().unwrap();
+        let mut manager = PropertiesManager::new(config);
+        manager.set_user_property("123", "brightness", serde_json::json!(0.8)).unwrap();
+        let value = manager.get_user_property("123", "brightness");
+        assert_eq!(value, Some(&serde_json::json!(0.8)));
+    }
+}

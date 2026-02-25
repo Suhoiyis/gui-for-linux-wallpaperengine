@@ -336,3 +336,31 @@ mod tests {
         assert_eq!(config.last_wallpaper, Some("12345".to_string()));
     }
 }
+
+#[cfg(test)]
+mod tests_config_extended {
+    use super::*;
+
+    #[test]
+    fn test_config_get_set() {
+        let mut config = ConfigManager::new().unwrap();
+        config.set("fps", 60u32).unwrap();
+        let value = config.get("fps");
+        assert_eq!(value, Some(serde_json::json!(60)));
+    }
+
+    #[test]
+    fn test_config_volume_zero() {
+        let mut config = ConfigManager::new().unwrap();
+        config.set("volume", 0u32).unwrap();
+        let value = config.get("volume");
+        assert_eq!(value, Some(serde_json::json!(0)));
+    }
+
+    #[test]
+    fn test_config_path_validation() {
+        let config = ConfigManager::new().unwrap();
+        assert!(config.validate_path("/tmp").is_ok());
+        assert!(config.validate_path("/nonexistent_path_12345").is_err());
+    }
+}
