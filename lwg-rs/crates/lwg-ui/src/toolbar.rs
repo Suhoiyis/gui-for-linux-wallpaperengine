@@ -1,12 +1,14 @@
 use gtk4::prelude::*;
 use relm4::prelude::*;
 
+/// 视图模式
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ViewMode {
     Grid,
     List,
 }
 
+/// 排序模式
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SortOrder {
     Name,
@@ -15,9 +17,11 @@ pub enum SortOrder {
     Date,
 }
 
+/// 工具栏组件
 pub struct Toolbar {
     view_mode: ViewMode,
     sort_order: SortOrder,
+    search_query: String,
 }
 
 #[derive(Debug)]
@@ -25,6 +29,7 @@ pub enum ToolbarInput {
     SetViewMode(ViewMode),
     SetSortOrder(SortOrder),
     SearchChanged(String),
+    Refresh,
 }
 
 #[derive(Debug)]
@@ -32,6 +37,7 @@ pub enum ToolbarOutput {
     ViewModeChanged(ViewMode),
     SortOrderChanged(SortOrder),
     SearchChanged(String),
+    RefreshRequested,
 }
 
 #[relm4::component(pub)]
@@ -61,7 +67,7 @@ impl Component for Toolbar {
             // 中间：搜索框
             gtk4::SearchEntry {
                 set_placeholder_text: Some("搜索壁纸..."),
-                set_width_request: 200,
+                set_width_request: 250,
                 connect_search_changed[sender] => move |entry| {
                     sender.input(ToolbarInput::SearchChanged(entry.text().to_string()));
                 },
@@ -112,6 +118,11 @@ impl Component for Toolbar {
                     set_tooltip_text: Some("网格视图"),
                     set_active: true,
                     add_css_class: "flat",
+                    connect_toggled[sender] => move |btn| {
+                        if btn.is_active() {
+                            sender.input(ToolbarInput::SetViewMode(ViewMode::Grid));
+                        }
+                    },
                 },
 
                 #[name = "btn_list"]
@@ -127,6 +138,19 @@ impl Component for Toolbar {
                     },
                 },
             },
+
+            gtk4::Separator {
+                set_orientation: gtk4::Orientation::Vertical,
+            },
+
+            // 刷新按钮
+            gtk4::Button {
+                set_icon_name: "view-refresh-symbolic",
+                set_tooltip_text: Some("刷新"),
+                connect_clicked[sender] => move |_| {
+                    sender.input(ToolbarInput::Refresh);
+                },
+            },
         }
     }
 
@@ -138,6 +162,7 @@ impl Component for Toolbar {
         let model = Self {
             view_mode: ViewMode::Grid,
             sort_order: SortOrder::Name,
+            search_query: String::new(),
         };
 
         let widgets = view_output!();
@@ -160,7 +185,13 @@ impl Component for Toolbar {
                 }
             }
             ToolbarInput::SearchChanged(text) => {
-                sender.output(ToolbarOutput::SearchChanged(text)).ok();
+                if self.search_query != text {
+                    self.search_query = text.clone();
+                    sender.output(ToolbarOutput::SearchChanged(text)).ok();
+                }
+            }
+            ToolbarInput::Refresh => {
+                sender.output(ToolbarOutput::RefreshRequested).ok();
             }
         }
     }
