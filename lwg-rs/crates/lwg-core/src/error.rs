@@ -15,6 +15,9 @@ pub enum LwgError {
     #[error("IO 错误：{0}")]
     IoError(#[from] std::io::Error),
 
+    #[error("配置错误：{0}")]
+    ConfigError(String),
+
     #[error("进程启动失败：{0}")]
     ProcessError(String),
 

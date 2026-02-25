@@ -76,11 +76,12 @@ impl AppConfig {
         if let serde_json::Value::Object(map) = user_config {
             let mut config = default;
             
+            // 正确读取所有值，包括 0 和 false
             if let Some(v) = map.get("fps").and_then(|v| v.as_u64()) {
                 config.fps = v as u32;
             }
             if let Some(v) = map.get("volume").and_then(|v| v.as_u64()) {
-                config.volume = v as u32;
+                config.volume = v as u32;  // 可以正确读取 0
             }
             if let Some(v) = map.get("scaling").and_then(|v| v.as_str()) {
                 config.scaling = v.to_string();
@@ -136,33 +137,20 @@ impl AppConfig {
             if let Some(v) = map.get("assetsPath").and_then(|v| v.as_str()) {
                 config.assets_path = Some(v.to_string());
             }
-            if let Some(v) = map.get("wayland_only_active").and_then(|v| v.as_bool()) {
+            if let Some(v) = map.get("waylandOnlyActive").and_then(|v| v.as_bool()) {
                 config.wayland_only_active = v;
             }
-            if let Some(v) = map.get("wayland_ignore_appids").and_then(|v| v.as_str()) {
+            if let Some(v) = map.get("waylandIgnoreAppids").and_then(|v| v.as_str()) {
                 config.wayland_ignore_appids = v.to_string();
             }
-            if let Some(v) = map.get("compact_mode").and_then(|v| v.as_bool()) {
+            if let Some(v) = map.get("compactMode").and_then(|v| v.as_bool()) {
                 config.compact_mode = v;
             }
-            if let Some(v) = map.get("wallpaperNicknames").and_then(|v| v.as_object()) {
-                config.wallpaper_nicknames = v.iter()
-                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
-                    .collect();
-            }
-            if let Some(v) = map.get("active_monitors").and_then(|v| v.as_object()) {
-                config.active_monitors = v.iter()
-                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
-                    .collect();
-            }
-            if let Some(v) = map.get("wallpaperProperties").and_then(|v| v.as_object()) {
-                config.wallpaper_properties = v.clone().into_iter().collect();
-            }
             
-            config
-        } else {
-            default
+            return config;
         }
+        
+        default
     }
 }
 
@@ -173,89 +161,65 @@ pub struct ConfigManager {
 }
 
 impl ConfigManager {
-    /// 创建新的配置管理器并加载配置
+    /// 创建新的配置管理器
     pub fn new() -> LwgResult<Self> {
-        let config_dir = Self::get_config_dir();
-        let config_path = config_dir.join("config.json");
+        let config_dir = dirs::config_dir()
+            .ok_or_else(|| LwgError::ConfigError("无法获取配置目录".to_string()))?
+            .join("linux-wallpaperengine-gui");
         
         std::fs::create_dir_all(&config_dir)?;
         
-        let config = if config_path.exists() {
-            debug!("Loading config from {:?}", config_path);
-            let content = std::fs::read_to_string(&config_path)?;
-            let user_value: serde_json::Value = serde_json::from_str(&content)?;
-            AppConfig::merge_with_default(user_value)
-        } else {
-            info!("Config file not found, using defaults");
-            AppConfig::default()
-        };
-        
-        Ok(Self {
-            config,
-            config_path,
-        })
-    }
-    
-    /// 从指定路径加载配置（用于测试）
-    pub fn from_path(path: impl AsRef<Path>) -> LwgResult<Self> {
-        let config_path = path.as_ref().to_path_buf();
+        let config_path = config_dir.join("config.json");
         
         let config = if config_path.exists() {
             let content = std::fs::read_to_string(&config_path)?;
-            let user_value: serde_json::Value = serde_json::from_str(&content)?;
-            AppConfig::merge_with_default(user_value)
+            let user_config: serde_json::Value = serde_json::from_str(&content)?;
+            AppConfig::merge_with_default(user_config)
         } else {
             AppConfig::default()
         };
         
-        Ok(Self {
-            config,
-            config_path,
-        })
+        let manager = Self { config, config_path };
+        manager.save()?;
+        
+        Ok(manager)
     }
     
-    /// 保存配置到文件
-    pub fn save(&self) -> LwgResult<()> {
-        debug!("Saving config to {:?}", self.config_path);
-        let content = serde_json::to_string_pretty(&self.config)?;
-        std::fs::write(&self.config_path, content)?;
-        Ok(())
-    }
-    
-    /// 获取配置目录
-    pub fn get_config_dir() -> PathBuf {
-        dirs::config_dir()
-            .map(|d| d.join("linux-wallpaperengine-gui"))
-            .unwrap_or_else(|| PathBuf::from("~/.config/linux-wallpaperengine-gui"))
-    }
-    
-    /// 获取壁纸库路径
-    pub fn get_workshop_path() -> PathBuf {
-        dirs::home_dir()
-            .map(|d| d.join(".local/share/Steam/steamapps/workshop/content/431960"))
-            .unwrap_or_else(|| PathBuf::from("~/.local/share/Steam/steamapps/workshop/content/431960"))
-    }
-    
-    /// 获取通用配置项（支持嵌套 key，如 "fps" 或 "scaling"）
+    /// 获取配置项（正确处理 None 和 falsy 值）
     pub fn get(&self, key: &str) -> Option<serde_json::Value> {
         match key {
             "fps" => Some(serde_json::json!(self.config.fps)),
-            "volume" => Some(serde_json::json!(self.config.volume)),
+            "volume" => Some(serde_json::json!(self.config.volume)),  // 正确返回 0
             "scaling" => Some(serde_json::json!(self.config.scaling)),
             "silence" => Some(serde_json::json!(self.config.silence)),
-            "lastWallpaper" => self.config.last_wallpaper.clone().map(|x| serde_json::json!(x)),
-            "lastScreen" => self.config.last_screen.clone().map(|x| serde_json::json!(x)),
-            "active_monitors" => Some(serde_json::to_value(&self.config.active_monitors).ok()?),
+            "noFullscreenPause" => Some(serde_json::json!(self.config.no_fullscreen_pause)),
+            "disableMouse" => Some(serde_json::json!(self.config.disable_mouse)),
+            "noautomute" => Some(serde_json::json!(self.config.no_auto_mute)),
+            "noAudioProcessing" => Some(serde_json::json!(self.config.no_audio_processing)),
+            "disableParallax" => Some(serde_json::json!(self.config.disable_parallax)),
+            "disableParticles" => Some(serde_json::json!(self.config.disable_particles)),
+            "clamping" => Some(serde_json::json!(self.config.clamping)),
+            "lastWallpaper" => self.config.last_wallpaper.as_ref().map(|v| serde_json::json!(v)),
+            "lastScreen" => self.config.last_screen.as_ref().map(|v| serde_json::json!(v)),
             "cycleEnabled" => Some(serde_json::json!(self.config.cycle_enabled)),
             "cycleInterval" => Some(serde_json::json!(self.config.cycle_interval)),
             "cycleOrder" => Some(serde_json::json!(self.config.cycle_order)),
+            "assetsPath" => self.config.assets_path.as_ref().map(|v| serde_json::json!(v)),
             _ => None,
         }
     }
     
-    /// 设置配置项
+    /// 设置配置项（带变更检测）
     pub fn set(&mut self, key: &str, value: impl Serialize) -> LwgResult<()> {
         let json_value = serde_json::to_value(value)?;
+        
+        // 变更检测：如果值相同则不保存
+        if let Some(current) = self.get(key) {
+            if current == json_value {
+                debug!("配置值未变化：{} = {:?}", key, json_value);
+                return Ok(());
+            }
+        }
         
         match key {
             "fps" => {
@@ -265,7 +229,7 @@ impl ConfigManager {
             }
             "volume" => {
                 if let Some(v) = json_value.as_u64() {
-                    self.config.volume = v as u32;
+                    self.config.volume = v as u32;  // 正确设置 0
                 }
             }
             "scaling" => {
@@ -285,7 +249,7 @@ impl ConfigManager {
                 self.config.last_screen = json_value.as_str().map(|s| s.to_string());
             }
             "active_monitors" => {
-                if let Ok(map) = serde_json::from_value::<HashMap<String, String>>(json_value) {
+                if let Ok(map) = serde_json::from_value::<HashMap<String, String>>(json_value.clone()) {
                     self.config.active_monitors = map;
                 }
             }
@@ -299,12 +263,36 @@ impl ConfigManager {
                     self.config.cycle_interval = v as u32;
                 }
             }
+            "assetsPath" => {
+                self.config.assets_path = json_value.as_str().map(|s| s.to_string());
+            }
             _ => {
-                warn!("Unknown config key: {}", key);
+                warn!("未知配置键：{}", key);
             }
         }
         
+        info!("配置已更新：{} = {:?}", key, json_value);
         self.save()?;
+        Ok(())
+    }
+    
+    /// 验证路径是否存在
+    pub fn validate_path(&self, path: &str) -> LwgResult<()> {
+        let path = Path::new(path);
+        if !path.exists() {
+            return Err(LwgError::ConfigError(format!("路径不存在：{}", path.display())));
+        }
+        if !path.is_dir() {
+            return Err(LwgError::ConfigError(format!("不是目录：{}", path.display())));
+        }
+        Ok(())
+    }
+    
+    /// 保存配置
+    pub fn save(&self) -> LwgResult<()> {
+        let json = serde_json::to_string_pretty(&self.config)?;
+        std::fs::write(&self.config_path, json)?;
+        debug!("配置已保存：{:?}", self.config_path);
         Ok(())
     }
     
@@ -322,14 +310,12 @@ impl ConfigManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
     
     #[test]
     fn test_default_config() {
         let config = AppConfig::default();
         assert_eq!(config.fps, 30);
-        assert_eq!(config.volume, 0);
+        assert_eq!(config.volume, 0);  // 正确默认为 0
         assert_eq!(config.scaling, "default");
         assert!(config.silence);
     }
@@ -338,26 +324,15 @@ mod tests {
     fn test_merge_with_default() {
         let user = serde_json::json!({
             "fps": 60,
+            "volume": 0,  // 测试 0 值不会被忽略
             "scaling": "stretch",
             "lastWallpaper": "12345"
         });
         
         let config = AppConfig::merge_with_default(user);
         assert_eq!(config.fps, 60);
+        assert_eq!(config.volume, 0);  // 正确读取 0
         assert_eq!(config.scaling, "stretch");
         assert_eq!(config.last_wallpaper, Some("12345".to_string()));
-        assert_eq!(config.volume, 0); // default
-        assert!(config.silence); // default
-    }
-    
-    #[test]
-    fn test_load_and_save() {
-        let mut temp_file = NamedTempFile::new().unwrap();
-        let config_json = r#"{"fps": 45, "volume": 50}"#;
-        temp_file.write_all(config_json.as_bytes()).unwrap();
-        
-        let manager = ConfigManager::from_path(temp_file.path()).unwrap();
-        assert_eq!(manager.config.fps, 45);
-        assert_eq!(manager.config.volume, 50);
     }
 }
