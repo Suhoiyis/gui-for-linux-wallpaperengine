@@ -1,7 +1,7 @@
 use gtk4::prelude::*;
 use relm4::prelude::*;
 
-/// 属性编辑器组件（简化版）
+/// 属性编辑器组件（最简版）
 pub struct PropertiesEditor {
     visible: bool,
 }
@@ -38,7 +38,6 @@ impl Component for PropertiesEditor {
 
             gtk4::Separator {},
 
-            // 属性编辑器占位
             gtk4::Label {
                 set_label: "选择 Web 壁纸后显示属性编辑器",
                 add_css_class: "dim-label",
@@ -46,37 +45,12 @@ impl Component for PropertiesEditor {
             },
 
             gtk4::Box {
-                set_orientation: gtk4::Orientation::Vertical,
-                set_spacing: 8,
-
-                gtk4::Label {
-                    set_label: "示例：滑块控件",
-                    add_css_class: "dim-label",
-                },
-
-                gtk4::Scale::with_range(gtk4::Orientation::Horizontal, 0.0, 100.0),
-            },
-
-            gtk4::Box {
-                set_orientation: gtk4::Orientation::Vertical,
-                set_spacing: 8,
-
-                gtk4::Label {
-                    set_label: "示例：开关控件",
-                    add_css_class: "dim-label",
-                },
-
-                gtk4::Switch::new(),
-            },
-
-            gtk4::Box {
                 set_vexpand: true,
             },
 
             gtk4::Button {
-                set_label: "保存属性",
+                set_label: "保存",
                 set_halign: gtk4::Align::End,
-                add_css_class: "suggested-action",
             },
         }
     }
@@ -91,7 +65,7 @@ impl Component for PropertiesEditor {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             PropertiesEditorInput::Show => {
                 self.visible = true;
@@ -100,13 +74,5 @@ impl Component for PropertiesEditor {
                 self.visible = false;
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_properties_editor_exists() {
-        assert!(true);
     }
 }
