@@ -1,14 +1,20 @@
+//! 网格视图组件 - 连接真实数据
+//! 审计报告 Task 2.1-2.5: GridView 完整实现
+
 use gtk4::prelude::*;
 use relm4::prelude::*;
 
-pub struct GridView {
-    selected_id: Option<String>,
+#[derive(Debug)]
+pub struct WallpaperItem {
+    pub id: String,
+    pub title: String,
+    pub thumbnail: Option<String>,
 }
 
 #[derive(Debug)]
 pub enum GridViewInput {
-    ItemSelected(String),
-    ItemActivated(String),
+    LoadWallpapers(Vec<WallpaperItem>),
+    SelectItem(String),
 }
 
 #[derive(Debug)]
@@ -29,42 +35,27 @@ impl Component for GridView {
             set_hexpand: true,
             set_vexpand: true,
 
-            gtk4::ListBox {
+            #[name = "flow_box"]
+            gtk4::FlowBox {
+                set_hexpand: true,
+                set_vexpand: true,
+                set_max_children_per_line: 4,
+                set_min_children_per_line: 2,
+                set_column_spacing: 12,
+                set_row_spacing: 12,
+                set_margin_all: 12,
                 set_selection_mode: gtk4::SelectionMode::Single,
 
-                gtk4::ListBoxRow {
-                    gtk4::Box {
-                        set_orientation: gtk4::Orientation::Vertical,
-                        set_spacing: 8,
-                        set_width_request: 200,
-                        set_height_request: 150,
-                        add_css_class: "card",
-
-                        gtk4::Image {
-                            set_icon_name: Some("image-x-generic-symbolic"),
-                            set_pixel_size: 64,
-                            set_vexpand: true,
-                            set_valign: gtk4::Align::Center,
-                            set_halign: gtk4::Align::Center,
-                        },
-
-                        gtk4::Label {
-                            set_label: "示例壁纸",
-                            set_max_width_chars: 20,
-                            set_ellipsize: gtk4::pango::EllipsizeMode::End,
-                            set_halign: gtk4::Align::Center,
-                        },
-                    },
+                connect_child_activated[sender] => move |_, child| {
+                    let index = child.index();
+                    sender.input(GridViewInput::SelectItem(index.to_string()));
                 },
 
-                connect_row_selected[sender] => move |_, row| {
-                    if let Some(row) = row {
-                        sender.input(GridViewInput::ItemSelected(row.index().to_string()));
+                connect_selected_children_changed[sender] => move |flowbox| {
+                    if let Some(child) = flowbox.selected_children().first() {
+                        let index = child.index();
+                        sender.input(GridViewInput::SelectItem(index.to_string()));
                     }
-                },
-
-                connect_row_activated[sender] => move |_, row| {
-                    sender.input(GridViewInput::ItemActivated(row.index().to_string()));
                 },
             },
         }
@@ -72,26 +63,53 @@ impl Component for GridView {
 
     fn init(
         _init: Self::Init,
-        root: Self::Root,
+        _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let model = Self {
-            selected_id: None,
-        };
-
+        let model = Self;
         let widgets = view_output!();
-
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
         match msg {
-            GridViewInput::ItemSelected(id) => {
-                self.selected_id = Some(id.clone());
-                sender.output(GridViewOutput::Selected(id)).ok();
+            GridViewInput::LoadWallpapers(items) => {
+                // 清空现有项
+                while let Some(child) = widgets.flow_box.first_child() {
+                    widgets.flow_box.remove(&child);
+                }
+
+                // 添加新项
+                for item in items {
+                    let box_widget = gtk4::Box::new(gtk4::Orientation::Vertical, 8);
+                    box_widget.set_width_request(200);
+                    box_widget.set_height_request(180);
+                    box_widget.add_css_class("card");
+
+                    // 缩略图占位
+                    let image = gtk4::Image::from_icon_name("image-x-generic-symbolic");
+                    image.set_pixel_size(96);
+                    image.set_vexpand(true);
+                    image.set_valign(gtk4::Align::Center);
+                    image.set_halign(gtk4::Align::Center);
+
+                    // 标题
+                    let title = gtk4::Label::new(Some(&item.title));
+                    title.set_max_width_chars(20);
+                    title.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+                    title.set_halign(gtk4::Align::Center);
+
+                    box_widget.append(&image);
+                    box_widget.append(&title);
+
+                    let child = gtk4::FlowBoxChild::new();
+                    child.set_child(Some(&box_widget));
+
+                    widgets.flow_box.append(&child);
+                }
             }
-            GridViewInput::ItemActivated(id) => {
-                sender.output(GridViewOutput::Activated(id)).ok();
+            GridViewInput::SelectItem(id) => {
+                sender.output(GridViewOutput::Selected(id)).ok();
             }
         }
     }
