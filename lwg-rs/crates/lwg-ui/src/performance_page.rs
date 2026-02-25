@@ -1,5 +1,4 @@
 use gtk4::prelude::*;
-
 use relm4::prelude::*;
 
 pub struct PerformancePage {
@@ -32,184 +31,62 @@ impl Component for PerformancePage {
                 set_spacing: 24,
                 set_margin_all: 24,
 
-                // 标题
                 gtk4::Label {
                     set_label: "性能监控",
                     add_css_class: "title-1",
                     set_halign: gtk4::Align::Start,
                 },
 
-                // 资源使用卡片
-                gtk4::PreferencesGroup {
-                    set_title: "资源使用",
+                gtk4::Box {
+                    set_orientation: gtk4::Orientation::Horizontal,
+                    set_spacing: 16,
 
                     gtk4::Box {
-                        set_orientation: gtk4::Orientation::Horizontal,
-                        set_spacing: 16,
+                        set_orientation: gtk4::Orientation::Vertical,
+                        set_spacing: 8,
+                        add_css_class: "card",
+                        set_margin_all: 12,
 
-                        // CPU 使用率
-                        gtk4::Box {
-                            set_orientation: gtk4::Orientation::Vertical,
-                            set_spacing: 8,
-                            add_css_class: "card",
-                            set_margin_all: 12,
-                            set_width_request: 150,
-
-                            gtk4::Label {
-                                set_label: "CPU",
-                                add_css_class: "heading",
-                            },
-
-                            #[name = "cpu_label"]
-                            gtk4::Label {
-                                set_label: "0%",
-                                add_css_class: "title-1",
-                            },
-
-                            gtk4::ProgressBar {
-                                set_fraction: 0.0,
-                                set_width_request: 100,
-                            },
+                        gtk4::Label {
+                            set_label: "CPU",
+                            add_css_class: "heading",
                         },
 
-                        // 内存使用
-                        gtk4::Box {
-                            set_orientation: gtk4::Orientation::Vertical,
-                            set_spacing: 8,
-                            add_css_class: "card",
-                            set_margin_all: 12,
-                            set_width_request: 150,
+                        gtk4::Label {
+                            set_label: "0%",
+                            add_css_class: "title-1",
+                        },
+                    },
 
-                            gtk4::Label {
-                                set_label: "内存",
-                                add_css_class: "heading",
-                            },
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Vertical,
+                        set_spacing: 8,
+                        add_css_class: "card",
+                        set_margin_all: 12,
 
-                            #[name = "memory_label"]
-                            gtk4::Label {
-                                set_label: "0 MB",
-                                add_css_class: "title-1",
-                            },
-
-                            gtk4::ProgressBar {
-                                set_fraction: 0.0,
-                                set_width_request: 100,
-                            },
+                        gtk4::Label {
+                            set_label: "内存",
+                            add_css_class: "heading",
                         },
 
-                        // FPS
-                        gtk4::Box {
-                            set_orientation: gtk4::Orientation::Vertical,
-                            set_spacing: 8,
-                            add_css_class: "card",
-                            set_margin_all: 12,
-                            set_width_request: 150,
-
-                            gtk4::Label {
-                                set_label: "FPS",
-                                add_css_class: "heading",
-                            },
-
-                            gtk4::Label {
-                                set_label: "60",
-                                add_css_class: "title-1",
-                            },
-
-                            gtk4::Label {
-                                set_label: "目标: 60",
-                                add_css_class: "dim-label",
-                            },
+                        gtk4::Label {
+                            set_label: "0 MB",
+                            add_css_class: "title-1",
                         },
                     },
                 },
 
-                // 进程信息
-                gtk4::PreferencesGroup {
-                    set_title: "进程信息",
-
-                    gtk4::ListBox {
-                        add_css_class: "rich-list",
-
-                        gtk4::ListBoxRow {
-                            gtk4::Box {
-                                set_orientation: gtk4::Orientation::Horizontal,
-                                set_spacing: 12,
-                                set_margin_all: 12,
-
-                                gtk4::Image {
-                                    set_icon_name: Some("application-x-executable-symbolic"),
-                                },
-
-                                gtk4::Box {
-                                    set_orientation: gtk4::Orientation::Vertical,
-                                    set_spacing: 4,
-                                    set_hexpand: true,
-
-                                    gtk4::Label {
-                                        set_label: "linux-wallpaperengine",
-                                        add_css_class: "heading",
-                                        set_halign: gtk4::Align::Start,
-                                    },
-
-                                    gtk4::Label {
-                                        set_label: "PID: 12345",
-                                        add_css_class: "dim-label",
-                                        set_halign: gtk4::Align::Start,
-                                    },
-                                },
-
-                                gtk4::Label {
-                                    set_label: "运行中",
-                                    add_css_class: "accent",
-                                },
-                            },
-                        },
-
-                        gtk4::ListBoxRow {
-                            gtk4::Box {
-                                set_orientation: gtk4::Orientation::Horizontal,
-                                set_spacing: 12,
-                                set_margin_all: 12,
-
-                                gtk4::Image {
-                                    set_icon_name: Some("application-x-executable-symbolic"),
-                                },
-
-                                gtk4::Box {
-                                    set_orientation: gtk4::Orientation::Vertical,
-                                    set_spacing: 4,
-                                    set_hexpand: true,
-
-                                    gtk4::Label {
-                                        set_label: "lwg-ui",
-                                        add_css_class: "heading",
-                                        set_halign: gtk4::Align::Start,
-                                    },
-
-                                    gtk4::Label {
-                                        set_label: "PID: 12344",
-                                        add_css_class: "dim-label",
-                                        set_halign: gtk4::Align::Start,
-                                    },
-                                },
-
-                                gtk4::Label {
-                                    set_label: "运行中",
-                                    add_css_class: "accent",
-                                },
-                            },
-                        },
-                    },
+                gtk4::Label {
+                    set_label: "进程信息",
+                    add_css_class: "title-2",
+                    set_halign: gtk4::Align::Start,
                 },
 
-                // 截图历史
-                gtk4::PreferencesGroup {
-                    set_title: "截图历史",
-
-                    gtk4::Label {
-                        set_label: "暂无截图",
-                        add_css_class: "dim-label",
-                        set_halign: gtk4::Align::Start,
+                gtk4::ListBox {
+                    gtk4::ListBoxRow {
+                        gtk4::Label {
+                            set_label: "linux-wallpaperengine",
+                        },
                     },
                 },
             },
@@ -231,18 +108,11 @@ impl Component for PerformancePage {
         ComponentParts { model, widgets }
     }
 
-    fn update(
-        &mut self,
-        msg: Self::Input,
-        _sender: ComponentSender<Self>,
-        widgets: &mut Self::Widgets,
-    ) {
+    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             PerformancePageInput::UpdateStats(cpu, memory) => {
                 self.cpu_usage = cpu;
                 self.memory_usage = memory;
-                widgets.cpu_label.set_label(&format!("{:.1}%", cpu));
-                widgets.memory_label.set_label(&format!("{:.0} MB", memory));
             }
         }
     }

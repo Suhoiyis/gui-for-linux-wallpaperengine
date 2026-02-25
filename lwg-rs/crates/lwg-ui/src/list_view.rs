@@ -145,12 +145,12 @@ impl Component for ListView {
                     },
                 },
 
-                connect_row_activated(sender) => move |_, row| {
+                connect_row_activated[sender] => move |_, row| {
                     let index = row.index();
                     sender.input(ListViewInput::ItemActivated(index.to_string()));
                 },
 
-                connect_selected_rows_changed(sender) => move |listbox| {
+                connect_selected_rows_changed[sender] => move |listbox| {
                     if let Some(row) = listbox.selected_row() {
                         let index = row.index();
                         sender.input(ListViewInput::ItemSelected(index.to_string()));

@@ -137,7 +137,7 @@ impl Component for Sidebar {
                     add_css_class: "suggested-action",
                     add_css_class: "pill",
                     set_sensitive: false,
-                    connect_clicked(sender) => move |_| {
+                    connect_clicked[sender] => move |_| {
                         sender.input(SidebarInput::ApplyWallpaper);
                     },
                 },
@@ -168,7 +168,7 @@ impl Component for Sidebar {
         &mut self,
         msg: Self::Input,
         sender: ComponentSender<Self>,
-        widgets: &mut Self::Widgets,
+        widgets: &Self::Widgets,
     ) {
         match msg {
             SidebarInput::SelectWallpaper(info) => {

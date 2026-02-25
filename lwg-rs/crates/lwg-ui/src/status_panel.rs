@@ -126,7 +126,7 @@ impl Component for StatusPanel {
         &mut self,
         msg: Self::Input,
         _sender: ComponentSender<Self>,
-        widgets: &mut Self::Widgets,
+        widgets: &Self::Widgets,
     ) {
         match msg {
             StatusPanelInput::SetRunning(running) => {
