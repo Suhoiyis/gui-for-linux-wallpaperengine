@@ -11,10 +11,11 @@ pub enum AppMsg {
 }
 
 #[relm4::component(pub)]
-impl SimpleComponent for App {
+impl Component for App {
     type Init = u32;
     type Input = AppMsg;
     type Output = ();
+    type CommandOutput = ();
 
     view! {
         gtk4::ApplicationWindow {
@@ -33,24 +34,43 @@ impl SimpleComponent for App {
                 },
 
                 gtk4::Label {
-                    set_label: "✅ 三页面导航系统",
+                    set_label: "✅ 功能列表:",
                 },
 
-                gtk4::Label {
-                    set_label: "✅ 网格/列表视图",
-                },
+                gtk4::Box {
+                    set_orientation: gtk4::Orientation::Vertical,
+                    set_spacing: 5,
+                    set_margin_start: 20,
 
-                gtk4::Label {
-                    set_label: "✅ 设置页面",
-                },
+                    gtk4::Label {
+                        set_label: "• 三页面导航系统",
+                        set_halign: gtk4::Align::Start,
+                    },
 
-                gtk4::Label {
-                    set_label: "✅ 性能监控页面",
+                    gtk4::Label {
+                        set_label: "• 网格/列表视图",
+                        set_halign: gtk4::Align::Start,
+                    },
+
+                    gtk4::Label {
+                        set_label: "• 设置页面",
+                        set_halign: gtk4::Align::Start,
+                    },
+
+                    gtk4::Label {
+                        set_label: "• 性能监控页面",
+                        set_halign: gtk4::Align::Start,
+                    },
                 },
 
                 gtk4::Button {
-                    set_label: &format!("测试按钮 (点击 {} 次)", model.counter),
+                    set_label: "点击测试交互",
                     connect_clicked => AppMsg::Increment,
+                },
+
+                #[local_ref]
+                counter_label -> gtk4::Label {
+                    set_label: "点击次数：0",
                 },
             },
         }
@@ -61,14 +81,19 @@ impl SimpleComponent for App {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
+        let counter_label = gtk4::Label::new(Some("点击次数：0"));
+        
         let model = Self { counter: init };
         let widgets = view_output!();
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
+    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
-            AppMsg::Increment => self.counter += 1,
+            AppMsg::Increment => {
+                self.counter += 1;
+                println!("点击次数：{}", self.counter);
+            }
         }
     }
 }
