@@ -12,6 +12,7 @@ name = "lwg-gui"
 path = "src/main.rs"
 
 [dependencies]
+gif = "0.13"
 lwg-core = { path = "../lwg-core" }
 lwg-ipc = { path = "../lwg-ipc" }
 relm4 = { workspace = true }
