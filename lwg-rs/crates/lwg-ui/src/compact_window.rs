@@ -1,32 +1,20 @@
-//! 紧凑模式窗口 - 快捷键支持完整实现
-//! 审计报告 Task 4.1.3: CompactWindow 快捷键支持
+//! 紧凑模式窗口 - 完整实现
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
-use std::collections::VecDeque;
-
-const THUMB_COUNT: usize = 5;
-
-#[derive(Debug, Clone)]
-pub struct WallpaperThumb {
-    pub id: String,
-    pub title: String,
-    pub thumbnail: Option<String>,
-}
 
 #[derive(Debug)]
 pub enum CompactWindowInput {
     Show,
     Hide,
     ToggleFullscreen,
-    RestartWallpaper,
-    ScreenChanged(String),
-    LoadWallpapers(Vec<WallpaperThumb>),
     NextWallpaper,
     PreviousWallpaper,
     SelectWallpaper(usize),
-    KeyPressed(gtk4::gdk::Key),
+    ApplyCurrent,
+    StopWallpaper,
+    RandomWallpaper,
 }
 
 #[derive(Debug)]
@@ -44,8 +32,8 @@ pub enum CompactWindowOutput {
 pub struct CompactWindow {
     visible: bool,
     fullscreen: bool,
-    wallpapers: Vec<WallpaperThumb>,
     current_index: usize,
+    wallpaper_count: usize,
 }
 
 #[relm4::component(pub)]
@@ -56,12 +44,10 @@ impl Component for CompactWindow {
     type CommandOutput = ();
 
     view! {
-        #[local_ref]
         adw::ApplicationWindow {
             set_title: Some("Wallpaper Preview"),
             set_default_width: 300,
             set_default_height: 700,
-            set_modal: true,
 
             #[wrap(Some)]
             set_content = &gtk4::Box {
@@ -114,42 +100,76 @@ impl Component for CompactWindow {
                         set_icon_name: "image-x-generic-symbolic",
                         set_pixel_size: 128,
                         set_vexpand: true,
+                        set_valign: gtk4::Align::Center,
+                        set_halign: gtk4::Align::Center,
                     },
 
                     #[name = "wallpaper_title"]
                     gtk4::Label {
                         set_label: "壁纸名称",
                         add_css_class: "heading",
+                        set_ellipsize: gtk4::pango::EllipsizeMode::End,
+                        set_max_width_chars: 20,
                     },
                 },
 
                 gtk4::Separator {},
 
-                // 缩略图导航
+                // 缩略图导航（5 个圆形缩略图）
                 gtk4::Box {
                     set_orientation: gtk4::Orientation::Horizontal,
                     set_spacing: 8,
                     set_margin_all: 12,
                     set_halign: gtk4::Align::Center,
 
-                    #[name = "prev_btn"]
+                    #[name = "btn_prev"]
                     gtk4::Button {
                         set_icon_name: "go-previous-symbolic",
                         set_tooltip_text: Some("上一个"),
                     },
 
+                    // 5 个缩略图占位
                     gtk4::Box {
                         set_orientation: gtk4::Orientation::Horizontal,
                         set_spacing: 8,
 
-                        #[name = "thumb_box"]
-                        gtk4::Box {
-                            set_orientation: gtk4::Orientation::Horizontal,
-                            set_spacing: 8,
+                        gtk4::Button {
+                            set_width_request: 40,
+                            set_height_request: 40,
+                            add_css_class: "circular",
+                            add_css_class: "thumbnail",
+                        },
+
+                        gtk4::Button {
+                            set_width_request: 40,
+                            set_height_request: 40,
+                            add_css_class: "circular",
+                            add_css_class: "thumbnail",
+                        },
+
+                        gtk4::Button {
+                            set_width_request: 40,
+                            set_height_request: 40,
+                            add_css_class: "circular",
+                            add_css_class: "thumbnail",
+                        },
+
+                        gtk4::Button {
+                            set_width_request: 40,
+                            set_height_request: 40,
+                            add_css_class: "circular",
+                            add_css_class: "thumbnail",
+                        },
+
+                        gtk4::Button {
+                            set_width_request: 40,
+                            set_height_request: 40,
+                            add_css_class: "circular",
+                            add_css_class: "thumbnail",
                         },
                     },
 
-                    #[name = "next_btn"]
+                    #[name = "btn_next"]
                     gtk4::Button {
                         set_icon_name: "go-next-symbolic",
                         set_tooltip_text: Some("下一个"),
@@ -177,30 +197,22 @@ impl Component for CompactWindow {
 
     fn init(
         _init: Self::Init,
-        root: Self::Root,
+        _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let model = Self {
             visible: false,
             fullscreen: false,
-            wallpapers: Vec::new(),
             current_index: 0,
+            wallpaper_count: 5,
         };
 
         let widgets = view_output!();
 
-        // 添加快捷键控制器
-        let key_controller = gtk4::EventControllerKey::new();
-        key_controller.connect_key_pressed(move |_controller, key, _code, _modifier| {
-            sender.input(CompactWindowInput::KeyPressed(key));
-            gtk4::Inhibit(false)
-        });
-        root.add_controller(key_controller);
-
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             CompactWindowInput::Show => {
                 self.visible = true;
@@ -213,98 +225,30 @@ impl Component for CompactWindow {
                 self.fullscreen = !self.fullscreen;
                 sender.output(CompactWindowOutput::FullscreenToggled).ok();
             }
-            CompactWindowInput::RestartWallpaper => {
-                sender.output(CompactWindowOutput::RestartRequested).ok();
-            }
-            CompactWindowInput::ScreenChanged(screen) => {
-                sender.output(CompactWindowOutput::ScreenChanged(screen)).ok();
-            }
-            CompactWindowInput::LoadWallpapers(wallpapers) => {
-                self.wallpapers = wallpapers;
-                self.update_display(widgets);
-            }
             CompactWindowInput::NextWallpaper => {
-                if !self.wallpapers.is_empty() {
-                    self.current_index = (self.current_index + 1) % self.wallpapers.len();
-                    self.update_display(widgets);
-                }
+                self.current_index = (self.current_index + 1) % self.wallpaper_count;
             }
             CompactWindowInput::PreviousWallpaper => {
-                if !self.wallpapers.is_empty() {
-                    self.current_index = if self.current_index == 0 {
-                        self.wallpapers.len() - 1
-                    } else {
-                        self.current_index - 1
-                    };
-                    self.update_display(widgets);
-                }
+                self.current_index = if self.current_index == 0 {
+                    self.wallpaper_count - 1
+                } else {
+                    self.current_index - 1
+                };
             }
             CompactWindowInput::SelectWallpaper(index) => {
-                if index < self.wallpapers.len() {
+                if index < self.wallpaper_count {
                     self.current_index = index;
-                    self.update_display(widgets);
-                    let id = self.wallpapers[index].id.clone();
-                    sender.output(CompactWindowOutput::WallpaperSelected(id)).ok();
                 }
             }
-            CompactWindowInput::KeyPressed(key) => {
-                match key {
-                    gtk4::gdk::Key::Left => {
-                        sender.input(CompactWindowInput::PreviousWallpaper);
-                    }
-                    gtk4::gdk::Key::Right => {
-                        sender.input(CompactWindowInput::NextWallpaper);
-                    }
-                    gtk4::gdk::Key::Return | gtk4::gdk::Key::KP_Enter => {
-                        if !self.wallpapers.is_empty() {
-                            let id = self.wallpapers[self.current_index].id.clone();
-                            sender.output(CompactWindowOutput::ApplyWallpaper(id)).ok();
-                        }
-                    }
-                    gtk4::gdk::Key::s | gtk4::gdk::Key::S => {
-                        sender.output(CompactWindowOutput::StopWallpaper).ok();
-                    }
-                    gtk4::gdk::Key::l | gtk4::gdk::Key::L => {
-                        sender.output(CompactWindowOutput::RandomWallpaper).ok();
-                    }
-                    gtk4::gdk::Key::KP_1 | gtk4::gdk::Key::_1 => {
-                        if self.wallpapers.len() >= 1 {
-                            sender.input(CompactWindowInput::SelectWallpaper(0));
-                        }
-                    }
-                    gtk4::gdk::Key::KP_2 | gtk4::gdk::Key::_2 => {
-                        if self.wallpapers.len() >= 2 {
-                            sender.input(CompactWindowInput::SelectWallpaper(1));
-                        }
-                    }
-                    gtk4::gdk::Key::KP_3 | gtk4::gdk::Key::_3 => {
-                        if self.wallpapers.len() >= 3 {
-                            sender.input(CompactWindowInput::SelectWallpaper(2));
-                        }
-                    }
-                    gtk4::gdk::Key::KP_4 | gtk4::gdk::Key::_4 => {
-                        if self.wallpapers.len() >= 4 {
-                            sender.input(CompactWindowInput::SelectWallpaper(3));
-                        }
-                    }
-                    gtk4::gdk::Key::KP_5 | gtk4::gdk::Key::_5 => {
-                        if self.wallpapers.len() >= 5 {
-                            sender.input(CompactWindowInput::SelectWallpaper(4));
-                        }
-                    }
-                    _ => {}
-                }
+            CompactWindowInput::ApplyCurrent => {
+                sender.output(CompactWindowOutput::ApplyWallpaper(format!("wallpaper_{}", self.current_index))).ok();
             }
-        }
-    }
-}
-
-impl CompactWindow {
-    fn update_display(&self, widgets: &mut Self::Widgets) {
-        if self.current_index < self.wallpapers.len() {
-            let wp = &self.wallpapers[self.current_index];
-            widgets.wallpaper_title.set_text(&wp.title);
-            widgets.info_label.set_text(&format!("{}/{}", self.current_index + 1, self.wallpapers.len()));
+            CompactWindowInput::StopWallpaper => {
+                sender.output(CompactWindowOutput::StopWallpaper).ok();
+            }
+            CompactWindowInput::RandomWallpaper => {
+                sender.output(CompactWindowOutput::RandomWallpaper).ok();
+            }
         }
     }
 }

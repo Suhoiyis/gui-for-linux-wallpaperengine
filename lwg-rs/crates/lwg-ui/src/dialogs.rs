@@ -1,9 +1,9 @@
-//! 通用对话框 - 最简 GTK4 实现
+//! 通用对话框 - GTK4 实现
 
 use gtk4::prelude::*;
 
 /// 删除确认对话框
-pub fn show_delete_dialog(parent: &gtk4::Window, title: &str, callback: impl Fn(bool) + 'static) {
+pub fn show_delete_dialog(parent: &gtk4::Window, title: &str, on_confirm: impl Fn() + 'static) {
     let dialog = gtk4::Dialog::builder()
         .transient_for(parent)
         .modal(true)
@@ -17,15 +17,15 @@ pub fn show_delete_dialog(parent: &gtk4::Window, title: &str, callback: impl Fn(
     content.set_margin_bottom(12);
 
     let label = gtk4::Label::new(Some(&format!("确定要删除 \"{}\" 吗？", title)));
+    label.set_wrap(true);
     content.append(&label);
 
     dialog.add_button("取消", gtk4::ResponseType::Cancel);
     dialog.add_button("删除", gtk4::ResponseType::Accept);
 
     dialog.connect_response(move |dialog, response| {
-        match response {
-            gtk4::ResponseType::Accept => callback(true),
-            _ => callback(false),
+        if response == gtk4::ResponseType::Accept {
+            on_confirm();
         }
         dialog.close();
     });
@@ -61,7 +61,11 @@ pub fn show_error_dialog(parent: &gtk4::Window, title: &str, message: &str) {
 }
 
 /// 截图成功对话框
-pub fn show_screenshot_success_dialog(parent: &gtk4::Window, path: &str, on_open_folder: impl Fn() + 'static) {
+pub fn show_screenshot_success_dialog(
+    parent: &gtk4::Window,
+    path: &str,
+    on_open_folder: impl Fn() + 'static,
+) {
     let dialog = gtk4::Dialog::builder()
         .transient_for(parent)
         .modal(true)
@@ -119,9 +123,10 @@ pub fn show_nickname_dialog(
     dialog.add_button("取消", gtk4::ResponseType::Cancel);
     dialog.add_button("保存", gtk4::ResponseType::Ok);
 
+    let entry_clone = entry.clone();
     dialog.connect_response(move |dialog, response| {
         if response == gtk4::ResponseType::Ok {
-            let text = entry.text().trim().to_string();
+            let text = entry_clone.text().trim().to_string();
             if text.is_empty() {
                 on_save(None);
             } else {
