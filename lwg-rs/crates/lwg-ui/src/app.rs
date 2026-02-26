@@ -10,9 +10,15 @@ use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
 use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
 use crate::performance_page::{PerformancePage, PerformancePageInput};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use lwg_core::wallpaper::WallpaperManager;
-use lwg_core::config::ConfigManager;
+use lwg_core::config::{ConfigManager, AppConfig};
 use lwg_core::performance::PerformanceMonitor;
+use lwg_core::controller::WallpaperController;
+use crate::thumbnail_cache::ThumbnailCache;
+use lwg_core::history::HistoryManager;
+use lwg_core::nickname::NicknameManager;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -39,6 +45,10 @@ pub struct App {
     settings_page: Controller<crate::settings_page::SettingsPage>,
     performance_page: Controller<PerformancePage>,
     wallpaper_manager: Option<WallpaperManager>,
+    config: Arc<Mutex<AppConfig>>,
+    wallpaper_controller: Arc<Mutex<WallpaperController>>,
+    thumbnail_cache: Arc<ThumbnailCache>,
+    nickname_manager: Arc<Mutex<NicknameManager>>,
 }
 
 #[derive(Debug)]
@@ -109,12 +119,32 @@ impl Component for App {
         _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
+        // 初始化配置管理器和共享配置
+        let config_manager = ConfigManager::new().expect("无法初始化配置管理器");
+        let config = Arc::new(Mutex::new(config_manager.config.clone()));
+        
+        // 初始化缩略图缓存
+        let thumbnail_cache = Arc::new(ThumbnailCache::new(100));
+        
+        // 初始化 NicknameManager
+        let config_dir = std::path::PathBuf::from(
+            std::env::var("XDG_CONFIG_HOME")
+                .unwrap_or_else(|_| format!("{}/.config", std::env::var("HOME").unwrap_or_default()))
+        ).join("linux-wallpaperengine-gui");
+        
+        let nickname_manager = Arc::new(Mutex::new(
+            lwg_core::nickname::NicknameManager::new(&config_dir)
+        ));
+        
+        // 初始化控制器
+        let wallpaper_controller = Arc::new(Mutex::new(WallpaperController::new(config.clone())));
+        
         let navbar = NavBar::builder()
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::NavBarMessage(output));
 
         let wallpaper_list = WallpaperList::builder()
-            .launch(())
+            .launch(thumbnail_cache.clone())
             .forward(sender.input_sender(), |output| AppMsg::WallpaperListMessage(output));
 
         let sidebar = Sidebar::builder()
@@ -142,36 +172,20 @@ impl Component for App {
 
         // 初始化 WallpaperManager
         let mut wallpaper_manager: Option<WallpaperManager> = None;
+        let workshop_path = config_manager.config.assets_path.clone();
         
-        match ConfigManager::new() {
-            Ok(config) => {
-                match &config.config.assets_path {
-                    Some(workshop_path) => {
-                        eprintln!("使用 Workshop 路径：{}", workshop_path);
-                        let mut wm = WallpaperManager::new(workshop_path);
-                        match wm.scan() {
-                            Ok(wallpapers) => {
-                                let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
-                                eprintln!("✅ 扫描到 {} 个壁纸", wallpapers_vec.len());
-                                wallpaper_manager = Some(wm);
-                                
-                                let sender_clone = sender.input_sender().clone();
-                                std::thread::spawn(move || {
-                                    sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
-                                });
-                            }
-                            Err(e) => {
-                                eprintln!("❌ 扫描壁纸失败：{:?}", e);
-                            }
-                        }
-                    }
-                    None => {
-                        eprintln!("⚠️  未配置 Workshop 路径");
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("❌ 加载配置失败：{:?}", e);
+        if let Some(path) = workshop_path {
+            eprintln!("使用 Workshop 路径：{}", path);
+            let mut wm = WallpaperManager::new(path);
+            if let Ok(wallpapers) = wm.scan() {
+                let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
+                eprintln!("✅ 扫描到 {} 个壁纸", wallpapers_vec.len());
+                wallpaper_manager = Some(wm);
+                
+                let sender_clone = sender.input_sender().clone();
+                std::thread::spawn(move || {
+                    sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
+                });
             }
         }
 
@@ -183,6 +197,10 @@ impl Component for App {
             settings_page,
             performance_page,
             wallpaper_manager,
+            config,
+            wallpaper_controller,
+            thumbnail_cache,
+            nickname_manager,
         };
 
         let widgets = view_output!();
@@ -215,7 +233,7 @@ impl Component for App {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             AppMsg::NavigateTo(page) => {
                 self.current_page = page;
@@ -238,21 +256,39 @@ impl Component for App {
             }
             AppMsg::UpdatePerformance(cpu, memory) => {
                 eprintln!("📊 CPU: {:.1}% | 内存：{:.0} MB", cpu, memory);
-                // 发送数据到 PerformancePage
                 self.performance_page.emit(PerformancePageInput::UpdateStats(cpu, memory));
             }
             AppMsg::WallpapersScanned(wallpapers) => {
                 eprintln!("📋 加载 {} 个壁纸到列表", wallpapers.len());
-                self.wallpaper_list
-                    .emit(WallpaperListInput::LoadWallpapers(wallpapers));
+                self.wallpaper_list.emit(WallpaperListInput::LoadWallpapers(wallpapers));
             }
             AppMsg::WallpaperListMessage(output) => {
                 match output {
                     WallpaperListOutput::Selected(id) => {
                         eprintln!("🎨 壁纸选中：{}", id);
+                        if let Some(ref wm) = self.wallpaper_manager {
+                            if let Some(wp) = wm.get(&id) {
+                                let info = crate::sidebar::WallpaperInfo {
+                                    id: wp.id.clone(),
+                                    title: wp.title.clone(),
+                                    wallpaper_type: wp.wp_type.clone(),
+                                    size: format!("{:.1} MB", wp.size as f64 / 1024.0 / 1024.0),
+                                };
+                                self.sidebar.emit(crate::sidebar::SidebarInput::SelectWallpaper(info));
+                            }
+                        }
                     }
                     WallpaperListOutput::Activated(id) => {
                         eprintln!("▶️  壁纸激活：{}", id);
+                        let controller = self.wallpaper_controller.clone();
+                        tokio::spawn(async move {
+                            let mut controller = controller.lock().await;
+                            if let Err(e) = controller.apply(&id, None).await {
+                                eprintln!("❌ 应用壁纸失败：{:?}", e);
+                            } else {
+                                eprintln!("✅ 壁纸已应用：{}", id);
+                            }
+                        });
                     }
                 }
             }
@@ -260,6 +296,15 @@ impl Component for App {
                 match output {
                     SidebarOutput::ApplyRequested(id) => {
                         eprintln!("💾 应用壁纸：{}", id);
+                        let controller = self.wallpaper_controller.clone();
+                        tokio::spawn(async move {
+                            let mut controller = controller.lock().await;
+                            if let Err(e) = controller.apply(&id, None).await {
+                                eprintln!("❌ 应用壁纸失败：{:?}", e);
+                            } else {
+                                eprintln!("✅ 壁纸已应用：{}", id);
+                            }
+                        });
                     }
                     SidebarOutput::NicknameChanged(id, nickname) => {
                         eprintln!("🏷️  昵称变更：{} -> {}", id, nickname);
@@ -291,3 +336,4 @@ impl Component for App {
         }
     }
 }
+
