@@ -248,16 +248,32 @@ impl Component for App {
             AppMsg::NavBarMessage(nav_output) => {
                 match nav_output {
                     NavBarOutput::CompactModeToggled(enabled) => {
-                        debug!("Compact mode: {}", enabled);
+                        info!("Compact mode toggled: {}", enabled);
+                        // TODO: Implement compact window toggle
                     }
                     NavBarOutput::HistoryRequested => {
-                        debug!("History requested");
+                        info!("History requested");
+                        // TODO: Implement history dialog when HistoryManager is connected
                     }
                     NavBarOutput::AboutRequested => {
-                        debug!("About requested");
+                        info!("About requested");
+                        // Show a simple about dialog
+                        let dialog = gtk4::Dialog::builder()
+                            .title("关于")
+                            .modal(true)
+                            .build();
+                        let content = dialog.content_area();
+                        let label = gtk4::Label::new(Some("Linux Wallpaper Engine GUI\n\nVersion: 2.0.0 (Rust)\n\nA modern GTK4 interface for managing Steam Workshop live wallpapers."));
+                        label.set_margin_all(12);
+                        label.set_wrap(true);
+                        content.append(&label);
+                        dialog.add_button("确定", gtk4::ResponseType::Ok);
+                        dialog.connect_response(|d, _| d.close());
+                        dialog.show();
                     }
                     NavBarOutput::ScreenChanged(screen) => {
-                        debug!("Screen changed: {}", screen);
+                        info!("Screen changed: {}", screen);
+                        // TODO: Update config.last_screen
                     }
                 }
             }
@@ -370,16 +386,46 @@ SidebarOutput::OpenFolderRequested(id) => {
                 match output {
                     crate::settings_page::SettingsPageOutput::ConfigChanged(key, value) => {
                         info!("Config changed: {} = {:?}", key, value);
+                        let config = self.config.clone();
+                        tokio::spawn(async move {
+                            let mut cfg = config.lock().await;
+                            match key.as_str() {
+                                "fps" => if let Some(v) = value.as_u64() { cfg.fps = v as u32; },
+                                "volume" => if let Some(v) = value.as_u64() { cfg.volume = v as u32; },
+                                "silence" => if let Some(v) = value.as_bool() { cfg.silence = v; },
+                                "scaling" => if let Some(v) = value.as_str() { cfg.scaling = v.to_string(); },
+                                "no_fullscreen_pause" => if let Some(v) = value.as_bool() { cfg.no_fullscreen_pause = v; },
+                                "disable_mouse" => if let Some(v) = value.as_bool() { cfg.disable_mouse = v; },
+                                "no_auto_mute" => if let Some(v) = value.as_bool() { cfg.no_auto_mute = v; },
+                                "no_audio_processing" => if let Some(v) = value.as_bool() { cfg.no_audio_processing = v; },
+                                "disable_parallax" => if let Some(v) = value.as_bool() { cfg.disable_parallax = v; },
+                                "disable_particles" => if let Some(v) = value.as_bool() { cfg.disable_particles = v; },
+                                "clamping" => if let Some(v) = value.as_str() { cfg.clamping = v.to_string(); },
+                                "screenshot_delay" => if let Some(v) = value.as_u64() { cfg.screenshot_delay = v as u32; },
+                                "screenshot_res" => if let Some(v) = value.as_str() { cfg.screenshot_res = v.to_string(); },
+                                "prefer_xvfb" => if let Some(v) = value.as_bool() { cfg.prefer_xvfb = v; },
+                                "cycle_enabled" => if let Some(v) = value.as_bool() { cfg.cycle_enabled = v; },
+                                "cycle_interval" => if let Some(v) = value.as_u64() { cfg.cycle_interval = v as u32; },
+                                "cycle_order" => if let Some(v) = value.as_str() { cfg.cycle_order = v.to_string(); },
+                                "wayland_only_active" => if let Some(v) = value.as_bool() { cfg.wayland_only_active = v; },
+                                "wayland_ignore_appids" => if let Some(v) = value.as_str() { cfg.wayland_ignore_appids = v.to_string(); },
+                                "compact_mode" => if let Some(v) = value.as_bool() { cfg.compact_mode = v; },
+                                _ => warn!("Unknown config key: {}", key),
+                            }
+                            // TODO: Save to file
+                        });
                     }
                     crate::settings_page::SettingsPageOutput::PathSelected(category, path) => {
-                        debug!("Path selected: {} = {}", category, path);
+                        info!("Path selected: {} = {}", category, path);
+                        // TODO: Update config paths and open file chooser if needed
                     }
                     crate::settings_page::SettingsPageOutput::OpenNicknameManager => {
-                        debug!("Opening nickname manager");
+                        info!("Opening nickname manager");
+                        // TODO: Open nickname manager dialog
                     }
                 }
             }
         }
     }
-}
 
+}
