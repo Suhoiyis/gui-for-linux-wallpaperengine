@@ -313,14 +313,53 @@ impl Component for App {
                             }
                         });
                     }
-                    SidebarOutput::NicknameChanged(id, nickname) => {
-                        info!("Nickname changed: {} -> {}", id, nickname);
+SidebarOutput::NicknameChanged(id, nickname) => {
+                        let nickname_manager = self.nickname_manager.clone();
+                        tokio::spawn(async move {
+                            let mut nm = nickname_manager.lock().await;
+                            if let Err(e) = nm.set(&id, &nickname) {
+                                error!("Failed to set nickname: {}", e);
+                            } else {
+                                info!("Nickname saved: {} -> {}", id, nickname);
+                            }
+                        });
                     }
-                    SidebarOutput::DeleteRequested(id) => {
+SidebarOutput::DeleteRequested(id) => {
                         info!("Deleting wallpaper: {}", id);
+                        if let Some(ref mut wm) = self.wallpaper_manager {
+                            match wm.delete(&id) {
+                                Ok(true) => {
+                                    info!("Wallpaper deleted: {}", id);
+                                    // Refresh the wallpaper list
+                                    if let Ok(wallpapers) = wm.scan() {
+                                        let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
+                                        self.wallpaper_list.emit(WallpaperListInput::LoadWallpapers(wallpapers_vec));
+                                    }
+                                }
+                                Ok(false) => warn!("Wallpaper not found: {}", id),
+                                Err(e) => error!("Failed to delete wallpaper: {}", e),
+                            }
+                        }
                     }
-                    SidebarOutput::OpenFolderRequested(id) => {
+SidebarOutput::OpenFolderRequested(id) => {
                         debug!("Opening folder: {}", id);
+                        if let Some(ref wm) = self.wallpaper_manager {
+                            if let Some(wp) = wm.get(&id) {
+                                let path = wp.preview.parent().unwrap_or(&wp.preview);
+                                // Try multiple file managers
+                                for fm in &["thunar", "nautilus", "dolphin", "xdg-open"] {
+                                    if which::which(fm).is_ok() {
+                                        if let Err(e) = std::process::Command::new(fm)
+                                            .arg(path)
+                                            .spawn()
+                                        {
+                                            error!("Failed to open folder with {}: {}", fm, e);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
                     SidebarOutput::WallpaperSelected(id, title, wp_type, size) => {
                         debug!("Wallpaper details: {} - {} ({} / {})", id, title, wp_type, size);
