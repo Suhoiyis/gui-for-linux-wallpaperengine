@@ -1,5 +1,5 @@
-//! 紧凑模式窗口 - 缩略图导航完整实现
-//! 审计报告 Task 4.1.2: CompactWindow 缩略图导航
+//! 紧凑模式窗口 - 快捷键支持完整实现
+//! 审计报告 Task 4.1.3: CompactWindow 快捷键支持
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -26,6 +26,7 @@ pub enum CompactWindowInput {
     NextWallpaper,
     PreviousWallpaper,
     SelectWallpaper(usize),
+    KeyPressed(gtk4::gdk::Key),
 }
 
 #[derive(Debug)]
@@ -35,6 +36,9 @@ pub enum CompactWindowOutput {
     RestartRequested,
     ScreenChanged(String),
     WallpaperSelected(String),
+    ApplyWallpaper(String),
+    StopWallpaper,
+    RandomWallpaper,
 }
 
 pub struct CompactWindow {
@@ -134,7 +138,6 @@ impl Component for CompactWindow {
                         set_tooltip_text: Some("上一个"),
                     },
 
-                    // 5 个圆形缩略图
                     gtk4::Box {
                         set_orientation: gtk4::Orientation::Horizontal,
                         set_spacing: 8,
@@ -174,7 +177,7 @@ impl Component for CompactWindow {
 
     fn init(
         _init: Self::Init,
-        _root: Self::Root,
+        root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let model = Self {
@@ -185,6 +188,14 @@ impl Component for CompactWindow {
         };
 
         let widgets = view_output!();
+
+        // 添加快捷键控制器
+        let key_controller = gtk4::EventControllerKey::new();
+        key_controller.connect_key_pressed(move |_controller, key, _code, _modifier| {
+            sender.input(CompactWindowInput::KeyPressed(key));
+            gtk4::Inhibit(false)
+        });
+        root.add_controller(key_controller);
 
         ComponentParts { model, widgets }
     }
@@ -234,6 +245,54 @@ impl Component for CompactWindow {
                     self.update_display(widgets);
                     let id = self.wallpapers[index].id.clone();
                     sender.output(CompactWindowOutput::WallpaperSelected(id)).ok();
+                }
+            }
+            CompactWindowInput::KeyPressed(key) => {
+                match key {
+                    gtk4::gdk::Key::Left => {
+                        sender.input(CompactWindowInput::PreviousWallpaper);
+                    }
+                    gtk4::gdk::Key::Right => {
+                        sender.input(CompactWindowInput::NextWallpaper);
+                    }
+                    gtk4::gdk::Key::Return | gtk4::gdk::Key::KP_Enter => {
+                        if !self.wallpapers.is_empty() {
+                            let id = self.wallpapers[self.current_index].id.clone();
+                            sender.output(CompactWindowOutput::ApplyWallpaper(id)).ok();
+                        }
+                    }
+                    gtk4::gdk::Key::s | gtk4::gdk::Key::S => {
+                        sender.output(CompactWindowOutput::StopWallpaper).ok();
+                    }
+                    gtk4::gdk::Key::l | gtk4::gdk::Key::L => {
+                        sender.output(CompactWindowOutput::RandomWallpaper).ok();
+                    }
+                    gtk4::gdk::Key::KP_1 | gtk4::gdk::Key::_1 => {
+                        if self.wallpapers.len() >= 1 {
+                            sender.input(CompactWindowInput::SelectWallpaper(0));
+                        }
+                    }
+                    gtk4::gdk::Key::KP_2 | gtk4::gdk::Key::_2 => {
+                        if self.wallpapers.len() >= 2 {
+                            sender.input(CompactWindowInput::SelectWallpaper(1));
+                        }
+                    }
+                    gtk4::gdk::Key::KP_3 | gtk4::gdk::Key::_3 => {
+                        if self.wallpapers.len() >= 3 {
+                            sender.input(CompactWindowInput::SelectWallpaper(2));
+                        }
+                    }
+                    gtk4::gdk::Key::KP_4 | gtk4::gdk::Key::_4 => {
+                        if self.wallpapers.len() >= 4 {
+                            sender.input(CompactWindowInput::SelectWallpaper(3));
+                        }
+                    }
+                    gtk4::gdk::Key::KP_5 | gtk4::gdk::Key::_5 => {
+                        if self.wallpapers.len() >= 5 {
+                            sender.input(CompactWindowInput::SelectWallpaper(4));
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
