@@ -1,3 +1,5 @@
+//! 性能监控页面 - 实时数据显示
+
 use gtk4::prelude::*;
 use relm4::prelude::*;
 
@@ -37,10 +39,12 @@ impl Component for PerformancePage {
                     set_halign: gtk4::Align::Start,
                 },
 
+                // 总览卡片
                 gtk4::Box {
                     set_orientation: gtk4::Orientation::Horizontal,
                     set_spacing: 16,
 
+                    // CPU 卡片
                     gtk4::Box {
                         set_orientation: gtk4::Orientation::Vertical,
                         set_spacing: 8,
@@ -53,11 +57,12 @@ impl Component for PerformancePage {
                         },
 
                         gtk4::Label {
-                            set_label: "0%",
-                            add_css_class: "title-1",
+                            set_label: &format!("{:.1}%", model.cpu_usage),
+                            add_css_class: "title-2",
                         },
                     },
 
+                    // 内存卡片
                     gtk4::Box {
                         set_orientation: gtk4::Orientation::Vertical,
                         set_spacing: 8,
@@ -70,22 +75,68 @@ impl Component for PerformancePage {
                         },
 
                         gtk4::Label {
-                            set_label: "0 MB",
-                            add_css_class: "title-1",
+                            set_label: &format!("{:.0} MB", model.memory_usage),
+                            add_css_class: "title-2",
                         },
                     },
                 },
 
-                gtk4::Label {
-                    set_label: "进程信息",
-                    add_css_class: "title-2",
-                    set_halign: gtk4::Align::Start,
+                gtk4::Separator {},
+
+                // 进程详情
+                gtk4::Box {
+                    set_orientation: gtk4::Orientation::Vertical,
+                    set_spacing: 12,
+
+                    gtk4::Label {
+                        set_label: "进程详情",
+                        add_css_class: "title-2",
+                        set_halign: gtk4::Align::Start,
+                    },
+
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Vertical,
+                        set_spacing: 8,
+
+                        gtk4::Label {
+                            set_label: "Frontend: 运行中 ✓",
+                            add_css_class: "success",
+                        },
+
+                        gtk4::Label {
+                            set_label: "Backend: 待接入",
+                            add_css_class: "dim-label",
+                        },
+
+                        gtk4::Label {
+                            set_label: "Tray: 待接入",
+                            add_css_class: "dim-label",
+                        },
+                    },
                 },
 
-                gtk4::ListBox {
-                    gtk4::ListBoxRow {
+                gtk4::Separator {},
+
+                // 火花线图表（占位）
+                gtk4::Box {
+                    set_orientation: gtk4::Orientation::Vertical,
+                    set_spacing: 12,
+
+                    gtk4::Label {
+                        set_label: "CPU 历史（火花线图表待实现）",
+                        add_css_class: "title-2",
+                        set_halign: gtk4::Align::Start,
+                    },
+
+                    gtk4::Box {
+                        set_height_request: 60,
+                        add_css_class: "card",
+                        
                         gtk4::Label {
-                            set_label: "linux-wallpaperengine",
+                            set_label: "📈 实时数据更新中...",
+                            add_css_class: "dim-label",
+                            set_halign: gtk4::Align::Center,
+                            set_valign: gtk4::Align::Center,
                         },
                     },
                 },
@@ -95,8 +146,8 @@ impl Component for PerformancePage {
 
     fn init(
         _init: Self::Init,
-        root: Self::Root,
-        sender: ComponentSender<Self>,
+        _root: Self::Root,
+        _sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let model = Self {
             cpu_usage: 0.0,
@@ -104,7 +155,6 @@ impl Component for PerformancePage {
         };
 
         let widgets = view_output!();
-
         ComponentParts { model, widgets }
     }
 
