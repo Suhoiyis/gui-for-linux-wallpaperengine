@@ -11,3 +11,4 @@ pub mod history_dialog;
 pub mod nickname_manager_dialog;
 pub mod app;
 pub use app::App;
+pub mod settings_page;

@@ -1232,6 +1232,7 @@ dependencies = [
  "lwg-ipc",
  "relm4",
  "relm4-components",
+ "serde_json",
  "tokio",
  "which",
 ]

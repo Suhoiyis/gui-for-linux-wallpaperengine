@@ -1,11 +1,12 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! 已集成 NavBar - SettingsPage 待修复后集成
+//! 已集成 NavBar + SettingsPage（简化版）
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
 
 use crate::navbar::{NavBar, NavBarOutput};
+use crate::settings_page::{SettingsPage, SettingsPageOutput};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -27,12 +28,14 @@ impl AppPage {
 pub struct App {
     current_page: AppPage,
     navbar: Controller<NavBar>,
+    settings_page: Controller<SettingsPage>,
 }
 
 #[derive(Debug)]
 pub enum AppMsg {
     NavigateTo(AppPage),
     NavBarMessage(NavBarOutput),
+    SettingsPageMessage(SettingsPageOutput),
 }
 
 #[relm4::component(pub)]
@@ -96,22 +99,25 @@ impl Component for App {
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::NavBarMessage(output));
 
+        let settings_page = SettingsPage::builder()
+            .launch(())
+            .forward(sender.input_sender(), |output| AppMsg::SettingsPageMessage(output));
+
         let model = Self {
             current_page: AppPage::Wallpapers,
             navbar,
+            settings_page,
         };
 
         let widgets = view_output!();
 
         widgets.nav_container.append(model.navbar.widget());
 
-        // 使用 Label 占位符（SettingsPage 待修复后替换）
         let placeholder_wp = gtk4::Label::new(Some("壁纸页面（待接入）"));
-        let placeholder_st = gtk4::Label::new(Some("设置页面（SettingsPage 待修复）"));
         let placeholder_pf = gtk4::Label::new(Some("性能页面（待接入）"));
 
         widgets.main_stack.add_named(&placeholder_wp, Some("wallpapers"));
-        widgets.main_stack.add_named(&placeholder_st, Some("settings"));
+        widgets.main_stack.add_named(model.settings_page.widget(), Some("settings"));
         widgets.main_stack.add_named(&placeholder_pf, Some("performance"));
 
         widgets.main_stack.set_visible_child(&placeholder_wp);
@@ -137,6 +143,19 @@ impl Component for App {
                     }
                     NavBarOutput::ScreenChanged(screen) => {
                         eprintln!("屏幕切换：{}", screen);
+                    }
+                }
+            }
+            AppMsg::SettingsPageMessage(output) => {
+                match output {
+                    SettingsPageOutput::ConfigChanged(key, value) => {
+                        eprintln!("设置变更：{} = {:?}", key, value);
+                    }
+                    SettingsPageOutput::PathSelected(category, path) => {
+                        eprintln!("路径选择：{} = {}", category, path);
+                    }
+                    SettingsPageOutput::OpenNicknameManager => {
+                        eprintln!("打开昵称管理器");
                     }
                 }
             }
