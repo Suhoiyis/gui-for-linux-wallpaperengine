@@ -1,4 +1,4 @@
-//! 侧边栏预览组件 - 添加 WallpaperInfo 到 Output
+//! 侧边栏预览组件 - 简化版（暂不更新 UI）
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -24,10 +24,14 @@ pub enum SidebarOutput {
     NicknameChanged(String, String),
     DeleteRequested(String),
     OpenFolderRequested(String),
+    WallpaperSelected(String, String, String, String), // id, title, type, size
 }
 
 pub struct Sidebar {
     selected_wallpaper: Option<String>,
+    current_title: String,
+    current_type: String,
+    current_size: String,
 }
 
 #[relm4::component(pub)]
@@ -55,12 +59,10 @@ impl Component for Sidebar {
                     set_halign: gtk4::Align::Start,
                 },
 
-                #[name = "preview_area"]
                 gtk4::Box {
                     set_height_request: 180,
                     add_css_class: "card",
                     
-                    #[name = "preview_image"]
                     gtk4::Image {
                         set_icon_name: Some("image-x-generic-symbolic"),
                         set_pixel_size: 64,
@@ -72,44 +74,34 @@ impl Component for Sidebar {
 
                 gtk4::Separator {},
 
-                // 信息区域
-                gtk4::Box {
-                    set_orientation: gtk4::Orientation::Vertical,
-                    set_spacing: 8,
+                gtk4::Label {
+                    set_label: &model.current_title,
+                    add_css_class: "title-2",
+                    set_halign: gtk4::Align::Start,
+                    set_wrap: true,
+                },
 
-                    #[name = "title_label"]
-                    gtk4::Label {
-                        set_label: "",
-                        add_css_class: "title-2",
-                        set_halign: gtk4::Align::Start,
-                        set_wrap: true,
-                    },
+                gtk4::Label {
+                    set_label: &format!("类型：{}", model.current_type),
+                    add_css_class: "dim-label",
+                    set_halign: gtk4::Align::Start,
+                },
 
-                    #[name = "type_label"]
-                    gtk4::Label {
-                        set_label: "",
-                        add_css_class: "dim-label",
-                        set_halign: gtk4::Align::Start,
-                    },
-
-                    #[name = "size_label"]
-                    gtk4::Label {
-                        set_label: "",
-                        add_css_class: "dim-label",
-                        set_halign: gtk4::Align::Start,
-                    },
+                gtk4::Label {
+                    set_label: &format!("大小：{}", model.current_size),
+                    add_css_class: "dim-label",
+                    set_halign: gtk4::Align::Start,
                 },
 
                 gtk4::Box {
                     set_vexpand: true,
                 },
 
-                #[name = "apply_button"]
                 gtk4::Button {
                     set_label: "应用壁纸",
                     set_halign: gtk4::Align::End,
                     add_css_class: "suggested-action",
-                    set_sensitive: false,
+                    set_sensitive: model.selected_wallpaper.is_some(),
                 },
             },
         }
@@ -122,31 +114,30 @@ impl Component for Sidebar {
     ) -> ComponentParts<Self> {
         let model = Self {
             selected_wallpaper: None,
+            current_title: String::new(),
+            current_type: String::new(),
+            current_size: String::new(),
         };
 
         let widgets = view_output!();
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             SidebarInput::SelectWallpaper(info) => {
                 self.selected_wallpaper = Some(info.id.clone());
-                
-                // 更新 UI
-                widgets.title_label.set_label(&info.title);
-                widgets.type_label.set_label(&format!("类型：{}", info.wallpaper_type));
-                widgets.size_label.set_label(&format!("大小：{}", info.size));
-                widgets.apply_button.set_sensitive(true);
+                self.current_title = info.title.clone();
+                self.current_type = info.wallpaper_type.clone();
+                self.current_size = info.size.clone();
                 
                 eprintln!("选中壁纸：{} - {}", info.id, info.title);
             }
             SidebarInput::ClearSelection => {
                 self.selected_wallpaper = None;
-                widgets.title_label.set_label("");
-                widgets.type_label.set_label("");
-                widgets.size_label.set_label("");
-                widgets.apply_button.set_sensitive(false);
+                self.current_title = String::new();
+                self.current_type = String::new();
+                self.current_size = String::new();
             }
             SidebarInput::ApplyWallpaper => {
                 if let Some(ref id) = self.selected_wallpaper {

@@ -1,5 +1,4 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! Phase 4A Task 4A.2: 连接 WallpaperList → Sidebar 数据流
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -7,7 +6,7 @@ use libadwaita as adw;
 
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
-use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput, WallpaperInfo};
+use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -145,11 +144,10 @@ impl Component for App {
         wallpapers_paned.set_start_child(Some(&wp_scroll));
         wallpapers_paned.set_end_child(Some(&sb_scroll));
 
-        let settings_widget = settings_page.widget();
         let placeholder_pf = gtk4::Label::new(Some("性能页面（待接入）"));
 
-        widgets.main_stack.add_named(wallpapers_paned.upcast_ref::<gtk4::Widget>(), Some("wallpapers"));
-        widgets.main_stack.add_named(settings_widget.upcast_ref::<gtk4::Widget>(), Some("settings"));
+        widgets.main_stack.add_named(&wallpapers_paned, Some("wallpapers"));
+        widgets.main_stack.add_named(model.settings_page.widget(), Some("settings"));
         widgets.main_stack.add_named(&placeholder_pf, Some("performance"));
 
         widgets.main_stack.set_visible_child(&wallpapers_paned);
@@ -201,6 +199,9 @@ impl Component for App {
                     }
                     SidebarOutput::OpenFolderRequested(id) => {
                         eprintln!("打开文件夹：{}", id);
+                    }
+                    SidebarOutput::WallpaperSelected(id, title, wp_type, size) => {
+                        eprintln!("壁纸详情：{} - {} ({} / {})", id, title, wp_type, size);
                     }
                 }
             }
