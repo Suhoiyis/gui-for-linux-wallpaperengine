@@ -1223,6 +1223,7 @@ dependencies = [
  "gdk-pixbuf",
  "gdk4",
  "gif 0.13.3",
+ "glib",
  "gtk4",
  "image",
  "libadwaita",
