@@ -1,5 +1,5 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! 动态装载方案 - 修复类型签名
+//! 已集成 NavBar - SettingsPage 待修复后集成
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -105,9 +105,10 @@ impl Component for App {
 
         widgets.nav_container.append(model.navbar.widget());
 
-        let placeholder_wp = gtk4::Label::new(Some("壁纸页面（等待接入真实组件）"));
-        let placeholder_st = gtk4::Label::new(Some("设置页面（等待接入真实组件）"));
-        let placeholder_pf = gtk4::Label::new(Some("性能页面（等待接入真实组件）"));
+        // 使用 Label 占位符（SettingsPage 待修复后替换）
+        let placeholder_wp = gtk4::Label::new(Some("壁纸页面（待接入）"));
+        let placeholder_st = gtk4::Label::new(Some("设置页面（SettingsPage 待修复）"));
+        let placeholder_pf = gtk4::Label::new(Some("性能页面（待接入）"));
 
         widgets.main_stack.add_named(&placeholder_wp, Some("wallpapers"));
         widgets.main_stack.add_named(&placeholder_st, Some("settings"));
@@ -126,16 +127,16 @@ impl Component for App {
             AppMsg::NavBarMessage(nav_output) => {
                 match nav_output {
                     NavBarOutput::CompactModeToggled(enabled) => {
-                        eprintln!("切换紧凑模式：{}", enabled);
+                        eprintln!("紧凑模式：{}", enabled);
                     }
                     NavBarOutput::HistoryRequested => {
-                        eprintln!("请求打开历史记录");
+                        eprintln!("请求历史记录");
                     }
                     NavBarOutput::AboutRequested => {
-                        eprintln!("请求打开关于面板");
+                        eprintln!("请求关于");
                     }
                     NavBarOutput::ScreenChanged(screen) => {
-                        eprintln!("切换了目标屏幕：{}", screen);
+                        eprintln!("屏幕切换：{}", screen);
                     }
                 }
             }
