@@ -5,6 +5,8 @@ pub mod welcome_dialog;
 pub mod dialogs;
 pub mod utils;
 pub mod navbar;
+pub mod wallpaper_list;
+pub mod sidebar;
 pub mod sparkline;
 pub mod animated_preview;
 pub mod history_dialog;

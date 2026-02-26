@@ -1,12 +1,13 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! 已集成 NavBar + SettingsPage（简化版）
+//! Phase 4A: 集成 WallpaperList + Sidebar
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
 
 use crate::navbar::{NavBar, NavBarOutput};
-use crate::settings_page::{SettingsPage, SettingsPageOutput};
+use crate::wallpaper_list::{WallpaperList, WallpaperListOutput};
+use crate::sidebar;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -28,14 +29,18 @@ impl AppPage {
 pub struct App {
     current_page: AppPage,
     navbar: Controller<NavBar>,
-    settings_page: Controller<SettingsPage>,
+    wallpaper_list: Controller<WallpaperList>,
+    sidebar: Controller<sidebar::Sidebar>,
+    settings_page: Controller<crate::settings_page::SettingsPage>,
 }
 
 #[derive(Debug)]
 pub enum AppMsg {
     NavigateTo(AppPage),
     NavBarMessage(NavBarOutput),
-    SettingsPageMessage(SettingsPageOutput),
+    WallpaperListMessage(WallpaperListOutput),
+    SidebarMessage(sidebar::SidebarOutput),
+    SettingsPageMessage(crate::settings_page::SettingsPageOutput),
 }
 
 #[relm4::component(pub)]
@@ -99,13 +104,23 @@ impl Component for App {
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::NavBarMessage(output));
 
-        let settings_page = SettingsPage::builder()
+        let wallpaper_list = WallpaperList::builder()
+            .launch(())
+            .forward(sender.input_sender(), |output| AppMsg::WallpaperListMessage(output));
+
+        let sidebar = sidebar::Sidebar::builder()
+            .launch(())
+            .forward(sender.input_sender(), |output| AppMsg::SidebarMessage(output));
+
+        let settings_page = crate::settings_page::SettingsPage::builder()
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::SettingsPageMessage(output));
 
         let model = Self {
             current_page: AppPage::Wallpapers,
             navbar,
+            wallpaper_list,
+            sidebar,
             settings_page,
         };
 
@@ -113,14 +128,31 @@ impl Component for App {
 
         widgets.nav_container.append(model.navbar.widget());
 
-        let placeholder_wp = gtk4::Label::new(Some("壁纸页面（待接入）"));
+        // 创建壁纸页面（Paned 分割：WallpaperList | Sidebar）
+        let wallpapers_paned = gtk4::Paned::new(gtk4::Orientation::Horizontal);
+        wallpapers_paned.set_position(800);
+        
+        let wp_scroll = gtk4::ScrolledWindow::new();
+        wp_scroll.set_hexpand(true);
+        wp_scroll.set_vexpand(true);
+        wp_scroll.set_child(Some(model.wallpaper_list.widget()));
+        
+        let sb_scroll = gtk4::ScrolledWindow::new();
+        sb_scroll.set_hexpand(false);
+        sb_scroll.set_vexpand(true);
+        sb_scroll.set_child(Some(model.sidebar.widget()));
+        
+        wallpapers_paned.set_start_child(Some(&wp_scroll));
+        wallpapers_paned.set_end_child(Some(&sb_scroll));
+
+        let settings_widget = model.settings_page.widget();
         let placeholder_pf = gtk4::Label::new(Some("性能页面（待接入）"));
 
-        widgets.main_stack.add_named(&placeholder_wp, Some("wallpapers"));
-        widgets.main_stack.add_named(model.settings_page.widget(), Some("settings"));
+        widgets.main_stack.add_named(wallpapers_paned.upcast_ref::<gtk4::Widget>(), Some("wallpapers"));
+        widgets.main_stack.add_named(settings_widget.upcast_ref::<gtk4::Widget>(), Some("settings"));
         widgets.main_stack.add_named(&placeholder_pf, Some("performance"));
 
-        widgets.main_stack.set_visible_child(&placeholder_wp);
+        widgets.main_stack.set_visible_child(&wallpapers_paned);
 
         ComponentParts { model, widgets }
     }
@@ -146,15 +178,41 @@ impl Component for App {
                     }
                 }
             }
+            AppMsg::WallpaperListMessage(output) => {
+                match output {
+                    WallpaperListOutput::Selected(id) => {
+                        eprintln!("壁纸选中：{}", id);
+                    }
+                    WallpaperListOutput::Activated(id) => {
+                        eprintln!("壁纸激活：{}", id);
+                    }
+                }
+            }
+            AppMsg::SidebarMessage(output) => {
+                match output {
+                    sidebar::SidebarOutput::ApplyRequested(id) => {
+                        eprintln!("应用壁纸：{}", id);
+                    }
+                    sidebar::SidebarOutput::NicknameChanged(id, nickname) => {
+                        eprintln!("昵称变更：{} -> {}", id, nickname);
+                    }
+                    sidebar::SidebarOutput::DeleteRequested(id) => {
+                        eprintln!("删除壁纸：{}", id);
+                    }
+                    sidebar::SidebarOutput::OpenFolderRequested(id) => {
+                        eprintln!("打开文件夹：{}", id);
+                    }
+                }
+            }
             AppMsg::SettingsPageMessage(output) => {
                 match output {
-                    SettingsPageOutput::ConfigChanged(key, value) => {
+                    crate::settings_page::SettingsPageOutput::ConfigChanged(key, value) => {
                         eprintln!("设置变更：{} = {:?}", key, value);
                     }
-                    SettingsPageOutput::PathSelected(category, path) => {
+                    crate::settings_page::SettingsPageOutput::PathSelected(category, path) => {
                         eprintln!("路径选择：{} = {}", category, path);
                     }
-                    SettingsPageOutput::OpenNicknameManager => {
+                    crate::settings_page::SettingsPageOutput::OpenNicknameManager => {
                         eprintln!("打开昵称管理器");
                     }
                 }
