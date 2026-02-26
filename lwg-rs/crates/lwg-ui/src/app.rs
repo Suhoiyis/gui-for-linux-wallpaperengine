@@ -2,22 +2,13 @@
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
+use libadwaita as adw;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
     Wallpapers,
     Settings,
     Performance,
-}
-
-impl AppPage {
-    fn name(&self) -> &'static str {
-        match self {
-            AppPage::Wallpapers => "wallpapers",
-            AppPage::Settings => "settings",
-            AppPage::Performance => "performance",
-        }
-    }
 }
 
 pub struct App {
@@ -45,6 +36,8 @@ impl Component for App {
             gtk4::Box {
                 set_orientation: gtk4::Orientation::Vertical,
 
+                adw::HeaderBar {},
+
                 gtk4::Box {
                     set_orientation: gtk4::Orientation::Horizontal,
                     set_spacing: 6,
@@ -63,7 +56,6 @@ impl Component for App {
                     },
                 },
 
-                #[name = "page_stack"]
                 gtk4::Stack {
                     set_hexpand: true,
                     set_vexpand: true,
@@ -74,7 +66,7 @@ impl Component for App {
 
     fn init(
         _init: Self::Init,
-        root: Self::Root,
+        _root: Self::Root,
         _sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let model = Self {
@@ -83,24 +75,12 @@ impl Component for App {
 
         let widgets = view_output!();
 
-        // 手动添加页面到 Stack
-        let wallpapers_page = gtk4::Label::new(Some("壁纸页面"));
-        widgets.page_stack.add_named(&wallpapers_page, "wallpapers");
-
-        let settings_page = gtk4::Label::new(Some("设置页面"));
-        widgets.page_stack.add_named(&settings_page, "settings");
-
-        let performance_page = gtk4::Label::new(Some("性能页面"));
-        widgets.page_stack.add_named(&performance_page, "performance");
-
         ComponentParts { model, widgets }
     }
 
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
-            AppMsg::NavigateTo(page) => {
-                self.current_page = page;
-            }
+            AppMsg::NavigateTo(_) => {}
         }
     }
 }
