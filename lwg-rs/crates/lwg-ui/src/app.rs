@@ -1,13 +1,13 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! Phase 4A: 集成 WallpaperList + Sidebar
+//! Phase 4A Task 4A.2: 连接 WallpaperList → Sidebar 数据流
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
 
 use crate::navbar::{NavBar, NavBarOutput};
-use crate::wallpaper_list::{WallpaperList, WallpaperListOutput};
-use crate::sidebar;
+use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
+use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput, WallpaperInfo};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -30,7 +30,7 @@ pub struct App {
     current_page: AppPage,
     navbar: Controller<NavBar>,
     wallpaper_list: Controller<WallpaperList>,
-    sidebar: Controller<sidebar::Sidebar>,
+    sidebar: Controller<Sidebar>,
     settings_page: Controller<crate::settings_page::SettingsPage>,
 }
 
@@ -39,7 +39,7 @@ pub enum AppMsg {
     NavigateTo(AppPage),
     NavBarMessage(NavBarOutput),
     WallpaperListMessage(WallpaperListOutput),
-    SidebarMessage(sidebar::SidebarOutput),
+    SidebarMessage(SidebarOutput),
     SettingsPageMessage(crate::settings_page::SettingsPageOutput),
 }
 
@@ -108,7 +108,7 @@ impl Component for App {
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::WallpaperListMessage(output));
 
-        let sidebar = sidebar::Sidebar::builder()
+        let sidebar = Sidebar::builder()
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::SidebarMessage(output));
 
@@ -128,7 +128,7 @@ impl Component for App {
 
         widgets.nav_container.append(model.navbar.widget());
 
-        // 创建壁纸页面（Paned 分割：WallpaperList | Sidebar）
+        // 创建壁纸页面（Paned 分割）
         let wallpapers_paned = gtk4::Paned::new(gtk4::Orientation::Horizontal);
         wallpapers_paned.set_position(800);
         
@@ -145,7 +145,7 @@ impl Component for App {
         wallpapers_paned.set_start_child(Some(&wp_scroll));
         wallpapers_paned.set_end_child(Some(&sb_scroll));
 
-        let settings_widget = model.settings_page.widget();
+        let settings_widget = settings_page.widget();
         let placeholder_pf = gtk4::Label::new(Some("性能页面（待接入）"));
 
         widgets.main_stack.add_named(wallpapers_paned.upcast_ref::<gtk4::Widget>(), Some("wallpapers"));
@@ -190,16 +190,16 @@ impl Component for App {
             }
             AppMsg::SidebarMessage(output) => {
                 match output {
-                    sidebar::SidebarOutput::ApplyRequested(id) => {
+                    SidebarOutput::ApplyRequested(id) => {
                         eprintln!("应用壁纸：{}", id);
                     }
-                    sidebar::SidebarOutput::NicknameChanged(id, nickname) => {
+                    SidebarOutput::NicknameChanged(id, nickname) => {
                         eprintln!("昵称变更：{} -> {}", id, nickname);
                     }
-                    sidebar::SidebarOutput::DeleteRequested(id) => {
+                    SidebarOutput::DeleteRequested(id) => {
                         eprintln!("删除壁纸：{}", id);
                     }
-                    sidebar::SidebarOutput::OpenFolderRequested(id) => {
+                    SidebarOutput::OpenFolderRequested(id) => {
                         eprintln!("打开文件夹：{}", id);
                     }
                 }

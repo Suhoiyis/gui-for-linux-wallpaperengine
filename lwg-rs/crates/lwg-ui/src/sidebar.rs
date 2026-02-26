@@ -1,4 +1,4 @@
-//! 侧边栏预览组件 - 修复借用问题
+//! 侧边栏预览组件 - 添加 WallpaperInfo 到 Output
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -55,10 +55,12 @@ impl Component for Sidebar {
                     set_halign: gtk4::Align::Start,
                 },
 
+                #[name = "preview_area"]
                 gtk4::Box {
                     set_height_request: 180,
                     add_css_class: "card",
                     
+                    #[name = "preview_image"]
                     gtk4::Image {
                         set_icon_name: Some("image-x-generic-symbolic"),
                         set_pixel_size: 64,
@@ -70,15 +72,39 @@ impl Component for Sidebar {
 
                 gtk4::Separator {},
 
-                gtk4::Label {
-                    set_label: "壁纸信息（待接入）",
-                    add_css_class: "dim-label",
+                // 信息区域
+                gtk4::Box {
+                    set_orientation: gtk4::Orientation::Vertical,
+                    set_spacing: 8,
+
+                    #[name = "title_label"]
+                    gtk4::Label {
+                        set_label: "",
+                        add_css_class: "title-2",
+                        set_halign: gtk4::Align::Start,
+                        set_wrap: true,
+                    },
+
+                    #[name = "type_label"]
+                    gtk4::Label {
+                        set_label: "",
+                        add_css_class: "dim-label",
+                        set_halign: gtk4::Align::Start,
+                    },
+
+                    #[name = "size_label"]
+                    gtk4::Label {
+                        set_label: "",
+                        add_css_class: "dim-label",
+                        set_halign: gtk4::Align::Start,
+                    },
                 },
 
                 gtk4::Box {
                     set_vexpand: true,
                 },
 
+                #[name = "apply_button"]
                 gtk4::Button {
                     set_label: "应用壁纸",
                     set_halign: gtk4::Align::End,
@@ -102,14 +128,25 @@ impl Component for Sidebar {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
         match msg {
             SidebarInput::SelectWallpaper(info) => {
                 self.selected_wallpaper = Some(info.id.clone());
+                
+                // 更新 UI
+                widgets.title_label.set_label(&info.title);
+                widgets.type_label.set_label(&format!("类型：{}", info.wallpaper_type));
+                widgets.size_label.set_label(&format!("大小：{}", info.size));
+                widgets.apply_button.set_sensitive(true);
+                
                 eprintln!("选中壁纸：{} - {}", info.id, info.title);
             }
             SidebarInput::ClearSelection => {
                 self.selected_wallpaper = None;
+                widgets.title_label.set_label("");
+                widgets.type_label.set_label("");
+                widgets.size_label.set_label("");
+                widgets.apply_button.set_sensitive(false);
             }
             SidebarInput::ApplyWallpaper => {
                 if let Some(ref id) = self.selected_wallpaper {
