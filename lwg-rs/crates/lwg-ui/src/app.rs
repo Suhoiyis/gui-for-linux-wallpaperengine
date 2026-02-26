@@ -1,5 +1,5 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! Phase 4A Task 4A.3: 连接 WallpaperManager 真实数据
+//! Phase 4A Task 4A.4: 添加错误处理和测试日志
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -123,20 +123,36 @@ impl Component for App {
         // 初始化 WallpaperManager 并扫描壁纸
         let mut wallpaper_manager: Option<WallpaperManager> = None;
         
-        if let Ok(config) = ConfigManager::new() {
-            if let Some(workshop_path) = config.config.assets_path.clone() {
-                let mut wm = WallpaperManager::new(&workshop_path);
-                if let Ok(wallpapers) = wm.scan() {
-                    let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
-                    eprintln!("扫描到 {} 个壁纸", wallpapers_vec.len());
-                    wallpaper_manager = Some(wm);
-                    
-                    // 异步发送到组件
-                    let sender_clone = sender.input_sender().clone();
-                    std::thread::spawn(move || {
-                        sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
-                    });
+        match ConfigManager::new() {
+            Ok(config) => {
+                match &config.config.assets_path {
+                    Some(workshop_path) => {
+                        eprintln!("使用 Workshop 路径：{}", workshop_path);
+                        let mut wm = WallpaperManager::new(workshop_path);
+                        match wm.scan() {
+                            Ok(wallpapers) => {
+                                let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
+                                eprintln!("✅ 扫描到 {} 个壁纸", wallpapers_vec.len());
+                                wallpaper_manager = Some(wm);
+                                
+                                // 异步发送到组件
+                                let sender_clone = sender.input_sender().clone();
+                                std::thread::spawn(move || {
+                                    sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
+                                });
+                            }
+                            Err(e) => {
+                                eprintln!("❌ 扫描壁纸失败：{:?}", e);
+                            }
+                        }
+                    }
+                    None => {
+                        eprintln!("⚠️  未配置 Workshop 路径（assets_path 为 None）");
+                    }
                 }
+            }
+            Err(e) => {
+                eprintln!("❌ 加载配置失败：{:?}", e);
             }
         }
 
@@ -203,47 +219,46 @@ impl Component for App {
                 }
             }
             AppMsg::WallpapersScanned(wallpapers) => {
-                eprintln!("加载 {} 个壁纸到列表", wallpapers.len());
+                eprintln!("📋 加载 {} 个壁纸到列表", wallpapers.len());
                 self.wallpaper_list
                     .emit(WallpaperListInput::LoadWallpapers(wallpapers));
             }
             AppMsg::WallpaperListMessage(output) => {
                 match output {
                     WallpaperListOutput::Selected(id) => {
-                        eprintln!("壁纸选中：{}", id);
-                        // TODO: 从 WallpaperManager 获取详细信息并发送到 Sidebar
+                        eprintln!("🎨 壁纸选中：{}", id);
                     }
                     WallpaperListOutput::Activated(id) => {
-                        eprintln!("壁纸激活：{}", id);
+                        eprintln!("▶️  壁纸激活：{}", id);
                     }
                 }
             }
             AppMsg::SidebarMessage(output) => {
                 match output {
                     SidebarOutput::ApplyRequested(id) => {
-                        eprintln!("应用壁纸：{}", id);
+                        eprintln!("💾 应用壁纸：{}", id);
                     }
                     SidebarOutput::NicknameChanged(id, nickname) => {
-                        eprintln!("昵称变更：{} -> {}", id, nickname);
+                        eprintln!("🏷️  昵称变更：{} -> {}", id, nickname);
                     }
                     SidebarOutput::DeleteRequested(id) => {
-                        eprintln!("删除壁纸：{}", id);
+                        eprintln!("🗑️  删除壁纸：{}", id);
                     }
                     SidebarOutput::OpenFolderRequested(id) => {
-                        eprintln!("打开文件夹：{}", id);
+                        eprintln!("📂 打开文件夹：{}", id);
                     }
                     SidebarOutput::WallpaperSelected(id, title, wp_type, size) => {
-                        eprintln!("壁纸详情：{} - {} ({} / {})", id, title, wp_type, size);
+                        eprintln!("📄 壁纸详情：{} - {} ({} / {})", id, title, wp_type, size);
                     }
                 }
             }
             AppMsg::SettingsPageMessage(output) => {
                 match output {
                     crate::settings_page::SettingsPageOutput::ConfigChanged(key, value) => {
-                        eprintln!("设置变更：{} = {:?}", key, value);
+                        eprintln!("⚙️  设置变更：{} = {:?}", key, value);
                     }
                     crate::settings_page::SettingsPageOutput::PathSelected(category, path) => {
-                        eprintln!("路径选择：{} = {}", category, path);
+                        eprintln!("📁 路径选择：{} = {}", category, path);
                     }
                     crate::settings_page::SettingsPageOutput::OpenNicknameManager => {
                         eprintln!("打开昵称管理器");
