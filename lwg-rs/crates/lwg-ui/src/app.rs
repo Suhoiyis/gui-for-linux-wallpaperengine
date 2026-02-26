@@ -1,4 +1,5 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
+//! Phase 4A Task 4A.3: 连接 WallpaperManager 真实数据
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -7,6 +8,8 @@ use libadwaita as adw;
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
 use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
+use lwg_core::wallpaper::WallpaperManager;
+use lwg_core::config::ConfigManager;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -31,6 +34,7 @@ pub struct App {
     wallpaper_list: Controller<WallpaperList>,
     sidebar: Controller<Sidebar>,
     settings_page: Controller<crate::settings_page::SettingsPage>,
+    wallpaper_manager: Option<WallpaperManager>,
 }
 
 #[derive(Debug)]
@@ -40,6 +44,7 @@ pub enum AppMsg {
     WallpaperListMessage(WallpaperListOutput),
     SidebarMessage(SidebarOutput),
     SettingsPageMessage(crate::settings_page::SettingsPageOutput),
+    WallpapersScanned(Vec<lwg_core::wallpaper::Wallpaper>),
 }
 
 #[relm4::component(pub)]
@@ -115,12 +120,33 @@ impl Component for App {
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::SettingsPageMessage(output));
 
+        // 初始化 WallpaperManager 并扫描壁纸
+        let mut wallpaper_manager: Option<WallpaperManager> = None;
+        
+        if let Ok(config) = ConfigManager::new() {
+            if let Some(workshop_path) = config.config.assets_path.clone() {
+                let mut wm = WallpaperManager::new(&workshop_path);
+                if let Ok(wallpapers) = wm.scan() {
+                    let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
+                    eprintln!("扫描到 {} 个壁纸", wallpapers_vec.len());
+                    wallpaper_manager = Some(wm);
+                    
+                    // 异步发送到组件
+                    let sender_clone = sender.input_sender().clone();
+                    std::thread::spawn(move || {
+                        sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
+                    });
+                }
+            }
+        }
+
         let model = Self {
             current_page: AppPage::Wallpapers,
             navbar,
             wallpaper_list,
             sidebar,
             settings_page,
+            wallpaper_manager,
         };
 
         let widgets = view_output!();
@@ -155,7 +181,7 @@ impl Component for App {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             AppMsg::NavigateTo(page) => {
                 self.current_page = page;
@@ -176,10 +202,16 @@ impl Component for App {
                     }
                 }
             }
+            AppMsg::WallpapersScanned(wallpapers) => {
+                eprintln!("加载 {} 个壁纸到列表", wallpapers.len());
+                self.wallpaper_list
+                    .emit(WallpaperListInput::LoadWallpapers(wallpapers));
+            }
             AppMsg::WallpaperListMessage(output) => {
                 match output {
                     WallpaperListOutput::Selected(id) => {
                         eprintln!("壁纸选中：{}", id);
+                        // TODO: 从 WallpaperManager 获取详细信息并发送到 Sidebar
                     }
                     WallpaperListOutput::Activated(id) => {
                         eprintln!("壁纸激活：{}", id);
