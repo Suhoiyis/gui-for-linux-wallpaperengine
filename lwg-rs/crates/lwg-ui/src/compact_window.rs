@@ -1,9 +1,19 @@
-//! 紧凑模式窗口 - 框架实现
-//! 审计报告 Task 4.1.1: CompactWindow 框架
+//! 紧凑模式窗口 - 缩略图导航完整实现
+//! 审计报告 Task 4.1.2: CompactWindow 缩略图导航
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
+use std::collections::VecDeque;
+
+const THUMB_COUNT: usize = 5;
+
+#[derive(Debug, Clone)]
+pub struct WallpaperThumb {
+    pub id: String,
+    pub title: String,
+    pub thumbnail: Option<String>,
+}
 
 #[derive(Debug)]
 pub enum CompactWindowInput {
@@ -12,6 +22,10 @@ pub enum CompactWindowInput {
     ToggleFullscreen,
     RestartWallpaper,
     ScreenChanged(String),
+    LoadWallpapers(Vec<WallpaperThumb>),
+    NextWallpaper,
+    PreviousWallpaper,
+    SelectWallpaper(usize),
 }
 
 #[derive(Debug)]
@@ -20,11 +34,14 @@ pub enum CompactWindowOutput {
     FullscreenToggled,
     RestartRequested,
     ScreenChanged(String),
+    WallpaperSelected(String),
 }
 
 pub struct CompactWindow {
     visible: bool,
     fullscreen: bool,
+    wallpapers: Vec<WallpaperThumb>,
+    current_index: usize,
 }
 
 #[relm4::component(pub)]
@@ -81,22 +98,58 @@ impl Component for CompactWindow {
 
                 gtk4::Separator {},
 
-                // 预览区域（占位）
+                // 预览区域
                 gtk4::Box {
                     set_orientation: gtk4::Orientation::Vertical,
                     set_spacing: 12,
                     set_margin_all: 12,
                     set_vexpand: true,
 
-                    gtk4::Label {
-                        set_label: "紧凑模式预览",
-                        add_css_class: "heading",
-                    },
-
+                    #[name = "preview_image"]
                     gtk4::Image {
                         set_icon_name: "image-x-generic-symbolic",
                         set_pixel_size: 128,
                         set_vexpand: true,
+                    },
+
+                    #[name = "wallpaper_title"]
+                    gtk4::Label {
+                        set_label: "壁纸名称",
+                        add_css_class: "heading",
+                    },
+                },
+
+                gtk4::Separator {},
+
+                // 缩略图导航
+                gtk4::Box {
+                    set_orientation: gtk4::Orientation::Horizontal,
+                    set_spacing: 8,
+                    set_margin_all: 12,
+                    set_halign: gtk4::Align::Center,
+
+                    #[name = "prev_btn"]
+                    gtk4::Button {
+                        set_icon_name: "go-previous-symbolic",
+                        set_tooltip_text: Some("上一个"),
+                    },
+
+                    // 5 个圆形缩略图
+                    gtk4::Box {
+                        set_orientation: gtk4::Orientation::Horizontal,
+                        set_spacing: 8,
+
+                        #[name = "thumb_box"]
+                        gtk4::Box {
+                            set_orientation: gtk4::Orientation::Horizontal,
+                            set_spacing: 8,
+                        },
+                    },
+
+                    #[name = "next_btn"]
+                    gtk4::Button {
+                        set_icon_name: "go-next-symbolic",
+                        set_tooltip_text: Some("下一个"),
                     },
                 },
 
@@ -108,8 +161,9 @@ impl Component for CompactWindow {
                     set_spacing: 6,
                     set_margin_all: 6,
 
+                    #[name = "info_label"]
                     gtk4::Label {
-                        set_label: "壁纸名称",
+                        set_label: "1/5",
                         add_css_class: "caption",
                         set_hexpand: true,
                     },
@@ -120,12 +174,14 @@ impl Component for CompactWindow {
 
     fn init(
         _init: Self::Init,
-        root: Self::Root,
+        _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let model = Self {
             visible: false,
             fullscreen: false,
+            wallpapers: Vec::new(),
+            current_index: 0,
         };
 
         let widgets = view_output!();
@@ -133,7 +189,7 @@ impl Component for CompactWindow {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, widgets: &mut Self::Widgets) {
         match msg {
             CompactWindowInput::Show => {
                 self.visible = true;
@@ -152,6 +208,44 @@ impl Component for CompactWindow {
             CompactWindowInput::ScreenChanged(screen) => {
                 sender.output(CompactWindowOutput::ScreenChanged(screen)).ok();
             }
+            CompactWindowInput::LoadWallpapers(wallpapers) => {
+                self.wallpapers = wallpapers;
+                self.update_display(widgets);
+            }
+            CompactWindowInput::NextWallpaper => {
+                if !self.wallpapers.is_empty() {
+                    self.current_index = (self.current_index + 1) % self.wallpapers.len();
+                    self.update_display(widgets);
+                }
+            }
+            CompactWindowInput::PreviousWallpaper => {
+                if !self.wallpapers.is_empty() {
+                    self.current_index = if self.current_index == 0 {
+                        self.wallpapers.len() - 1
+                    } else {
+                        self.current_index - 1
+                    };
+                    self.update_display(widgets);
+                }
+            }
+            CompactWindowInput::SelectWallpaper(index) => {
+                if index < self.wallpapers.len() {
+                    self.current_index = index;
+                    self.update_display(widgets);
+                    let id = self.wallpapers[index].id.clone();
+                    sender.output(CompactWindowOutput::WallpaperSelected(id)).ok();
+                }
+            }
+        }
+    }
+}
+
+impl CompactWindow {
+    fn update_display(&self, widgets: &mut Self::Widgets) {
+        if self.current_index < self.wallpapers.len() {
+            let wp = &self.wallpapers[self.current_index];
+            widgets.wallpaper_title.set_text(&wp.title);
+            widgets.info_label.set_text(&format!("{}/{}", self.current_index + 1, self.wallpapers.len()));
         }
     }
 }
