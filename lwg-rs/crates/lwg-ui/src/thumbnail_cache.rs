@@ -145,6 +145,6 @@ mod tests {
     #[test]
     fn test_cache_capacity() {
         let cache = ThumbnailCache::new(80);
-        assert_eq!(cache.cache.blocking_lock().capacity(), 80);
+        assert_eq!(cache.cache.blocking_lock().cap().get(), 80);
     }
 }
