@@ -101,6 +101,7 @@ impl Component for Sidebar {
                     set_label: "应用壁纸",
                     set_halign: gtk4::Align::End,
                     add_css_class: "suggested-action",
+                    connect_clicked => SidebarInput::ApplyWallpaper,
                     set_sensitive: model.selected_wallpaper.is_some(),
                 },
             },

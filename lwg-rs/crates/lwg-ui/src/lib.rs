@@ -1,3 +1,5 @@
+pub mod thumbnail_cache;
+
 pub mod context_menu;
 pub mod properties_editor;
 pub mod tray_manager;

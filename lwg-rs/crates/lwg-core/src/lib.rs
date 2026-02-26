@@ -1,3 +1,5 @@
+pub mod controller;
+
 pub mod config;
 pub mod logger;
 pub mod performance;

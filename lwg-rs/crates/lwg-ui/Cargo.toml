@@ -29,3 +29,5 @@ tokio = { workspace = true }
 image = { workspace = true }
 lru = { workspace = true }
 libc = "0.2"
+
+tracing = { workspace = true }

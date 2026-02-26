@@ -1235,6 +1235,7 @@ dependencies = [
  "relm4-components",
  "serde_json",
  "tokio",
+ "tracing",
  "which",
 ]
 

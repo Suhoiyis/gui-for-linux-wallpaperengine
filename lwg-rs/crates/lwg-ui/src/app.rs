@@ -49,6 +49,7 @@ pub struct App {
     wallpaper_controller: Arc<Mutex<WallpaperController>>,
     thumbnail_cache: Arc<ThumbnailCache>,
     nickname_manager: Arc<Mutex<NicknameManager>>,
+    history_manager: Arc<Mutex<HistoryManager>>,
 }
 
 #[derive(Debug)]
@@ -136,6 +137,10 @@ impl Component for App {
             lwg_core::nickname::NicknameManager::new(&config_dir)
         ));
         
+        let history_manager = Arc::new(Mutex::new(
+            lwg_core::history::HistoryManager::new(&config_dir)
+        ));
+        
         // 初始化控制器
         let wallpaper_controller = Arc::new(Mutex::new(WallpaperController::new(config.clone())));
         
@@ -201,6 +206,7 @@ impl Component for App {
             wallpaper_controller,
             thumbnail_cache,
             nickname_manager,
+            history_manager,
         };
 
         let widgets = view_output!();

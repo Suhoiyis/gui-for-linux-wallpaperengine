@@ -1,4 +1,6 @@
+use gtk4::prelude::*;
 use gtk4::gdk::{self, Texture};
+
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -6,7 +8,7 @@ use std::path::Path;
 use tokio::sync::Mutex;
 use tracing::{debug, warn};
 
-/// 缩略图缓存（LRU 策略，上限 80）
+#[derive(Debug)]
 pub struct ThumbnailCache {
     cache: Arc<Mutex<LruCache<String, Texture>>>,
 }
@@ -30,7 +32,9 @@ impl ThumbnailCache {
     /// 插入缩略图
     pub async fn insert(&self, key: String, texture: Texture) {
         let mut cache = self.cache.lock().await;
-        cache.put(key, texture);
+        cache.put(key.clone(), texture);
+        debug!("缩略图缓存：{} (当前大小：{})", key, cache.len());
+
         debug!("缩略图缓存：{} (当前大小：{})", key, cache.len());
     }
     
@@ -53,16 +57,16 @@ impl ThumbnailCache {
         }
     }
     
-    /// 加载普通图像缩略图（JPG/PNG）
     fn load_image_thumbnail(path: &Path) -> Option<Texture> {
-        Texture::from_file(path).ok()
+        let file = gtk4::gio::File::for_path(path);
+        Texture::from_file(&file).ok()
     }
+
     
-    /// 加载 GIF 缩略图（智能提取第 15 帧，避免黑屏）
     fn load_gif_thumbnail(path: &Path) -> Option<Texture> {
         // 使用 image crate 读取 GIF
         let file = std::fs::File::open(path).ok()?;
-        let mut decoder = gif::Decoder::new(file);
+        let mut decoder = gif::Decoder::new(file).ok()?;
         
         // 尝试提取第 15 帧（避免第一帧黑屏）
         let mut frame_num = 0;
@@ -80,10 +84,10 @@ impl ThumbnailCache {
         // 如果 GIF 少于 15 帧，使用最后一帧
         if target_frame.is_none() && frame_num > 0 {
             let file = std::fs::File::open(path).ok()?;
-            let mut decoder = gif::Decoder::new(file);
+            let mut decoder = gif::Decoder::new(file).ok()?;
             let mut last_frame = None;
             
-            while let Ok(Some(frame)) = decoder.read_frame_info() {
+            while let Ok(Some(frame)) = decoder.next_frame_info() {
                 last_frame = Some(frame.clone());
             }
             target_frame = last_frame;
@@ -97,18 +101,22 @@ impl ThumbnailCache {
             
             // 创建 Gdk::Texture
             let rowstride = width as usize * 4;
-            gdk::MemoryTexture::new(
+            let bytes = glib::Bytes::from(&data);
+            
+            Some(gdk::MemoryTexture::new(
                 width as i32,
                 height as i32,
                 gdk::MemoryFormat::R8g8b8a8,
-                &data,
+                &bytes,
                 rowstride,
-            ).map(|t| t.upcast())
+            ).upcast())
         } else {
             // 回退到直接加载
-            Texture::from_file(path).ok()
+            let file = gtk4::gio::File::for_path(path);
+            Texture::from_file(&file).ok()
         }
     }
+
     
     /// 清除所有缓存
     pub async fn clear(&self) {
