@@ -1,5 +1,5 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! Phase 4A Task 4A.4: 添加错误处理和测试日志
+//! Phase 4B Task 4B.1: 集成 PerformancePage
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
@@ -8,6 +8,7 @@ use libadwaita as adw;
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
 use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
+use crate::performance_page::PerformancePage;
 use lwg_core::wallpaper::WallpaperManager;
 use lwg_core::config::ConfigManager;
 
@@ -34,6 +35,7 @@ pub struct App {
     wallpaper_list: Controller<WallpaperList>,
     sidebar: Controller<Sidebar>,
     settings_page: Controller<crate::settings_page::SettingsPage>,
+    performance_page: Controller<PerformancePage>,
     wallpaper_manager: Option<WallpaperManager>,
 }
 
@@ -120,6 +122,10 @@ impl Component for App {
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::SettingsPageMessage(output));
 
+        let performance_page = PerformancePage::builder()
+            .launch(())
+            .detach();
+
         // 初始化 WallpaperManager 并扫描壁纸
         let mut wallpaper_manager: Option<WallpaperManager> = None;
         
@@ -135,7 +141,6 @@ impl Component for App {
                                 eprintln!("✅ 扫描到 {} 个壁纸", wallpapers_vec.len());
                                 wallpaper_manager = Some(wm);
                                 
-                                // 异步发送到组件
                                 let sender_clone = sender.input_sender().clone();
                                 std::thread::spawn(move || {
                                     sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
@@ -147,7 +152,7 @@ impl Component for App {
                         }
                     }
                     None => {
-                        eprintln!("⚠️  未配置 Workshop 路径（assets_path 为 None）");
+                        eprintln!("⚠️  未配置 Workshop 路径");
                     }
                 }
             }
@@ -162,6 +167,7 @@ impl Component for App {
             wallpaper_list,
             sidebar,
             settings_page,
+            performance_page,
             wallpaper_manager,
         };
 
@@ -186,11 +192,9 @@ impl Component for App {
         wallpapers_paned.set_start_child(Some(&wp_scroll));
         wallpapers_paned.set_end_child(Some(&sb_scroll));
 
-        let placeholder_pf = gtk4::Label::new(Some("性能页面（待接入）"));
-
         widgets.main_stack.add_named(&wallpapers_paned, Some("wallpapers"));
         widgets.main_stack.add_named(model.settings_page.widget(), Some("settings"));
-        widgets.main_stack.add_named(&placeholder_pf, Some("performance"));
+        widgets.main_stack.add_named(model.performance_page.widget(), Some("performance"));
 
         widgets.main_stack.set_visible_child(&wallpapers_paned);
 
