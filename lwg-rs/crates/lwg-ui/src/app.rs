@@ -1,16 +1,18 @@
 //! Linux Wallpaper Engine GUI - 主应用窗口
-//! Phase 4B Task 4B.1: 集成 PerformancePage
+//! Phase 4B Task 4B.2: 连接 PerformanceMonitor（修复版）
 
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
+use std::time::Duration;
 
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
 use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
-use crate::performance_page::PerformancePage;
+use crate::performance_page::{PerformancePage, PerformancePageInput};
 use lwg_core::wallpaper::WallpaperManager;
 use lwg_core::config::ConfigManager;
+use lwg_core::performance::PerformanceMonitor;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -47,6 +49,7 @@ pub enum AppMsg {
     SidebarMessage(SidebarOutput),
     SettingsPageMessage(crate::settings_page::SettingsPageOutput),
     WallpapersScanned(Vec<lwg_core::wallpaper::Wallpaper>),
+    UpdatePerformance(f32, f32), // cpu, memory
 }
 
 #[relm4::component(pub)]
@@ -126,7 +129,18 @@ impl Component for App {
             .launch(())
             .detach();
 
-        // 初始化 WallpaperManager 并扫描壁纸
+        // 初始化 PerformanceMonitor 并启动定时更新
+        let perf_monitor = PerformanceMonitor::new();
+        
+        // 启动 1 秒定时更新
+        let sender_clone = sender.input_sender().clone();
+        glib::timeout_add_local(Duration::from_secs(1), move || {
+            let stats = perf_monitor.get_stats();
+            sender_clone.send(AppMsg::UpdatePerformance(stats.total_cpu, stats.total_memory_mb)).ok();
+            glib::ControlFlow::Continue
+        });
+
+        // 初始化 WallpaperManager
         let mut wallpaper_manager: Option<WallpaperManager> = None;
         
         match ConfigManager::new() {
@@ -221,6 +235,11 @@ impl Component for App {
                         eprintln!("屏幕切换：{}", screen);
                     }
                 }
+            }
+            AppMsg::UpdatePerformance(cpu, memory) => {
+                eprintln!("📊 CPU: {:.1}% | 内存：{:.0} MB", cpu, memory);
+                // 发送数据到 PerformancePage
+                self.performance_page.emit(PerformancePageInput::UpdateStats(cpu, memory));
             }
             AppMsg::WallpapersScanned(wallpapers) => {
                 eprintln!("📋 加载 {} 个壁纸到列表", wallpapers.len());
