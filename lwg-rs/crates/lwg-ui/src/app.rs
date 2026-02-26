@@ -5,6 +5,7 @@ use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
 use std::time::Duration;
+use tracing::{info, debug, error, warn};
 
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
@@ -180,11 +181,11 @@ impl Component for App {
         let workshop_path = config_manager.config.assets_path.clone();
         
         if let Some(path) = workshop_path {
-            eprintln!("使用 Workshop 路径：{}", path);
+            info!("Using Workshop path: {}", path);
             let mut wm = WallpaperManager::new(path);
             if let Ok(wallpapers) = wm.scan() {
                 let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
-                eprintln!("✅ 扫描到 {} 个壁纸", wallpapers_vec.len());
+                info!("Scanned {} wallpapers", wallpapers_vec.len());
                 wallpaper_manager = Some(wm);
                 
                 let sender_clone = sender.input_sender().clone();
@@ -247,31 +248,31 @@ impl Component for App {
             AppMsg::NavBarMessage(nav_output) => {
                 match nav_output {
                     NavBarOutput::CompactModeToggled(enabled) => {
-                        eprintln!("紧凑模式：{}", enabled);
+                        debug!("Compact mode: {}", enabled);
                     }
                     NavBarOutput::HistoryRequested => {
-                        eprintln!("请求历史记录");
+                        debug!("History requested");
                     }
                     NavBarOutput::AboutRequested => {
-                        eprintln!("请求关于");
+                        debug!("About requested");
                     }
                     NavBarOutput::ScreenChanged(screen) => {
-                        eprintln!("屏幕切换：{}", screen);
+                        debug!("Screen changed: {}", screen);
                     }
                 }
             }
             AppMsg::UpdatePerformance(cpu, memory) => {
-                eprintln!("📊 CPU: {:.1}% | 内存：{:.0} MB", cpu, memory);
+                debug!("Performance: CPU {:.1}% | Memory {:.0} MB", cpu, memory);
                 self.performance_page.emit(PerformancePageInput::UpdateStats(cpu, memory));
             }
             AppMsg::WallpapersScanned(wallpapers) => {
-                eprintln!("📋 加载 {} 个壁纸到列表", wallpapers.len());
+                info!("Loaded {} wallpapers", wallpapers.len());
                 self.wallpaper_list.emit(WallpaperListInput::LoadWallpapers(wallpapers));
             }
             AppMsg::WallpaperListMessage(output) => {
                 match output {
                     WallpaperListOutput::Selected(id) => {
-                        eprintln!("🎨 壁纸选中：{}", id);
+                        debug!("Wallpaper selected: {}", id);
                         if let Some(ref wm) = self.wallpaper_manager {
                             if let Some(wp) = wm.get(&id) {
                                 let info = crate::sidebar::WallpaperInfo {
@@ -285,14 +286,14 @@ impl Component for App {
                         }
                     }
                     WallpaperListOutput::Activated(id) => {
-                        eprintln!("▶️  壁纸激活：{}", id);
+                        info!("Wallpaper activated: {}", id);
                         let controller = self.wallpaper_controller.clone();
                         tokio::spawn(async move {
                             let mut controller = controller.lock().await;
                             if let Err(e) = controller.apply(&id, None).await {
-                                eprintln!("❌ 应用壁纸失败：{:?}", e);
+                                error!("Failed to apply wallpaper: {:?}", e);
                             } else {
-                                eprintln!("✅ 壁纸已应用：{}", id);
+                                info!("Wallpaper applied: {}", id);
                             }
                         });
                     }
@@ -301,41 +302,41 @@ impl Component for App {
             AppMsg::SidebarMessage(output) => {
                 match output {
                     SidebarOutput::ApplyRequested(id) => {
-                        eprintln!("💾 应用壁纸：{}", id);
+                        info!("Applying wallpaper: {}", id);
                         let controller = self.wallpaper_controller.clone();
                         tokio::spawn(async move {
                             let mut controller = controller.lock().await;
                             if let Err(e) = controller.apply(&id, None).await {
-                                eprintln!("❌ 应用壁纸失败：{:?}", e);
+                                error!("Failed to apply wallpaper: {:?}", e);
                             } else {
-                                eprintln!("✅ 壁纸已应用：{}", id);
+                                info!("Wallpaper applied: {}", id);
                             }
                         });
                     }
                     SidebarOutput::NicknameChanged(id, nickname) => {
-                        eprintln!("🏷️  昵称变更：{} -> {}", id, nickname);
+                        info!("Nickname changed: {} -> {}", id, nickname);
                     }
                     SidebarOutput::DeleteRequested(id) => {
-                        eprintln!("🗑️  删除壁纸：{}", id);
+                        info!("Deleting wallpaper: {}", id);
                     }
                     SidebarOutput::OpenFolderRequested(id) => {
-                        eprintln!("📂 打开文件夹：{}", id);
+                        debug!("Opening folder: {}", id);
                     }
                     SidebarOutput::WallpaperSelected(id, title, wp_type, size) => {
-                        eprintln!("📄 壁纸详情：{} - {} ({} / {})", id, title, wp_type, size);
+                        debug!("Wallpaper details: {} - {} ({} / {})", id, title, wp_type, size);
                     }
                 }
             }
             AppMsg::SettingsPageMessage(output) => {
                 match output {
                     crate::settings_page::SettingsPageOutput::ConfigChanged(key, value) => {
-                        eprintln!("⚙️  设置变更：{} = {:?}", key, value);
+                        info!("Config changed: {} = {:?}", key, value);
                     }
                     crate::settings_page::SettingsPageOutput::PathSelected(category, path) => {
-                        eprintln!("📁 路径选择：{} = {}", category, path);
+                        debug!("Path selected: {} = {}", category, path);
                     }
                     crate::settings_page::SettingsPageOutput::OpenNicknameManager => {
-                        eprintln!("打开昵称管理器");
+                        debug!("Opening nickname manager");
                     }
                 }
             }
