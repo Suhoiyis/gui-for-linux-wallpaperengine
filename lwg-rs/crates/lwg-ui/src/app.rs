@@ -2,6 +2,8 @@ use gtk4::prelude::*;
 use relm4::prelude::*;
 use std::time::Duration;
 use tracing::{info, debug, error, warn};
+use std::process::{Command, Child};
+use std::env;
 
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
@@ -16,6 +18,48 @@ use lwg_core::controller::WallpaperController;
 use crate::thumbnail_cache::ThumbnailCache;
 use lwg_core::history::HistoryManager;
 use lwg_core::nickname::NicknameManager;
+
+/// Start tray process
+fn start_tray_process() -> Option<Child> {
+    let uid = unsafe { libc::getuid() };
+    let socket_name = format!("lwg-ipc-{}", uid);
+    env::set_var("LWG_IPC_SOCKET", &socket_name);
+    
+    // Try different tray binary paths
+    let possible_paths = vec![
+        env::var("LWG_TRAY_BIN").ok(),
+        Some(format!("{}/.local/bin/lwg-tray", env::var("HOME").unwrap_or_default())),
+        Some("/usr/bin/lwg-tray".to_string()),
+        Some("lwg-tray".to_string()), // Check PATH
+    ];
+    
+    for path_opt in possible_paths {
+        if let Some(path) = path_opt {
+            // Check if file exists or is in PATH
+            let path_exists = std::path::Path::new(&path).exists() || which::which(&path).is_ok();
+            if path_exists {
+                match Command::new(&path)
+                    .arg(format!("com.wallpaperengine.tray")) // Icon name
+                    .arg(format!("{}", std::process::id())) // Parent PID
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .spawn()
+                {
+                    Ok(child) => {
+                        info!("Tray process started: {} (PID: {})", path, child.id());
+                        return Some(child);
+                    }
+                    Err(e) => {
+                        warn!("Failed to start tray {}: {}", path, e);
+                    }
+                }
+            }
+        }
+    }
+    
+    warn!("No tray process found. Tray icon will not be available.");
+    None
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -47,8 +91,9 @@ pub struct App {
     thumbnail_cache: Arc<ThumbnailCache>,
     nickname_manager: Arc<Mutex<NicknameManager>>,
     history_manager: Arc<Mutex<HistoryManager>>,
-    // Store Stack reference for page switching
     main_stack: gtk4::Stack,
+    #[allow(dead_code)]
+    tray_process: Option<Child>,
 }
 
 #[derive(Debug)]
@@ -210,6 +255,9 @@ impl Component for App {
             warn!("No Workshop path found. Please configure assets_path in config.json");
         }
 
+        // Start tray process
+        let tray_process = start_tray_process();
+
         let mut model = Self {
             current_page: AppPage::Wallpapers,
             navbar,
@@ -224,6 +272,7 @@ impl Component for App {
             nickname_manager,
             history_manager,
             main_stack: gtk4::Stack::new(), // Temporary, will be replaced after view_output
+            tray_process,
         };
 
         let widgets = view_output!();
@@ -354,7 +403,7 @@ impl Component for App {
                             }
                         });
                     }
-SidebarOutput::NicknameChanged(id, nickname) => {
+                    SidebarOutput::NicknameChanged(id, nickname) => {
                         let nickname_manager = self.nickname_manager.clone();
                         tokio::spawn(async move {
                             let mut nm = nickname_manager.lock().await;
@@ -365,7 +414,7 @@ SidebarOutput::NicknameChanged(id, nickname) => {
                             }
                         });
                     }
-SidebarOutput::DeleteRequested(id) => {
+                    SidebarOutput::DeleteRequested(id) => {
                         info!("Deleting wallpaper: {}", id);
                         if let Some(ref mut wm) = self.wallpaper_manager {
                             match wm.delete(&id) {
@@ -382,7 +431,7 @@ SidebarOutput::DeleteRequested(id) => {
                             }
                         }
                     }
-SidebarOutput::OpenFolderRequested(id) => {
+                    SidebarOutput::OpenFolderRequested(id) => {
                         debug!("Opening folder: {}", id);
                         if let Some(ref wm) = self.wallpaper_manager {
                             if let Some(wp) = wm.get(&id) {
@@ -452,5 +501,4 @@ SidebarOutput::OpenFolderRequested(id) => {
             }
         }
     }
-
 }
