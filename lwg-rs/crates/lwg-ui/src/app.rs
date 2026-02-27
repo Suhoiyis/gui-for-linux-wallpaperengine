@@ -119,6 +119,13 @@ impl Component for App {
             set_title: Some("Linux Wallpaper Engine"),
             set_default_width: 1200,
             set_default_height: 800,
+            
+            // Hide window instead of closing when X button clicked
+            connect_close_request => |_| {
+                // The window will be hidden, not closed
+                // Tray icon remains visible for restoring the window
+                glib::Propagation::Stop
+            },
 
             gtk4::Box {
                 set_orientation: gtk4::Orientation::Vertical,
