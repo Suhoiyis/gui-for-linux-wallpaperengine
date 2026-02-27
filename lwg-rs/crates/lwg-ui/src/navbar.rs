@@ -1,7 +1,7 @@
 use gtk4::prelude::*;
-use relm4::prelude::*;
 use libadwaita::{self, prelude::*};
 use lwg_core::screen::ScreenManager;
+use relm4::prelude::*;
 
 /// 导航栏组件
 pub struct NavBar {
@@ -120,7 +120,7 @@ impl Component for NavBar {
         // 检测真实屏幕
         let screen_manager = ScreenManager::new();
         let screens = screen_manager.names();
-        
+
         // 如果没有检测到屏幕，使用默认值
         let screen_names: Vec<&str> = if screens.is_empty() {
             vec!["Default"]
@@ -134,9 +134,23 @@ impl Component for NavBar {
         };
 
         let widgets = view_output!();
-        
+
         // 更新屏幕选择器
-        widgets.screen_selector.set_model(Some(&gtk4::StringList::new(&screen_names)));
+        widgets
+            .screen_selector
+            .set_model(Some(&gtk4::StringList::new(&screen_names)));
+
+        // 添加菜单动作
+        let sender_clone = sender.clone();
+        let about_action = gtk4::gio::SimpleAction::new("about", None);
+        about_action.connect_activate(move |_, _| {
+            sender_clone.input(NavBarInput::ShowAbout);
+        });
+
+        // 在 root widget 上添加动作组
+        let action_group = gtk4::gio::SimpleActionGroup::new();
+        action_group.add_action(&about_action);
+        root.insert_action_group("nav", Some(&action_group));
 
         ComponentParts { model, widgets }
     }
@@ -145,7 +159,9 @@ impl Component for NavBar {
         match msg {
             NavBarInput::ToggleCompactMode => {
                 self.compact_mode = !self.compact_mode;
-                sender.output(NavBarOutput::CompactModeToggled(self.compact_mode)).ok();
+                sender
+                    .output(NavBarOutput::CompactModeToggled(self.compact_mode))
+                    .ok();
             }
             NavBarInput::ShowHistory => {
                 sender.output(NavBarOutput::HistoryRequested).ok();
