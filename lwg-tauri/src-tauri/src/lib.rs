@@ -206,6 +206,36 @@ pub fn run() {
             get_config,
             save_config,
         ])
+        .setup(|app| {
+            // Setup system tray
+            let tray = app.tray_by_id("main")?;
+            
+            let show_item = tauri::menu::MenuItem::new(app, "显示窗口", true, None::<&str>)?;
+            let quit_item = tauri::menu::MenuItem::new(app, "退出", true, None::<&str>)?;
+            
+            let menu = tauri::menu::Menu::with_items(app, &[&show_item, &quit_item])?;
+            
+            tray.set_menu(Some(menu))?;
+            
+            // Handle tray menu events
+            let app_handle = app.handle().clone();
+            tray.on_menu_event(move |_tray, event| {
+                match event.id.as_ref() {
+                    "显示窗口" => {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "退出" => {
+                        app_handle.exit(0);
+                    }
+                    _ => {}
+                }
+            });
+            
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
