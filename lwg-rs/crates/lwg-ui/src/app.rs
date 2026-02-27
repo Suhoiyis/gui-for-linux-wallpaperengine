@@ -1,9 +1,5 @@
-//! Linux Wallpaper Engine GUI - 主应用窗口
-//! Phase 4B Task 4B.2: 连接 PerformanceMonitor（修复版）
-
 use gtk4::prelude::*;
 use relm4::prelude::*;
-use libadwaita as adw;
 use std::time::Duration;
 use tracing::{info, debug, error, warn};
 
@@ -81,8 +77,6 @@ impl Component for App {
 
             gtk4::Box {
                 set_orientation: gtk4::Orientation::Vertical,
-
-                adw::HeaderBar {},
 
                 #[name = "nav_container"]
                 gtk4::Box {
