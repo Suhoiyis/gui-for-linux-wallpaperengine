@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linux Wallpaper Engine</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Navigation -->
+    <nav id="navbar">
+      <div class="nav-brand">
+        <span class="brand-icon">🖼️</span>
+        <span class="brand-text">Wallpaper Engine</span>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn active" data-page="wallpapers" title="壁纸">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8-2h8v8h-8v-8zm2 2v4h4v-4h-4z"/>
+          </svg>
+          <span>壁纸</span>
+        </button>
+        <button class="nav-btn" data-page="settings" title="设置">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/>
+          </svg>
+          <span>设置</span>
+        </button>
+        <button class="nav-btn" data-page="performance" title="性能">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          <span>性能</span>
+        </button>
+      </div>
+      <div class="nav-actions">
+        <button id="screen-selector-btn" class="icon-btn" title="屏幕选择">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="content">
+      <!-- Wallpapers Page -->
+      <div id="wallpapers-page" class="page active">
+        <div class="split-view">
+          <div class="wallpaper-list-container">
+            <div id="wallpaper-grid" class="wallpaper-grid">
+              <!-- Wallpapers will be loaded here -->
+              <div class="loading">加载中...</div>
+            </div>
+          </div>
+          <div id="sidebar" class="sidebar">
+            <div class="sidebar-content">
+              <div class="no-selection">
+                <p>请选择一个壁纸</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Page -->
+      <div id="settings-page" class="page">
+        <div class="settings-container">
+          <h2>设置</h2>
+          <div class="settings-sections">
+            <!-- Settings will be loaded here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Page -->
+      <div id="performance-page" class="page">
+        <div class="performance-container">
+          <h2>性能监控</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">CPU 使用率</div>
+              <div class="stat-value" id="cpu-usage">0%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">内存使用</div>
+              <div class="stat-value" id="memory-usage">0 MB</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
