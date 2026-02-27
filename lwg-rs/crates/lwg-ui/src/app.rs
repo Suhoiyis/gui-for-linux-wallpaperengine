@@ -180,7 +180,24 @@ impl Component for App {
 
         // 初始化 WallpaperManager
         let mut wallpaper_manager: Option<WallpaperManager> = None;
-        let workshop_path = config_manager.config.assets_path.clone();
+        
+        // Auto-detect Workshop path if not configured
+        let workshop_path = config_manager.config.assets_path.clone().or_else(|| {
+            let home = std::env::var("HOME").unwrap_or_default();
+            // Try common Steam Workshop paths
+            let possible_paths = vec![
+                format!("{}/.local/share/Steam/steamapps/workshop/content/431960", home),
+                format!("{}/.steam/steam/steamapps/workshop/content/431960", home),
+                format!("{}/.steam/root/steamapps/workshop/content/431960", home),
+            ];
+            for path in possible_paths {
+                if std::path::Path::new(&path).exists() {
+                    info!("Auto-detected Workshop path: {}", path);
+                    return Some(path);
+                }
+            }
+            None
+        });
         
         if let Some(path) = workshop_path {
             info!("Using Workshop path: {}", path);
@@ -195,6 +212,8 @@ impl Component for App {
                     sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
                 });
             }
+        } else {
+            warn!("No Workshop path found. Please configure assets_path in config.json");
         }
 
         let mut model = Self {
