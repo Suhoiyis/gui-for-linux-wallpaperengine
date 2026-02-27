@@ -1,10 +1,12 @@
 use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita::{self, prelude::*};
+use lwg_core::screen::ScreenManager;
 
 /// 导航栏组件
 pub struct NavBar {
     compact_mode: bool,
+    screens: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -74,13 +76,18 @@ impl Component for NavBar {
 
                 #[name = "screen_selector"]
                 gtk4::DropDown {
-                    set_model: Some(&gtk4::StringList::new(&["屏幕 1", "屏幕 2", "屏幕 3"])),
+                    set_model: Some(&gtk4::StringList::new(&["Loading..."])),  // Will be updated in init
                     set_selected: 0,
                     set_tooltip_text: Some("选择显示器"),
                     connect_selected_notify[sender] => move |dropdown| {
-                        let selected = dropdown.selected();
-                        let screen_name = format!("屏幕 {}", selected + 1);
-                        sender.input(NavBarInput::ScreenChanged(screen_name));
+                        if let Some(model) = dropdown.model() {
+                            let selected = dropdown.selected();
+                            if let Some(item) = model.item(selected) {
+                                if let Some(name) = item.downcast_ref::<gtk4::StringObject>() {
+                                    sender.input(NavBarInput::ScreenChanged(name.string().to_string()));
+                                }
+                            }
+                        }
                     },
                 },
             },
@@ -110,11 +117,26 @@ impl Component for NavBar {
         let menu_model = gtk4::gio::Menu::new();
         menu_model.append(Some("关于"), Some("nav.about"));
 
+        // 检测真实屏幕
+        let screen_manager = ScreenManager::new();
+        let screens = screen_manager.names();
+        
+        // 如果没有检测到屏幕，使用默认值
+        let screen_names: Vec<&str> = if screens.is_empty() {
+            vec!["Default"]
+        } else {
+            screens.iter().map(|s| s.as_str()).collect()
+        };
+
         let model = Self {
             compact_mode: false,
+            screens: screens.clone(),
         };
 
         let widgets = view_output!();
+        
+        // 更新屏幕选择器
+        widgets.screen_selector.set_model(Some(&gtk4::StringList::new(&screen_names)));
 
         ComponentParts { model, widgets }
     }
