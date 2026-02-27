@@ -141,15 +141,18 @@ impl Component for App {
                     set_margin_all: 6,
 
                     gtk4::Button {
-                        set_label: "壁纸",
+                        set_icon_name: "view-grid-symbolic",
+                        set_tooltip_text: Some("壁纸"),
                         connect_clicked => AppMsg::NavigateTo(AppPage::Wallpapers),
                     },
                     gtk4::Button {
-                        set_label: "设置",
+                        set_icon_name: "preferences-system-symbolic",
+                        set_tooltip_text: Some("设置"),
                         connect_clicked => AppMsg::NavigateTo(AppPage::Settings),
                     },
                     gtk4::Button {
-                        set_label: "性能",
+                        set_icon_name: "speedometer-symbolic",
+                        set_tooltip_text: Some("性能"),
                         connect_clicked => AppMsg::NavigateTo(AppPage::Performance),
                     },
                 },
