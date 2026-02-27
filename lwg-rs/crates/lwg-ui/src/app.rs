@@ -51,6 +51,8 @@ pub struct App {
     thumbnail_cache: Arc<ThumbnailCache>,
     nickname_manager: Arc<Mutex<NicknameManager>>,
     history_manager: Arc<Mutex<HistoryManager>>,
+    // Store Stack reference for page switching
+    main_stack: gtk4::Stack,
 }
 
 #[derive(Debug)]
@@ -195,7 +197,7 @@ impl Component for App {
             }
         }
 
-        let model = Self {
+        let mut model = Self {
             current_page: AppPage::Wallpapers,
             navbar,
             wallpaper_list,
@@ -208,6 +210,7 @@ impl Component for App {
             thumbnail_cache,
             nickname_manager,
             history_manager,
+            main_stack: gtk4::Stack::new(), // Temporary, will be replaced after view_output
         };
 
         let widgets = view_output!();
@@ -236,6 +239,9 @@ impl Component for App {
         widgets.main_stack.add_named(model.performance_page.widget(), Some("performance"));
 
         widgets.main_stack.set_visible_child(&wallpapers_paned);
+        
+        // Update model's main_stack with the actual widget from view
+        model.main_stack = widgets.main_stack.clone();
 
         ComponentParts { model, widgets }
     }
@@ -244,6 +250,12 @@ impl Component for App {
         match msg {
             AppMsg::NavigateTo(page) => {
                 self.current_page = page;
+                let page_name = match page {
+                    AppPage::Wallpapers => "wallpapers",
+                    AppPage::Settings => "settings",
+                    AppPage::Performance => "performance",
+                };
+                self.main_stack.set_visible_child_name(page_name);
             }
             AppMsg::NavBarMessage(nav_output) => {
                 match nav_output {

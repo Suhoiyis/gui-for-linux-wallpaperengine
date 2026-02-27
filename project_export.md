@@ -1,6 +1,6 @@
 # 项目结构与文件内容导出 (Rust Project)
 
-**生成时间**: 2026-02-27 00:37:30
+**生成时间**: 2026-02-27 11:17:23
 **根目录**: `/home/yua/suw`
 ---
 
@@ -3333,6 +3333,7 @@ dependencies = [
  "relm4-components",
  "serde_json",
  "tokio",
+ "tracing",
  "which",
 ]
 
@@ -6280,6 +6281,8 @@ mod tests {
 ### 📄 文件: `lwg-rs/crates/lwg-core/src/lib.rs`
 
 ```rust
+pub mod controller;
+
 pub mod config;
 pub mod logger;
 pub mod performance;
@@ -8419,6 +8422,8 @@ image = { workspace = true }
 lru = { workspace = true }
 libc = "0.2"
 
+tracing = { workspace = true }
+
 ```
 
 ---
@@ -8511,14 +8516,21 @@ use gtk4::prelude::*;
 use relm4::prelude::*;
 use libadwaita as adw;
 use std::time::Duration;
+use tracing::{info, debug, error, warn};
 
 use crate::navbar::{NavBar, NavBarOutput};
 use crate::wallpaper_list::{WallpaperList, WallpaperListInput, WallpaperListOutput};
 use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
 use crate::performance_page::{PerformancePage, PerformancePageInput};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use lwg_core::wallpaper::WallpaperManager;
-use lwg_core::config::ConfigManager;
+use lwg_core::config::{ConfigManager, AppConfig};
 use lwg_core::performance::PerformanceMonitor;
+use lwg_core::controller::WallpaperController;
+use crate::thumbnail_cache::ThumbnailCache;
+use lwg_core::history::HistoryManager;
+use lwg_core::nickname::NicknameManager;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AppPage {
@@ -8545,6 +8557,11 @@ pub struct App {
     settings_page: Controller<crate::settings_page::SettingsPage>,
     performance_page: Controller<PerformancePage>,
     wallpaper_manager: Option<WallpaperManager>,
+    config: Arc<Mutex<AppConfig>>,
+    wallpaper_controller: Arc<Mutex<WallpaperController>>,
+    thumbnail_cache: Arc<ThumbnailCache>,
+    nickname_manager: Arc<Mutex<NicknameManager>>,
+    history_manager: Arc<Mutex<HistoryManager>>,
 }
 
 #[derive(Debug)]
@@ -8615,12 +8632,36 @@ impl Component for App {
         _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
+        // 初始化配置管理器和共享配置
+        let config_manager = ConfigManager::new().expect("无法初始化配置管理器");
+        let config = Arc::new(Mutex::new(config_manager.config.clone()));
+        
+        // 初始化缩略图缓存
+        let thumbnail_cache = Arc::new(ThumbnailCache::new(100));
+        
+        // 初始化 NicknameManager
+        let config_dir = std::path::PathBuf::from(
+            std::env::var("XDG_CONFIG_HOME")
+                .unwrap_or_else(|_| format!("{}/.config", std::env::var("HOME").unwrap_or_default()))
+        ).join("linux-wallpaperengine-gui");
+        
+        let nickname_manager = Arc::new(Mutex::new(
+            lwg_core::nickname::NicknameManager::new(&config_dir)
+        ));
+        
+        let history_manager = Arc::new(Mutex::new(
+            lwg_core::history::HistoryManager::new(&config_dir)
+        ));
+        
+        // 初始化控制器
+        let wallpaper_controller = Arc::new(Mutex::new(WallpaperController::new(config.clone())));
+        
         let navbar = NavBar::builder()
             .launch(())
             .forward(sender.input_sender(), |output| AppMsg::NavBarMessage(output));
 
         let wallpaper_list = WallpaperList::builder()
-            .launch(())
+            .launch(thumbnail_cache.clone())
             .forward(sender.input_sender(), |output| AppMsg::WallpaperListMessage(output));
 
         let sidebar = Sidebar::builder()
@@ -8648,36 +8689,20 @@ impl Component for App {
 
         // 初始化 WallpaperManager
         let mut wallpaper_manager: Option<WallpaperManager> = None;
+        let workshop_path = config_manager.config.assets_path.clone();
         
-        match ConfigManager::new() {
-            Ok(config) => {
-                match &config.config.assets_path {
-                    Some(workshop_path) => {
-                        eprintln!("使用 Workshop 路径：{}", workshop_path);
-                        let mut wm = WallpaperManager::new(workshop_path);
-                        match wm.scan() {
-                            Ok(wallpapers) => {
-                                let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
-                                eprintln!("✅ 扫描到 {} 个壁纸", wallpapers_vec.len());
-                                wallpaper_manager = Some(wm);
-                                
-                                let sender_clone = sender.input_sender().clone();
-                                std::thread::spawn(move || {
-                                    sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
-                                });
-                            }
-                            Err(e) => {
-                                eprintln!("❌ 扫描壁纸失败：{:?}", e);
-                            }
-                        }
-                    }
-                    None => {
-                        eprintln!("⚠️  未配置 Workshop 路径");
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("❌ 加载配置失败：{:?}", e);
+        if let Some(path) = workshop_path {
+            info!("Using Workshop path: {}", path);
+            let mut wm = WallpaperManager::new(path);
+            if let Ok(wallpapers) = wm.scan() {
+                let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
+                info!("Scanned {} wallpapers", wallpapers_vec.len());
+                wallpaper_manager = Some(wm);
+                
+                let sender_clone = sender.input_sender().clone();
+                std::thread::spawn(move || {
+                    sender_clone.send(AppMsg::WallpapersScanned(wallpapers_vec)).ok();
+                });
             }
         }
 
@@ -8689,6 +8714,11 @@ impl Component for App {
             settings_page,
             performance_page,
             wallpaper_manager,
+            config,
+            wallpaper_controller,
+            thumbnail_cache,
+            nickname_manager,
+            history_manager,
         };
 
         let widgets = view_output!();
@@ -8721,7 +8751,7 @@ impl Component for App {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             AppMsg::NavigateTo(page) => {
                 self.current_page = page;
@@ -8729,73 +8759,186 @@ impl Component for App {
             AppMsg::NavBarMessage(nav_output) => {
                 match nav_output {
                     NavBarOutput::CompactModeToggled(enabled) => {
-                        eprintln!("紧凑模式：{}", enabled);
+                        info!("Compact mode toggled: {}", enabled);
+                        // TODO: Implement compact window toggle
                     }
                     NavBarOutput::HistoryRequested => {
-                        eprintln!("请求历史记录");
+                        info!("History requested");
+                        // TODO: Implement history dialog when HistoryManager is connected
                     }
                     NavBarOutput::AboutRequested => {
-                        eprintln!("请求关于");
+                        info!("About requested");
+                        // Show a simple about dialog
+                        let dialog = gtk4::Dialog::builder()
+                            .title("关于")
+                            .modal(true)
+                            .build();
+                        let content = dialog.content_area();
+                        let label = gtk4::Label::new(Some("Linux Wallpaper Engine GUI\n\nVersion: 2.0.0 (Rust)\n\nA modern GTK4 interface for managing Steam Workshop live wallpapers."));
+                        label.set_margin_all(12);
+                        label.set_wrap(true);
+                        content.append(&label);
+                        dialog.add_button("确定", gtk4::ResponseType::Ok);
+                        dialog.connect_response(|d, _| d.close());
+                        dialog.show();
                     }
                     NavBarOutput::ScreenChanged(screen) => {
-                        eprintln!("屏幕切换：{}", screen);
+                        info!("Screen changed: {}", screen);
+                        // TODO: Update config.last_screen
                     }
                 }
             }
             AppMsg::UpdatePerformance(cpu, memory) => {
-                eprintln!("📊 CPU: {:.1}% | 内存：{:.0} MB", cpu, memory);
-                // 发送数据到 PerformancePage
+                debug!("Performance: CPU {:.1}% | Memory {:.0} MB", cpu, memory);
                 self.performance_page.emit(PerformancePageInput::UpdateStats(cpu, memory));
             }
             AppMsg::WallpapersScanned(wallpapers) => {
-                eprintln!("📋 加载 {} 个壁纸到列表", wallpapers.len());
-                self.wallpaper_list
-                    .emit(WallpaperListInput::LoadWallpapers(wallpapers));
+                info!("Loaded {} wallpapers", wallpapers.len());
+                self.wallpaper_list.emit(WallpaperListInput::LoadWallpapers(wallpapers));
             }
             AppMsg::WallpaperListMessage(output) => {
                 match output {
                     WallpaperListOutput::Selected(id) => {
-                        eprintln!("🎨 壁纸选中：{}", id);
+                        debug!("Wallpaper selected: {}", id);
+                        if let Some(ref wm) = self.wallpaper_manager {
+                            if let Some(wp) = wm.get(&id) {
+                                let info = crate::sidebar::WallpaperInfo {
+                                    id: wp.id.clone(),
+                                    title: wp.title.clone(),
+                                    wallpaper_type: wp.wp_type.clone(),
+                                    size: format!("{:.1} MB", wp.size as f64 / 1024.0 / 1024.0),
+                                };
+                                self.sidebar.emit(crate::sidebar::SidebarInput::SelectWallpaper(info));
+                            }
+                        }
                     }
                     WallpaperListOutput::Activated(id) => {
-                        eprintln!("▶️  壁纸激活：{}", id);
+                        info!("Wallpaper activated: {}", id);
+                        let controller = self.wallpaper_controller.clone();
+                        tokio::spawn(async move {
+                            let mut controller = controller.lock().await;
+                            if let Err(e) = controller.apply(&id, None).await {
+                                error!("Failed to apply wallpaper: {:?}", e);
+                            } else {
+                                info!("Wallpaper applied: {}", id);
+                            }
+                        });
                     }
                 }
             }
             AppMsg::SidebarMessage(output) => {
                 match output {
                     SidebarOutput::ApplyRequested(id) => {
-                        eprintln!("💾 应用壁纸：{}", id);
+                        info!("Applying wallpaper: {}", id);
+                        let controller = self.wallpaper_controller.clone();
+                        tokio::spawn(async move {
+                            let mut controller = controller.lock().await;
+                            if let Err(e) = controller.apply(&id, None).await {
+                                error!("Failed to apply wallpaper: {:?}", e);
+                            } else {
+                                info!("Wallpaper applied: {}", id);
+                            }
+                        });
                     }
-                    SidebarOutput::NicknameChanged(id, nickname) => {
-                        eprintln!("🏷️  昵称变更：{} -> {}", id, nickname);
+SidebarOutput::NicknameChanged(id, nickname) => {
+                        let nickname_manager = self.nickname_manager.clone();
+                        tokio::spawn(async move {
+                            let mut nm = nickname_manager.lock().await;
+                            if let Err(e) = nm.set(&id, &nickname) {
+                                error!("Failed to set nickname: {}", e);
+                            } else {
+                                info!("Nickname saved: {} -> {}", id, nickname);
+                            }
+                        });
                     }
-                    SidebarOutput::DeleteRequested(id) => {
-                        eprintln!("🗑️  删除壁纸：{}", id);
+SidebarOutput::DeleteRequested(id) => {
+                        info!("Deleting wallpaper: {}", id);
+                        if let Some(ref mut wm) = self.wallpaper_manager {
+                            match wm.delete(&id) {
+                                Ok(true) => {
+                                    info!("Wallpaper deleted: {}", id);
+                                    // Refresh the wallpaper list
+                                    if let Ok(wallpapers) = wm.scan() {
+                                        let wallpapers_vec: Vec<_> = wallpapers.values().cloned().collect();
+                                        self.wallpaper_list.emit(WallpaperListInput::LoadWallpapers(wallpapers_vec));
+                                    }
+                                }
+                                Ok(false) => warn!("Wallpaper not found: {}", id),
+                                Err(e) => error!("Failed to delete wallpaper: {}", e),
+                            }
+                        }
                     }
-                    SidebarOutput::OpenFolderRequested(id) => {
-                        eprintln!("📂 打开文件夹：{}", id);
+SidebarOutput::OpenFolderRequested(id) => {
+                        debug!("Opening folder: {}", id);
+                        if let Some(ref wm) = self.wallpaper_manager {
+                            if let Some(wp) = wm.get(&id) {
+                                let path = wp.preview.parent().unwrap_or(&wp.preview);
+                                // Try multiple file managers
+                                for fm in &["thunar", "nautilus", "dolphin", "xdg-open"] {
+                                    if which::which(fm).is_ok() {
+                                        if let Err(e) = std::process::Command::new(fm)
+                                            .arg(path)
+                                            .spawn()
+                                        {
+                                            error!("Failed to open folder with {}: {}", fm, e);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
                     SidebarOutput::WallpaperSelected(id, title, wp_type, size) => {
-                        eprintln!("📄 壁纸详情：{} - {} ({} / {})", id, title, wp_type, size);
+                        debug!("Wallpaper details: {} - {} ({} / {})", id, title, wp_type, size);
                     }
                 }
             }
             AppMsg::SettingsPageMessage(output) => {
                 match output {
                     crate::settings_page::SettingsPageOutput::ConfigChanged(key, value) => {
-                        eprintln!("⚙️  设置变更：{} = {:?}", key, value);
+                        info!("Config changed: {} = {:?}", key, value);
+                        let config = self.config.clone();
+                        tokio::spawn(async move {
+                            let mut cfg = config.lock().await;
+                            match key.as_str() {
+                                "fps" => if let Some(v) = value.as_u64() { cfg.fps = v as u32; },
+                                "volume" => if let Some(v) = value.as_u64() { cfg.volume = v as u32; },
+                                "silence" => if let Some(v) = value.as_bool() { cfg.silence = v; },
+                                "scaling" => if let Some(v) = value.as_str() { cfg.scaling = v.to_string(); },
+                                "no_fullscreen_pause" => if let Some(v) = value.as_bool() { cfg.no_fullscreen_pause = v; },
+                                "disable_mouse" => if let Some(v) = value.as_bool() { cfg.disable_mouse = v; },
+                                "no_auto_mute" => if let Some(v) = value.as_bool() { cfg.no_auto_mute = v; },
+                                "no_audio_processing" => if let Some(v) = value.as_bool() { cfg.no_audio_processing = v; },
+                                "disable_parallax" => if let Some(v) = value.as_bool() { cfg.disable_parallax = v; },
+                                "disable_particles" => if let Some(v) = value.as_bool() { cfg.disable_particles = v; },
+                                "clamping" => if let Some(v) = value.as_str() { cfg.clamping = v.to_string(); },
+                                "screenshot_delay" => if let Some(v) = value.as_u64() { cfg.screenshot_delay = v as u32; },
+                                "screenshot_res" => if let Some(v) = value.as_str() { cfg.screenshot_res = v.to_string(); },
+                                "prefer_xvfb" => if let Some(v) = value.as_bool() { cfg.prefer_xvfb = v; },
+                                "cycle_enabled" => if let Some(v) = value.as_bool() { cfg.cycle_enabled = v; },
+                                "cycle_interval" => if let Some(v) = value.as_u64() { cfg.cycle_interval = v as u32; },
+                                "cycle_order" => if let Some(v) = value.as_str() { cfg.cycle_order = v.to_string(); },
+                                "wayland_only_active" => if let Some(v) = value.as_bool() { cfg.wayland_only_active = v; },
+                                "wayland_ignore_appids" => if let Some(v) = value.as_str() { cfg.wayland_ignore_appids = v.to_string(); },
+                                "compact_mode" => if let Some(v) = value.as_bool() { cfg.compact_mode = v; },
+                                _ => warn!("Unknown config key: {}", key),
+                            }
+                            // TODO: Save to file
+                        });
                     }
                     crate::settings_page::SettingsPageOutput::PathSelected(category, path) => {
-                        eprintln!("📁 路径选择：{} = {}", category, path);
+                        info!("Path selected: {} = {}", category, path);
+                        // TODO: Update config paths and open file chooser if needed
                     }
                     crate::settings_page::SettingsPageOutput::OpenNicknameManager => {
-                        eprintln!("打开昵称管理器");
+                        info!("Opening nickname manager");
+                        // TODO: Open nickname manager dialog
                     }
                 }
             }
         }
     }
+
 }
 
 ```
@@ -9491,6 +9634,8 @@ impl Component for HistoryDialog {
 ### 📄 文件: `lwg-rs/crates/lwg-ui/src/lib.rs`
 
 ```rust
+pub mod thumbnail_cache;
+
 pub mod context_menu;
 pub mod properties_editor;
 pub mod tray_manager;
@@ -10693,6 +10838,7 @@ impl Component for Sidebar {
                     set_label: "应用壁纸",
                     set_halign: gtk4::Align::End,
                     add_css_class: "suggested-action",
+                    connect_clicked => SidebarInput::ApplyWallpaper,
                     set_sensitive: model.selected_wallpaper.is_some(),
                 },
             },
@@ -11082,7 +11228,9 @@ impl SimpleComponent for TestApp {
 ### 📄 文件: `lwg-rs/crates/lwg-ui/src/thumbnail_cache.rs`
 
 ```rust
+use gtk4::prelude::*;
 use gtk4::gdk::{self, Texture};
+
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -11090,7 +11238,7 @@ use std::path::Path;
 use tokio::sync::Mutex;
 use tracing::{debug, warn};
 
-/// 缩略图缓存（LRU 策略，上限 80）
+#[derive(Debug)]
 pub struct ThumbnailCache {
     cache: Arc<Mutex<LruCache<String, Texture>>>,
 }
@@ -11114,7 +11262,9 @@ impl ThumbnailCache {
     /// 插入缩略图
     pub async fn insert(&self, key: String, texture: Texture) {
         let mut cache = self.cache.lock().await;
-        cache.put(key, texture);
+        cache.put(key.clone(), texture);
+        debug!("缩略图缓存：{} (当前大小：{})", key, cache.len());
+
         debug!("缩略图缓存：{} (当前大小：{})", key, cache.len());
     }
     
@@ -11137,16 +11287,16 @@ impl ThumbnailCache {
         }
     }
     
-    /// 加载普通图像缩略图（JPG/PNG）
     fn load_image_thumbnail(path: &Path) -> Option<Texture> {
-        Texture::from_file(path).ok()
+        let file = gtk4::gio::File::for_path(path);
+        Texture::from_file(&file).ok()
     }
+
     
-    /// 加载 GIF 缩略图（智能提取第 15 帧，避免黑屏）
     fn load_gif_thumbnail(path: &Path) -> Option<Texture> {
         // 使用 image crate 读取 GIF
         let file = std::fs::File::open(path).ok()?;
-        let mut decoder = gif::Decoder::new(file);
+        let mut decoder = gif::Decoder::new(file).ok()?;
         
         // 尝试提取第 15 帧（避免第一帧黑屏）
         let mut frame_num = 0;
@@ -11164,10 +11314,10 @@ impl ThumbnailCache {
         // 如果 GIF 少于 15 帧，使用最后一帧
         if target_frame.is_none() && frame_num > 0 {
             let file = std::fs::File::open(path).ok()?;
-            let mut decoder = gif::Decoder::new(file);
+            let mut decoder = gif::Decoder::new(file).ok()?;
             let mut last_frame = None;
             
-            while let Ok(Some(frame)) = decoder.read_frame_info() {
+            while let Ok(Some(frame)) = decoder.next_frame_info() {
                 last_frame = Some(frame.clone());
             }
             target_frame = last_frame;
@@ -11181,18 +11331,22 @@ impl ThumbnailCache {
             
             // 创建 Gdk::Texture
             let rowstride = width as usize * 4;
-            gdk::MemoryTexture::new(
+            let bytes = glib::Bytes::from(&data);
+            
+            Some(gdk::MemoryTexture::new(
                 width as i32,
                 height as i32,
                 gdk::MemoryFormat::R8g8b8a8,
-                &data,
+                &bytes,
                 rowstride,
-            ).map(|t| t.upcast())
+            ).upcast())
         } else {
             // 回退到直接加载
-            Texture::from_file(path).ok()
+            let file = gtk4::gio::File::for_path(path);
+            Texture::from_file(&file).ok()
         }
     }
+
     
     /// 清除所有缓存
     pub async fn clear(&self) {
@@ -11221,7 +11375,7 @@ mod tests {
     #[test]
     fn test_cache_capacity() {
         let cache = ThumbnailCache::new(80);
-        assert_eq!(cache.cache.blocking_lock().capacity(), 80);
+        assert_eq!(cache.cache.blocking_lock().cap().get(), 80);
     }
 }
 
@@ -11833,19 +11987,133 @@ mod tests {
 ```rust
 use gtk4::prelude::*;
 use relm4::prelude::*;
+use relm4::factory::FactoryVecDeque;
 use lwg_core::wallpaper::Wallpaper;
+use crate::thumbnail_cache::ThumbnailCache;
+use std::sync::Arc;
 
-/// 壁纸列表组件
+#[derive(Debug)]
+pub struct WallpaperCard {
+    wallpaper: Wallpaper,
+    is_selected: bool,
+    thumbnail_cache: Arc<ThumbnailCache>,
+    texture: Option<gtk4::gdk::Texture>,
+}
+
+#[derive(Debug)]
+pub enum WallpaperCardInput {
+    Select(bool),
+    ThumbnailLoaded(gtk4::gdk::Texture),
+}
+
+#[derive(Debug)]
+pub enum WallpaperCardOutput {
+    Selected(String),
+    Activated(String),
+}
+
+#[relm4::factory(pub)]
+impl FactoryComponent for WallpaperCard {
+    type Init = (Wallpaper, Arc<ThumbnailCache>);
+    type Input = WallpaperCardInput;
+    type Output = WallpaperCardOutput;
+    type CommandOutput = Option<gtk4::gdk::Texture>;
+
+
+    type ParentWidget = gtk4::FlowBox;
+
+    view! {
+        gtk4::Box {
+            set_orientation: gtk4::Orientation::Vertical,
+            set_spacing: 8,
+            set_width_request: 180,
+            set_height_request: 220,
+            add_css_class: "card",
+            
+            gtk4::Image {
+                set_pixel_size: 120,
+                set_vexpand: true,
+                set_valign: gtk4::Align::Center,
+                set_halign: gtk4::Align::Center,
+                #[track(self.texture.is_some())]
+                set_paintable: self.texture.as_ref().map(|t| t.upcast_ref::<gtk4::gdk::Paintable>()),
+
+                set_icon_name: if self.texture.is_none() { Some("image-x-generic-symbolic") } else { None },
+            },
+
+            gtk4::Label {
+                set_label: &self.wallpaper.title,
+                set_max_width_chars: 18,
+                set_ellipsize: gtk4::pango::EllipsizeMode::End,
+                set_halign: gtk4::Align::Center,
+                add_css_class: "caption",
+            },
+        }
+    }
+
+    fn init_model(init: Self::Init, _index: &DynamicIndex, sender: FactorySender<Self>) -> Self {
+        let (wallpaper, thumbnail_cache) = init;
+        
+        let preview_path = wallpaper.preview.clone();
+        let cache_clone = thumbnail_cache.clone();
+        let id_clone = wallpaper.id.clone();
+        
+        sender.command(|cmd_sender, _| async move {
+            let id = id_clone.clone();
+            // 先尝试从缓存获取
+            if let Some(texture) = cache_clone.get(&id).await {
+                cmd_sender.send(Some(texture)).ok();
+                return;
+            }
+            
+            // 否则从文件加载
+            if let Some(texture) = ThumbnailCache::load_from_file(&preview_path) {
+                cache_clone.insert(id.clone(), texture.clone()).await;
+                cmd_sender.send(Some(texture)).ok();
+            } else {
+                cmd_sender.send(None).ok();
+            }
+        });
+
+
+        Self {
+            wallpaper,
+            is_selected: false,
+            thumbnail_cache,
+            texture: None,
+        }
+    }
+
+    fn update(&mut self, msg: Self::Input, _sender: FactorySender<Self>) {
+        match msg {
+            WallpaperCardInput::Select(selected) => {
+                self.is_selected = selected;
+            }
+            WallpaperCardInput::ThumbnailLoaded(texture) => {
+                self.texture = Some(texture);
+            }
+        }
+    }
+    fn update_cmd(&mut self, msg: Self::CommandOutput, sender: FactorySender<Self>) {
+        if let Some(texture) = msg {
+            sender.input(WallpaperCardInput::ThumbnailLoaded(texture));
+        }
+    }
+
+}
+
 pub struct WallpaperList {
-    wallpapers: Vec<Wallpaper>,
+    wallpapers: FactoryVecDeque<WallpaperCard>,
     selected_id: Option<String>,
+    wallpaper_data: Vec<Wallpaper>,
+    thumbnail_cache: Arc<ThumbnailCache>,
 }
 
 #[derive(Debug)]
 pub enum WallpaperListInput {
     LoadWallpapers(Vec<Wallpaper>),
     SelectWallpaper(String),
-    ScrollTo(String),
+    SelectIndex(usize),
 }
 
 #[derive(Debug)]
@@ -11856,7 +12124,7 @@ pub enum WallpaperListOutput {
 
 #[relm4::component(pub)]
 impl Component for WallpaperList {
-    type Init = ();
+    type Init = Arc<ThumbnailCache>;
     type Input = WallpaperListInput;
     type Output = WallpaperListOutput;
     type CommandOutput = ();
@@ -11866,145 +12134,73 @@ impl Component for WallpaperList {
             set_hexpand: true,
             set_vexpand: true,
 
-            #[name = "list_box"]
-            gtk4::ListBox {
+            #[local_ref]
+            flow_box -> gtk4::FlowBox {
                 set_selection_mode: gtk4::SelectionMode::Single,
-
-                connect_row_selected[sender] => move |_, row| {
-                    if let Some(row) = row {
-                        let index = row.index();
-                        sender.input(WallpaperListInput::SelectWallpaper(index.to_string()));
+                set_max_children_per_line: 10,
+                set_min_children_per_line: 2,
+                set_column_spacing: 12,
+                set_row_spacing: 12,
+                set_margin_all: 12,
+                
+                connect_selected_children_changed[sender] => move |fb| {
+                    if let Some(child) = fb.selected_children().first() {
+                        sender.input(WallpaperListInput::SelectIndex(child.index() as usize));
                     }
                 },
-
-                connect_row_activated[sender] => move |_, row| {
-                    let index = row.index();
-                    sender.input(WallpaperListInput::SelectWallpaper(index.to_string()));
-                    // TODO: 发送 Activated 信号
-                },
-            },
+            }
         }
     }
 
     fn init(
-        _init: Self::Init,
+        init: Self::Init,
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
+        let wallpapers = FactoryVecDeque::builder()
+            .launch(gtk4::FlowBox::default())
+            .forward(sender.input_sender(), |output| match output {
+                WallpaperCardOutput::Selected(id) => WallpaperListInput::SelectWallpaper(id),
+                WallpaperCardOutput::Activated(id) => WallpaperListInput::SelectWallpaper(id),
+            });
+
         let model = Self {
-            wallpapers: Vec::new(),
+            wallpapers,
             selected_id: None,
+            wallpaper_data: Vec::new(),
+            thumbnail_cache: init,
         };
 
+        let flow_box = model.wallpapers.widget();
         let widgets = view_output!();
 
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, root: &Self::Root) {
+    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
             WallpaperListInput::LoadWallpapers(wallpapers) => {
-                self.wallpapers = wallpapers;
-                self.refresh_list(root);
+                self.wallpaper_data = wallpapers.clone();
+                let mut guard = self.wallpapers.guard();
+                guard.clear();
+                for wp in wallpapers {
+                    guard.push_back((wp, self.thumbnail_cache.clone()));
+                }
             }
             WallpaperListInput::SelectWallpaper(id) => {
                 self.selected_id = Some(id.clone());
                 sender.output(WallpaperListOutput::Selected(id)).ok();
             }
-            WallpaperListInput::ScrollTo(id) => {
-                // TODO: 滚动到指定壁纸
+            WallpaperListInput::SelectIndex(index) => {
+                if let Some(wp) = self.wallpaper_data.get(index) {
+                    let id = wp.id.clone();
+                    self.selected_id = Some(id.clone());
+                    sender.output(WallpaperListOutput::Selected(id)).ok();
+                }
             }
         }
     }
 }
-
-impl WallpaperList {
-    /// 刷新列表显示
-    fn refresh_list(&self, root: &gtk4::ScrolledWindow) {
-        // TODO: 实现完整的列表刷新逻辑
-        // 包括：
-        // 1. 清空现有列表
-        // 2. 根据视图模式（网格/列表）创建不同的项
-        // 3. 添加缩略图
-        // 4. 添加标题和信息
-    }
-
-    /// 创建网格视图项
-    fn create_grid_item(&self, wallpaper: &Wallpaper) -> gtk4::Widget {
-        let box_widget = gtk4::Box::new(gtk4::Orientation::Vertical, 8);
-        box_widget.set_width_request(200);
-        box_widget.set_height_request(180);
-        box_widget.add_css_class("card");
-
-        // 缩略图占位
-        let image = gtk4::Image::from_icon_name("image-x-generic-symbolic");
-        image.set_pixel_size(96);
-        image.set_vexpand(true);
-        image.set_valign(gtk4::Align::Center);
-        image.set_halign(gtk4::Align::Center);
-
-        // 标题
-        let title = gtk4::Label::new(Some(&wallpaper.title));
-        title.set_max_width_chars(20);
-        title.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-        title.set_halign(gtk4::Align::Center);
-
-        box_widget.append(&image);
-        box_widget.append(&title);
-
-        box_widget.upcast()
-    }
-
-    /// 创建列表视图项
-    fn create_list_item(&self, wallpaper: &Wallpaper) -> gtk4::Widget {
-        let box_widget = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
-        box_widget.set_margin_all(12);
-
-        // 缩略图
-        let image = gtk4::Image::from_icon_name("image-x-generic-symbolic");
-        image.set_pixel_size(48);
-
-        // 信息区域
-        let info_box = gtk4::Box::new(gtk4::Orientation::Vertical, 4);
-        info_box.set_hexpand(true);
-
-        let title = gtk4::Label::new(Some(&wallpaper.title));
-        title.add_css_class("heading");
-        title.set_halign(gtk4::Align::Start);
-
-        let subtitle = gtk4::Label::new(Some(&format!("{} • {}", wallpaper.wp_type, self.format_size(wallpaper.size))));
-        subtitle.add_css_class("dim-label");
-        subtitle.set_halign(gtk4::Align::Start);
-
-        info_box.append(&title);
-        info_box.append(&subtitle);
-
-        // 索引
-        let index = gtk4::Label::new(Some(&format!("#{}", wallpaper.id)));
-        index.add_css_class("dim-label");
-
-        box_widget.append(&image);
-        box_widget.append(&info_box);
-        box_widget.append(&index);
-
-        box_widget.upcast()
-    }
-
-    /// 格式化文件大小
-    fn format_size(&self, bytes: u64) -> String {
-        const KB: u64 = 1024;
-        const MB: u64 = KB * 1024;
-
-        if bytes >= MB {
-            format!("{:.1} MB", bytes as f64 / MB as f64)
-        } else if bytes >= KB {
-            format!("{:.1} KB", bytes as f64 / KB as f64)
-        } else {
-            format!("{} B", bytes)
-        }
-    }
-}
-
 ```
 
 ---
