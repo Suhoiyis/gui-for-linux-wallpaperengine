@@ -1,25 +1,38 @@
 use crate::config::AppConfig;
 use crate::error::{LwgError, LwgResult};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, warn};
 
-/// 壁纸进程控制器
 pub struct WallpaperController {
     config: Arc<Mutex<AppConfig>>,
     current_proc: Option<Child>,
     last_command: Vec<String>,
+    engine_log: Option<File>,
+    log_path: PathBuf,
 }
 
 impl WallpaperController {
     /// 创建新的控制器
     pub fn new(config: Arc<Mutex<AppConfig>>) -> Self {
+        // 获取日志文件路径
+        let config_dir = dirs::config_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("linux-wallpaperengine-gui");
+        let log_path = config_dir.join("engine_last.log");
+        
         Self {
             config,
             current_proc: None,
             last_command: Vec::new(),
+            engine_log: None,
+            log_path,
         }
     }
     
@@ -200,17 +213,74 @@ impl WallpaperController {
         
         debug!("Executing: linux-wallpaperengine {:?}", command_vec);
         
-        // 启动进程
-        cmd.stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .stdin(Stdio::null());
+        // 创建日志目录
+        if let Some(parent) = self.log_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
         
-        match cmd.spawn() {
-            Ok(child) => {
-                info!("Engine started successfully (PID: {:?})", child.id());
+        // 打开日志文件
+        let engine_log = match File::create(&self.log_path) {
+            Ok(f) => f,
+            Err(e) => {
+                error!("Failed to create log file: {}", e);
+                return Err(LwgError::ProcessError(format!("Failed to create log file: {}", e)));
+            }
+        };
+        
+        // 启动进程，将 stdout/stderr 重定向到日志文件
+        // 设置 LD_LIBRARY_PATH 以找到 libcef.so 等库
+        let child = cmd
+            .env("LD_LIBRARY_PATH", "/opt/linux-wallpaperengine:/opt/linux-wallpaperengine/lib")
+            .stdout(engine_log.try_clone().unwrap_or_else(|_| File::create(&self.log_path).unwrap()))
+            .stderr(engine_log.try_clone().unwrap_or_else(|_| File::create(&self.log_path).unwrap()))
+            .stdin(Stdio::null())
+            .spawn();
+        
+        match child {
+            Ok(mut child) => {
+                let pid = child.id();
+                info!("Engine started (PID: {:?}), checking if process stays alive...", pid);
+                
+                // 保存进程和日志文件句柄
                 self.current_proc = Some(child);
+                self.engine_log = Some(engine_log);
                 self.last_command = command_vec;
-                Ok(())
+                
+                // 等待 0.5 秒检查进程是否存活
+                std::thread::sleep(Duration::from_millis(500));
+                
+                // 检查进程是否已退出
+                if let Some(ref mut proc) = self.current_proc {
+                    match proc.try_wait() {
+                        Ok(Some(status)) => {
+                            // 进程已退出，读取日志内容报告错误
+                            error!("Engine process exited immediately with status: {}", status);
+                            
+                            let log_content = std::fs::read_to_string(&self.log_path)
+                                .unwrap_or_else(|_| "Unable to read log file".to_string());
+                            
+                            // 关闭日志文件句柄
+                            self.engine_log = None;
+                            self.current_proc = None;
+                            
+                            Err(LwgError::ProcessError(format!(
+                                "Engine exited immediately!\nStatus: {}\nLog:\n{}", 
+                                status, log_content
+                            )))
+                        }
+                        Ok(None) => {
+                            // 进程仍在运行
+                            info!("Engine is running successfully (PID: {:?})", pid);
+                            Ok(())
+                        }
+                        Err(e) => {
+                            error!("Failed to check process status: {}", e);
+                            Err(LwgError::ProcessError(format!("Failed to check process status: {}", e)))
+                        }
+                    }
+                } else {
+                    Ok(())
+                }
             }
             Err(e) => {
                 error!("Failed to start engine: {}", e);
@@ -223,6 +293,11 @@ impl WallpaperController {
     pub async fn stop(&mut self) {
         info!("Stopping wallpaper");
         
+        // 关闭日志文件句柄
+        if let Some(mut log) = self.engine_log.take() {
+            let _ = log.flush();
+        }
+        
         if let Some(mut child) = self.current_proc.take() {
             let _ = child.kill();
         }
@@ -234,8 +309,6 @@ impl WallpaperController {
             .stderr(Stdio::null())
             .status();
     }
-    
-    /// 检查引擎是否正在运行
     pub fn is_running(&self) -> bool {
         if let Some(pid) = self.current_proc.as_ref().map(|c| c.id()) {
             std::path::Path::new(&format!("/proc/{}", pid)).exists()
