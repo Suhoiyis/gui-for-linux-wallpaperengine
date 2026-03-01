@@ -1,0 +1,12 @@
+[package]
+name = "lwg-ui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lwg-core = { path = "../lwg-core" }
+# 1. 必须保留 gtk4 依赖
+gtk4 = "0.8"
+relm4 = { version = "0.8", features = ["libadwaita"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = "0.3"

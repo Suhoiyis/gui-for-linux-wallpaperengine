@@ -1,0 +1,9 @@
+[package]
+name = "lwg-tray"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lwg-ipc = { path = "../lwg-ipc" }
+ksni = "0.2" # 托盘库
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

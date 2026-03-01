@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "crates/lwg-ipc",
+    "crates/lwg-core",
+    "crates/lwg-ui",
+    "crates/lwg-tray",
+]
+resolver = "2" # Rust 2021 版本解析器
