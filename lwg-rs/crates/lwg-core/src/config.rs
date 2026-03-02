@@ -6,13 +6,16 @@ use tracing::{debug, info, warn};
 
 /// 应用配置结构体
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     pub fps: u32,
     pub volume: u32,
     pub scaling: String,
+    #[serde(rename = "muteAudio")]
     pub silence: bool,
     pub no_fullscreen_pause: bool,
     pub disable_mouse: bool,
+    #[serde(rename = "noAutomute")]
     pub no_auto_mute: bool,
     pub no_audio_processing: bool,
     pub disable_parallax: bool,
@@ -29,6 +32,7 @@ pub struct AppConfig {
     pub cycle_interval: u32,
     pub cycle_order: String,
     pub assets_path: Option<String>,
+    pub workshop_path: Option<String>,
     pub wayland_only_active: bool,
     pub wayland_ignore_appids: String,
     pub compact_mode: bool,
@@ -60,6 +64,7 @@ impl Default for AppConfig {
             cycle_interval: 15,
             cycle_order: "random".to_string(),
             assets_path: None,
+            workshop_path: None,
             wayland_only_active: false,
             wayland_ignore_appids: String::new(),
             compact_mode: false,
@@ -72,21 +77,24 @@ impl AppConfig {
     /// 合并用户配置与默认值
     pub fn merge_with_default(user_config: serde_json::Value) -> Self {
         let default = Self::default();
-        
+
         if let serde_json::Value::Object(map) = user_config {
             let mut config = default;
-            
+
             // 正确读取所有值，包括 0 和 false
             if let Some(v) = map.get("fps").and_then(|v| v.as_u64()) {
                 config.fps = v as u32;
             }
             if let Some(v) = map.get("volume").and_then(|v| v.as_u64()) {
-                config.volume = v as u32;  // 可以正确读取 0
+                config.volume = v as u32; // 可以正确读取 0
             }
             if let Some(v) = map.get("scaling").and_then(|v| v.as_str()) {
                 config.scaling = v.to_string();
             }
-            if let Some(v) = map.get("silence").and_then(|v| v.as_bool()) {
+            // Support both "silence" (legacy) and "muteAudio" (new)
+            if let Some(v) = map.get("muteAudio").and_then(|v| v.as_bool()) {
+                config.silence = v;
+            } else if let Some(v) = map.get("silence").and_then(|v| v.as_bool()) {
                 config.silence = v;
             }
             if let Some(v) = map.get("noFullscreenPause").and_then(|v| v.as_bool()) {
@@ -95,7 +103,10 @@ impl AppConfig {
             if let Some(v) = map.get("disableMouse").and_then(|v| v.as_bool()) {
                 config.disable_mouse = v;
             }
-            if let Some(v) = map.get("noautomute").and_then(|v| v.as_bool()) {
+            // Support both "noAutomute" (new) and "noautomute" (legacy)
+            if let Some(v) = map.get("noAutomute").and_then(|v| v.as_bool()) {
+                config.no_auto_mute = v;
+            } else if let Some(v) = map.get("noautomute").and_then(|v| v.as_bool()) {
                 config.no_auto_mute = v;
             }
             if let Some(v) = map.get("noAudioProcessing").and_then(|v| v.as_bool()) {
@@ -137,6 +148,9 @@ impl AppConfig {
             if let Some(v) = map.get("assetsPath").and_then(|v| v.as_str()) {
                 config.assets_path = Some(v.to_string());
             }
+            if let Some(v) = map.get("workshopPath").and_then(|v| v.as_str()) {
+                config.workshop_path = Some(v.to_string());
+            }
             if let Some(v) = map.get("waylandOnlyActive").and_then(|v| v.as_bool()) {
                 config.wayland_only_active = v;
             }
@@ -146,10 +160,10 @@ impl AppConfig {
             if let Some(v) = map.get("compactMode").and_then(|v| v.as_bool()) {
                 config.compact_mode = v;
             }
-            
+
             return config;
         }
-        
+
         default
     }
 }
@@ -166,11 +180,11 @@ impl ConfigManager {
         let config_dir = dirs::config_dir()
             .ok_or_else(|| LwgError::ConfigError("无法获取配置目录".to_string()))?
             .join("linux-wallpaperengine-gui");
-        
+
         std::fs::create_dir_all(&config_dir)?;
-        
+
         let config_path = config_dir.join("config.json");
-        
+
         let config = if config_path.exists() {
             let content = std::fs::read_to_string(&config_path)?;
             let user_config: serde_json::Value = serde_json::from_str(&content)?;
@@ -178,41 +192,61 @@ impl ConfigManager {
         } else {
             AppConfig::default()
         };
-        
-        let manager = Self { config, config_path };
+
+        let manager = Self {
+            config,
+            config_path,
+        };
         manager.save()?;
-        
+
         Ok(manager)
     }
-    
+
     /// 获取配置项（正确处理 None 和 falsy 值）
     pub fn get(&self, key: &str) -> Option<serde_json::Value> {
         match key {
             "fps" => Some(serde_json::json!(self.config.fps)),
-            "volume" => Some(serde_json::json!(self.config.volume)),  // 正确返回 0
+            "volume" => Some(serde_json::json!(self.config.volume)), // 正确返回 0
             "scaling" => Some(serde_json::json!(self.config.scaling)),
             "silence" => Some(serde_json::json!(self.config.silence)),
             "noFullscreenPause" => Some(serde_json::json!(self.config.no_fullscreen_pause)),
             "disableMouse" => Some(serde_json::json!(self.config.disable_mouse)),
-            "noautomute" => Some(serde_json::json!(self.config.no_auto_mute)),
+            "noAutomute" => Some(serde_json::json!(self.config.no_auto_mute)),
             "noAudioProcessing" => Some(serde_json::json!(self.config.no_audio_processing)),
             "disableParallax" => Some(serde_json::json!(self.config.disable_parallax)),
             "disableParticles" => Some(serde_json::json!(self.config.disable_particles)),
             "clamping" => Some(serde_json::json!(self.config.clamping)),
-            "lastWallpaper" => self.config.last_wallpaper.as_ref().map(|v| serde_json::json!(v)),
-            "lastScreen" => self.config.last_screen.as_ref().map(|v| serde_json::json!(v)),
+            "lastWallpaper" => self
+                .config
+                .last_wallpaper
+                .as_ref()
+                .map(|v| serde_json::json!(v)),
+            "lastScreen" => self
+                .config
+                .last_screen
+                .as_ref()
+                .map(|v| serde_json::json!(v)),
             "cycleEnabled" => Some(serde_json::json!(self.config.cycle_enabled)),
             "cycleInterval" => Some(serde_json::json!(self.config.cycle_interval)),
             "cycleOrder" => Some(serde_json::json!(self.config.cycle_order)),
-            "assetsPath" => self.config.assets_path.as_ref().map(|v| serde_json::json!(v)),
+            "assetsPath" => self
+                .config
+                .assets_path
+                .as_ref()
+                .map(|v| serde_json::json!(v)),
+            "workshopPath" => self
+                .config
+                .workshop_path
+                .as_ref()
+                .map(|v| serde_json::json!(v)),
             _ => None,
         }
     }
-    
+
     /// 设置配置项（带变更检测）
     pub fn set(&mut self, key: &str, value: impl Serialize) -> LwgResult<()> {
         let json_value = serde_json::to_value(value)?;
-        
+
         // 变更检测：如果值相同则不保存
         if let Some(current) = self.get(key) {
             if current == json_value {
@@ -220,7 +254,7 @@ impl ConfigManager {
                 return Ok(());
             }
         }
-        
+
         match key {
             "fps" => {
                 if let Some(v) = json_value.as_u64() {
@@ -229,7 +263,7 @@ impl ConfigManager {
             }
             "volume" => {
                 if let Some(v) = json_value.as_u64() {
-                    self.config.volume = v as u32;  // 正确设置 0
+                    self.config.volume = v as u32; // 正确设置 0
                 }
             }
             "scaling" => {
@@ -249,7 +283,9 @@ impl ConfigManager {
                 self.config.last_screen = json_value.as_str().map(|s| s.to_string());
             }
             "active_monitors" => {
-                if let Ok(map) = serde_json::from_value::<HashMap<String, String>>(json_value.clone()) {
+                if let Ok(map) =
+                    serde_json::from_value::<HashMap<String, String>>(json_value.clone())
+                {
                     self.config.active_monitors = map;
                 }
             }
@@ -266,28 +302,37 @@ impl ConfigManager {
             "assetsPath" => {
                 self.config.assets_path = json_value.as_str().map(|s| s.to_string());
             }
+            "workshopPath" => {
+                self.config.workshop_path = json_value.as_str().map(|s| s.to_string());
+            }
             _ => {
                 warn!("未知配置键：{}", key);
             }
         }
-        
+
         info!("配置已更新：{} = {:?}", key, json_value);
         self.save()?;
         Ok(())
     }
-    
+
     /// 验证路径是否存在
     pub fn validate_path(&self, path: &str) -> LwgResult<()> {
         let path = Path::new(path);
         if !path.exists() {
-            return Err(LwgError::ConfigError(format!("路径不存在：{}", path.display())));
+            return Err(LwgError::ConfigError(format!(
+                "路径不存在：{}",
+                path.display()
+            )));
         }
         if !path.is_dir() {
-            return Err(LwgError::ConfigError(format!("不是目录：{}", path.display())));
+            return Err(LwgError::ConfigError(format!(
+                "不是目录：{}",
+                path.display()
+            )));
         }
         Ok(())
     }
-    
+
     /// 保存配置
     pub fn save(&self) -> LwgResult<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
@@ -295,12 +340,12 @@ impl ConfigManager {
         debug!("配置已保存：{:?}", self.config_path);
         Ok(())
     }
-    
+
     /// 获取配置的可变引用
     pub fn config_mut(&mut self) -> &mut AppConfig {
         &mut self.config
     }
-    
+
     /// 获取配置的不可变引用
     pub fn config(&self) -> &AppConfig {
         &self.config
@@ -310,30 +355,44 @@ impl ConfigManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_default_config() {
         let config = AppConfig::default();
         assert_eq!(config.fps, 30);
-        assert_eq!(config.volume, 0);  // 正确默认为 0
+        assert_eq!(config.volume, 0); // 正确默认为 0
         assert_eq!(config.scaling, "default");
         assert!(config.silence);
+        assert!(config.workshop_path.is_none());
     }
-    
+
     #[test]
     fn test_merge_with_default() {
         let user = serde_json::json!({
             "fps": 60,
             "volume": 0,  // 测试 0 值不会被忽略
             "scaling": "stretch",
-            "lastWallpaper": "12345"
+            "lastWallpaper": "12345",
+            "workshopPath": "/path/to/workshop"
         });
-        
+
         let config = AppConfig::merge_with_default(user);
         assert_eq!(config.fps, 60);
-        assert_eq!(config.volume, 0);  // 正确读取 0
+        assert_eq!(config.volume, 0); // 正确读取 0
         assert_eq!(config.scaling, "stretch");
         assert_eq!(config.last_wallpaper, Some("12345".to_string()));
+        assert_eq!(config.workshop_path, Some("/path/to/workshop".to_string()));
+    }
+
+    #[test]
+    fn test_serialization_camel_case() {
+        let config = AppConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        // Verify camelCase serialization
+        assert!(json.contains("muteAudio"));
+        assert!(json.contains("noAutomute"));
+        assert!(json.contains("noFullscreenPause"));
+        assert!(json.contains("workshopPath"));
     }
 }
 
