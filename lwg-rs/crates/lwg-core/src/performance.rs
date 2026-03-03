@@ -3,22 +3,41 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use sysinfo::{Pid, System};
+use serde::{Deserialize, Serialize};
 
 const HISTORY_SIZE: usize = 60;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessStats {
     pub pid: i32,
     pub name: String,
+    pub cmd: String,
+    pub status: String,
     pub cpu: f32,
     pub memory_mb: f32,
+    pub threads: i32,
+    pub cpu_history: Vec<f32>,
+    pub mem_history: Vec<f32>,
+    pub thread_names: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct PerformanceStats {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemStatsPayload {
     pub total_cpu: f32,
     pub total_memory_mb: f32,
+    pub total_threads: i32,
     pub processes: HashMap<String, ProcessStats>,
+    pub timestamp: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScreenshotRecord {
+    pub timestamp: u64,
+    pub wp_id: String,
+    pub output_path: String,
+    pub duration: f32,
+    pub max_cpu: f32,
+    pub max_mem: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -71,14 +90,19 @@ impl PerformanceMonitor {
         }
     }
 
-    pub fn get_stats(&self) -> PerformanceStats {
+    pub fn get_stats(&self) -> SystemStatsPayload {
         let mut system = System::new_all();
         system.refresh_all();
 
-        let mut stats = PerformanceStats {
+        let mut stats = SystemStatsPayload {
             total_cpu: system.cpus().first().map(|c| c.cpu_usage()).unwrap_or(0.0),
             total_memory_mb: (system.used_memory() / 1024 / 1024) as f32,
+            total_threads: 0,
             processes: HashMap::new(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
         };
 
         let frontend_pid = std::process::id() as usize;
@@ -89,8 +113,14 @@ impl PerformanceMonitor {
             stats.processes.insert("frontend".to_string(), ProcessStats {
                 pid: frontend_pid as i32,
                 name: "frontend".to_string(),
+                cmd: String::new(),
+                status: "Running".to_string(),
                 cpu,
                 memory_mb,
+                threads: 0,
+                cpu_history: Vec::new(),
+                mem_history: Vec::new(),
+                thread_names: Vec::new(),
             });
 
             if let Ok(mut history) = self.history.lock() {
