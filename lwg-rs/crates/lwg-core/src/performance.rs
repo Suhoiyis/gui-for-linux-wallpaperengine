@@ -29,6 +29,9 @@ pub struct SystemStatsPayload {
     pub total_threads: i32,
     pub processes: HashMap<String, ProcessStats>,
     pub timestamp: u64,
+    pub cpu_cores: usize,
+    pub total_memory_gb: f32,
+    pub process_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,11 +74,9 @@ impl Default for HistoryData {
     }
 }
 
-/// Extracts thread names from /proc/{pid}/task/{tid}/comm
 fn get_thread_names(pid: i32) -> Vec<String> {
     let mut names = Vec::new();
     let task_dir = format!("/proc/{}/task", pid);
-
     if let Ok(entries) = std::fs::read_dir(&task_dir) {
         for entry in entries.flatten() {
             if let Ok(metadata) = entry.metadata() {
@@ -90,39 +91,30 @@ fn get_thread_names(pid: i32) -> Vec<String> {
             }
         }
     }
-
     names
 }
 
-/// Attempts to read GPU usage from sysfs
-/// Tries AMD GPU first, falls back to NVIDIA
 fn get_gpu_usage() -> Option<f32> {
-    // Try AMD GPU: gpu_busy_percent returns 0-100
     if let Ok(content) = std::fs::read_to_string("/sys/class/drm/card0/device/gpu_busy_percent") {
         if let Ok(percent) = content.trim().parse::<f32>() {
             return Some(percent);
         }
     }
-
-    // Try NVIDIA: hwmon freq indicates GPU activity
     for i in 0..5 {
         let freq_path = format!("/sys/class/drm/card0/device/hwmon/hwmon{}/freq1_input", i);
         if let Ok(content) = std::fs::read_to_string(&freq_path) {
             if let Ok(freq_hz) = content.trim().parse::<f64>() {
-                let max_freq = 2500000000.0; // 2.5 GHz
-                let usage_percent = ((freq_hz / max_freq) * 100.0).min(100.0) as f32;
-                return Some(usage_percent);
+                let max_freq = 2500000000.0;
+                return Some(((freq_hz / max_freq) * 100.0).min(100.0) as f32);
             }
         }
     }
-
     None
 }
 
 pub struct PerformanceMonitor {
     history: Arc<std::sync::Mutex<HashMap<String, HistoryData>>>,
     screenshot_history: VecDeque<ScreenshotRecord>,
-    /// Map of category -> PID for multi-process tracking
     processes: HashMap<String, usize>,
 }
 
@@ -138,17 +130,13 @@ impl PerformanceMonitor {
         monitor
     }
 
-    /// Register a process for monitoring (stores PID and initializes history)
     pub fn register_process(&mut self, category: &str, pid: usize) {
         self.processes.insert(category.to_string(), pid);
         if let Ok(mut history) = self.history.lock() {
-            history
-                .entry(category.to_string())
-                .or_insert_with(HistoryData::new);
+            history.entry(category.to_string()).or_insert_with(HistoryData::new);
         }
     }
 
-    /// Unregister a process from monitoring
     pub fn unregister_process(&mut self, category: &str) {
         self.processes.remove(category);
         if let Ok(mut history) = self.history.lock() {
@@ -156,52 +144,34 @@ impl PerformanceMonitor {
         }
     }
 
-    /// Get stats for all registered processes
     pub fn get_stats(&self) -> SystemStatsPayload {
         let mut system = System::new_all();
         system.refresh_all();
-
         let mut total_cpu = 0.0f32;
         let mut total_memory_mb = 0.0f32;
         let mut total_threads = 0i32;
         let mut processes = HashMap::new();
 
-        // Iterate over all registered processes
         for (category, &pid) in &self.processes {
             if let Some(process) = system.process(Pid::from(pid)) {
                 let cpu = process.cpu_usage();
                 let memory_mb = (process.memory() / 1024 / 1024) as f32;
-
-                // Get thread names first (needed for thread count)
                 let thread_names = get_thread_names(pid as i32);
                 let threads = thread_names.len() as i32;
-
-                // Get process name and status
                 let name = process.name().to_string();
                 let status = format!("{:?}", process.status());
-                let cmd = process
-                    .cmd()
-                    .iter()
-                    .map(|s| s.clone())
-                    .collect::<Vec<_>>()
-                    .join(" ");
-
-                // Get GPU usage (only for frontend/backend)
+                let cmd = process.cmd().iter().map(|s| s.clone()).collect::<Vec<_>>().join(" ");
                 let gpu_usage = if category == "frontend" || category == "backend" {
                     get_gpu_usage()
                 } else {
                     None
                 };
 
-                // Update history
                 let (cpu_history, mem_history) = {
                     if let Ok(mut history) = self.history.lock() {
                         if let Some(hist) = history.get_mut(category) {
                             hist.add(cpu, memory_mb);
-                            (
-                                hist.cpu.iter().cloned().collect(),
-                                hist.memory_mb.iter().cloned().collect(),
-                            )
+                            (hist.cpu.iter().cloned().collect(), hist.memory_mb.iter().cloned().collect())
                         } else {
                             (Vec::new(), Vec::new())
                         }
@@ -210,22 +180,10 @@ impl PerformanceMonitor {
                     }
                 };
 
-                let process_stats = ProcessStats {
-                    pid: pid as i32,
-                    name,
-                    cmd,
-                    status,
-                    cpu,
-                    memory_mb,
-                    threads,
-                    cpu_history,
-                    mem_history,
-                    thread_names,
-                    gpu_usage,
-                };
-
-                processes.insert(category.clone(), process_stats);
-
+                processes.insert(category.clone(), ProcessStats {
+                    pid: pid as i32, name, cmd, status, cpu, memory_mb, threads,
+                    cpu_history, mem_history, thread_names, gpu_usage,
+                });
                 total_cpu += cpu;
                 total_memory_mb += memory_mb;
                 total_threads += threads;
@@ -236,11 +194,11 @@ impl PerformanceMonitor {
             total_cpu,
             total_memory_mb,
             total_threads,
-            processes,
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs(),
+            processes: processes.clone(),
+            timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+            cpu_cores: system.cpus().len(),
+            total_memory_gb: system.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0,
+            process_count: processes.len(),
         }
     }
 
