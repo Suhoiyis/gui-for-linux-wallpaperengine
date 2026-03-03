@@ -171,7 +171,10 @@ impl PerformanceMonitor {
             if let Some(process) = system.process(Pid::from(pid)) {
                 let cpu = process.cpu_usage();
                 let memory_mb = (process.memory() / 1024 / 1024) as f32;
-                let threads = 1i32; // sysinfo doesn't expose thread count directly
+
+                // Get thread names first (needed for thread count)
+                let thread_names = get_thread_names(pid as i32);
+                let threads = thread_names.len() as i32;
 
                 // Get process name and status
                 let name = process.name().to_string();
@@ -182,9 +185,6 @@ impl PerformanceMonitor {
                     .map(|s| s.clone())
                     .collect::<Vec<_>>()
                     .join(" ");
-
-                // Get thread names
-                let thread_names = get_thread_names(pid as i32);
 
                 // Get GPU usage (only for frontend/backend)
                 let gpu_usage = if category == "frontend" || category == "backend" {
