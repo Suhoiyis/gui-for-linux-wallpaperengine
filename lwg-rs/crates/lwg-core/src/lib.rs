@@ -15,3 +15,4 @@ pub use history::{HistoryEntry, HistoryManager};
 pub use nickname::NicknameManager;
 pub use screen::{Display, ScreenManager};
 pub use wallpaper::{Wallpaper, WallpaperManager};
+pub use performance::{PerformanceMonitor, ScreenshotRecord, SystemStatsPayload};

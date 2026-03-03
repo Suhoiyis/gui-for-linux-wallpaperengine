@@ -1,9 +1,9 @@
 //! 性能监控器
 
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use sysinfo::{Pid, System};
-use serde::{Deserialize, Serialize};
 
 const HISTORY_SIZE: usize = 60;
 
@@ -75,14 +75,11 @@ impl Default for HistoryData {
 fn get_thread_names(pid: i32) -> Vec<String> {
     let mut names = Vec::new();
     let task_dir = format!("/proc/{}/task", pid);
-    
-    // Try to read the task directory
+
     if let Ok(entries) = std::fs::read_dir(&task_dir) {
         for entry in entries.flatten() {
-            // For each TID (thread ID)
             if let Ok(metadata) = entry.metadata() {
                 if metadata.is_dir() {
-                    // Try to read the comm file for this thread
                     if let Ok(filename) = entry.file_name().into_string() {
                         let comm_path = format!("{}/{}/comm", task_dir, filename);
                         if let Ok(comm_content) = std::fs::read_to_string(&comm_path) {
@@ -93,14 +90,40 @@ fn get_thread_names(pid: i32) -> Vec<String> {
             }
         }
     }
-    
+
     names
 }
 
+/// Attempts to read GPU usage from sysfs
+/// Tries AMD GPU first, falls back to NVIDIA
+fn get_gpu_usage() -> Option<f32> {
+    // Try AMD GPU: gpu_busy_percent returns 0-100
+    if let Ok(content) = std::fs::read_to_string("/sys/class/drm/card0/device/gpu_busy_percent") {
+        if let Ok(percent) = content.trim().parse::<f32>() {
+            return Some(percent);
+        }
+    }
+
+    // Try NVIDIA: hwmon freq indicates GPU activity
+    for i in 0..5 {
+        let freq_path = format!("/sys/class/drm/card0/device/hwmon/hwmon{}/freq1_input", i);
+        if let Ok(content) = std::fs::read_to_string(&freq_path) {
+            if let Ok(freq_hz) = content.trim().parse::<f64>() {
+                let max_freq = 2500000000.0; // 2.5 GHz
+                let usage_percent = ((freq_hz / max_freq) * 100.0).min(100.0) as f32;
+                return Some(usage_percent);
+            }
+        }
+    }
+
+    None
+}
 
 pub struct PerformanceMonitor {
     history: Arc<std::sync::Mutex<HashMap<String, HistoryData>>>,
     screenshot_history: VecDeque<ScreenshotRecord>,
+    /// Map of category -> PID for multi-process tracking
+    processes: HashMap<String, usize>,
 }
 
 impl PerformanceMonitor {
@@ -108,60 +131,117 @@ impl PerformanceMonitor {
         let mut monitor = Self {
             history: Arc::new(std::sync::Mutex::new(HashMap::new())),
             screenshot_history: VecDeque::with_capacity(10),
+            processes: HashMap::new(),
         };
         let pid = std::process::id() as usize;
-        monitor.add_process("frontend", pid);
+        monitor.register_process("frontend", pid);
         monitor
     }
 
-    pub fn add_process(&self, name: &str, pid: usize) {
+    /// Register a process for monitoring (stores PID and initializes history)
+    pub fn register_process(&mut self, category: &str, pid: usize) {
+        self.processes.insert(category.to_string(), pid);
         if let Ok(mut history) = self.history.lock() {
-            history.entry(name.to_string()).or_insert_with(HistoryData::new);
+            history
+                .entry(category.to_string())
+                .or_insert_with(HistoryData::new);
         }
     }
 
+    /// Unregister a process from monitoring
+    pub fn unregister_process(&mut self, category: &str) {
+        self.processes.remove(category);
+        if let Ok(mut history) = self.history.lock() {
+            history.remove(category);
+        }
+    }
+
+    /// Get stats for all registered processes
     pub fn get_stats(&self) -> SystemStatsPayload {
         let mut system = System::new_all();
         system.refresh_all();
 
-        let mut stats = SystemStatsPayload {
-            total_cpu: system.cpus().first().map(|c| c.cpu_usage()).unwrap_or(0.0),
-            total_memory_mb: (system.used_memory() / 1024 / 1024) as f32,
-            total_threads: 0,
-            processes: HashMap::new(),
+        let mut total_cpu = 0.0f32;
+        let mut total_memory_mb = 0.0f32;
+        let mut total_threads = 0i32;
+        let mut processes = HashMap::new();
+
+        // Iterate over all registered processes
+        for (category, &pid) in &self.processes {
+            if let Some(process) = system.process(Pid::from(pid)) {
+                let cpu = process.cpu_usage();
+                let memory_mb = (process.memory() / 1024 / 1024) as f32;
+                let threads = 1i32; // sysinfo doesn't expose thread count directly
+
+                // Get process name and status
+                let name = process.name().to_string();
+                let status = format!("{:?}", process.status());
+                let cmd = process
+                    .cmd()
+                    .iter()
+                    .map(|s| s.clone())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                // Get thread names
+                let thread_names = get_thread_names(pid as i32);
+
+                // Get GPU usage (only for frontend/backend)
+                let gpu_usage = if category == "frontend" || category == "backend" {
+                    get_gpu_usage()
+                } else {
+                    None
+                };
+
+                // Update history
+                let (cpu_history, mem_history) = {
+                    if let Ok(mut history) = self.history.lock() {
+                        if let Some(hist) = history.get_mut(category) {
+                            hist.add(cpu, memory_mb);
+                            (
+                                hist.cpu.iter().cloned().collect(),
+                                hist.memory_mb.iter().cloned().collect(),
+                            )
+                        } else {
+                            (Vec::new(), Vec::new())
+                        }
+                    } else {
+                        (Vec::new(), Vec::new())
+                    }
+                };
+
+                let process_stats = ProcessStats {
+                    pid: pid as i32,
+                    name,
+                    cmd,
+                    status,
+                    cpu,
+                    memory_mb,
+                    threads,
+                    cpu_history,
+                    mem_history,
+                    thread_names,
+                    gpu_usage,
+                };
+
+                processes.insert(category.clone(), process_stats);
+
+                total_cpu += cpu;
+                total_memory_mb += memory_mb;
+                total_threads += threads;
+            }
+        }
+
+        SystemStatsPayload {
+            total_cpu,
+            total_memory_mb,
+            total_threads,
+            processes,
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
-        };
-
-        let frontend_pid = std::process::id() as usize;
-        if let Some(process) = system.process(Pid::from(frontend_pid)) {
-            let cpu = process.cpu_usage();
-            let memory_mb = (process.memory() / 1024 / 1024) as f32;
-            
-            stats.processes.insert("frontend".to_string(), ProcessStats {
-                pid: frontend_pid as i32,
-                name: "frontend".to_string(),
-                cmd: String::new(),
-                status: "Running".to_string(),
-                cpu,
-                memory_mb,
-                threads: 0,
-                cpu_history: Vec::new(),
-                mem_history: Vec::new(),
-                thread_names: get_thread_names(frontend_pid as i32),
-                gpu_usage: get_gpu_usage(),
-            });
-
-            if let Ok(mut history) = self.history.lock() {
-                if let Some(hist) = history.get_mut("frontend") {
-                    hist.add(cpu, memory_mb);
-                }
-            }
         }
-
-        stats
     }
 
     pub fn add_screenshot_history(&mut self, record: ScreenshotRecord) {
@@ -184,35 +264,4 @@ impl Default for PerformanceMonitor {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// Attempts to read GPU usage from sysfs
-/// Tries AMD GPU first (/sys/class/drm/card0/device/gpu_busy_percent)
-/// Falls back to NVIDIA frequency check (/sys/class/drm/card0/device/hwmon/hwmonX/freq1_input)
-/// Returns None silently if GPU files are not accessible
-fn get_gpu_usage() -> Option<f32> {
-    // Try AMD GPU: gpu_busy_percent returns 0-100
-    if let Ok(content) = std::fs::read_to_string("/sys/class/drm/card0/device/gpu_busy_percent") {
-        if let Ok(percent) = content.trim().parse::<f32>() {
-            return Some(percent);
-        }
-    }
-
-    // Try NVIDIA: hwmon freq indicates GPU activity (frequency in Hz)
-    // Attempt multiple hwmon indices since they can vary
-    for i in 0..5 {
-        let freq_path = format!("/sys/class/drm/card0/device/hwmon/hwmon{}/freq1_input", i);
-        if let Ok(content) = std::fs::read_to_string(&freq_path) {
-            if let Ok(freq_hz) = content.trim().parse::<f64>() {
-                // Normalize frequency to percentage (assuming max ~2.5 GHz typical)
-                // This is a rough heuristic; actual max varies by GPU
-                let max_freq = 2500000000.0; // 2.5 GHz in Hz
-                let usage_percent = ((freq_hz / max_freq) * 100.0).min(100.0) as f32;
-                return Some(usage_percent);
-            }
-        }
-    }
-
-    // GPU files not accessible, return None silently
-    None
 }

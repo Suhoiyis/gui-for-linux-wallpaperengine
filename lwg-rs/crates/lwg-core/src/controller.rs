@@ -1,5 +1,6 @@
 use crate::config::AppConfig;
 use crate::error::{LwgError, LwgResult};
+use crate::performance::PerformanceMonitor;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
@@ -16,6 +17,7 @@ pub struct WallpaperController {
     last_command: Vec<String>,
     engine_log: Option<File>,
     log_path: PathBuf,
+    performance_monitor: Option<Arc<std::sync::Mutex<PerformanceMonitor>>>,
 }
 
 impl WallpaperController {
@@ -33,7 +35,13 @@ impl WallpaperController {
             last_command: Vec::new(),
             engine_log: None,
             log_path,
+            performance_monitor: None,
         }
+    }
+
+    /// Set the performance monitor reference for process tracking
+    pub fn set_performance_monitor(&mut self, monitor: Arc<std::sync::Mutex<PerformanceMonitor>>) {
+        self.performance_monitor = Some(monitor);
     }
     
     /// 应用壁纸到指定显示器
@@ -271,6 +279,12 @@ impl WallpaperController {
                         Ok(None) => {
                             // 进程仍在运行
                             info!("Engine is running successfully (PID: {:?})", pid);
+                            // Register backend process for performance monitoring
+                            if let Some(ref monitor) = self.performance_monitor {
+                                if let Ok(mut mon) = monitor.lock() {
+                                    mon.register_process("backend", pid as usize);
+                                }
+                            }
                             Ok(())
                         }
                         Err(e) => {
@@ -293,6 +307,13 @@ impl WallpaperController {
     pub async fn stop(&mut self) {
         info!("Stopping wallpaper");
         
+        // Unregister backend process from performance monitoring
+        if let Some(ref monitor) = self.performance_monitor {
+            if let Ok(mut mon) = monitor.lock() {
+                mon.unregister_process("backend");
+            }
+        }
+        
         // 关闭日志文件句柄
         if let Some(mut log) = self.engine_log.take() {
             let _ = log.flush();
@@ -302,7 +323,7 @@ impl WallpaperController {
             let _ = child.kill();
         }
         
-        // 确保所有引擎进程都被终止
+        // 确保所有引擤进程都被终止
         let _ = Command::new("pkill")
             .args(["-f", "linux-wallpaperengine"])
             .stdout(Stdio::null())
