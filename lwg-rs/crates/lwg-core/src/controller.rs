@@ -347,6 +347,18 @@ impl WallpaperController {
     pub fn current_pid(&self) -> Option<u32> {
         self.current_proc.as_ref().map(|c| c.id())
     }
+    
+    /// 获取当前活跃壁纸信息
+    pub async fn get_active_wallpapers(&self) -> HashMap<String, String> {
+        let config = self.config.lock().await;
+        config.active_monitors.clone()
+    }
+    
+    /// 检查是否有活跃壁纸
+    pub async fn is_wallpaper_running(&self) -> bool {
+        let config = self.config.lock().await;
+        !config.active_monitors.is_empty()
+    }
 }
 
 /// 截图管理器
