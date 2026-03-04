@@ -1,3 +1,15 @@
+
+# ⚠️ Project Pivot Notice
+I have to admit: this has become an incredibly massive undertaking. Building a GTK frontend purely in Rust proved to be a maddening experience. Consequently, I have temporarily halted the pure Rust rewrite and am now migrating the project to Tauri.
+
+# Current Status:
+*   Architecture: Backend remains in Rust, while the frontend is being rebuilt with Tauri (TypeScript). Note: This generally requires webkit2 to be installed on your system.
+*   Progress: The results are promising. Honestly, writing the frontend in TypeScript is infinitely more satisfying than wrestling with Rust GTK.
+## How to Test:
+*   🚧 Bleeding Edge: Check out the feature/tauri branch to see the latest work. Warning: This branch is currently experimental and likely too unstable for daily use on your personal machine.
+*   ✅ Reliable Version: For a relatively stable experience, please try v1.0.0-pre. In this version, the main application logic remains in Python, while the system tray has been rewritten in Rust.
+
+
 <h1 align="center">
   <img src="pic/icons/GUI_rounded.png" alt="Logo" width="128" height="128" style="border-radius: 20px;"/><br>
   LINUX WALLPAPER ENGINE GUI
@@ -422,6 +434,6 @@ GPL-3.0 license
 
 **Current Version**: v1.0.0-pre
 
-**Last Updated**: 2026-02-24
+**Last Updated**: 2026-03-04
 
 *A Vibe Coding experiment project*
