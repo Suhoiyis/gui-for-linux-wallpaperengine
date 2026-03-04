@@ -44,6 +44,28 @@ pub struct ScreenshotRecord {
     pub max_mem: f32,
 }
 
+/// Task tracker for monitoring screenshot processes
+#[derive(Debug, Clone)]
+pub struct TaskTracker {
+    pub category: String,
+    pub pid: usize,
+    pub start_time: std::time::Instant,
+    pub start_cpu_time: f32,
+    pub start_mem_mb: f32,
+}
+
+impl TaskTracker {
+    pub fn new(category: &str, pid: usize, cpu: f32, mem: f32) -> Self {
+        Self {
+            category: category.to_string(),
+            pid,
+            start_time: std::time::Instant::now(),
+            start_cpu_time: cpu,
+            start_mem_mb: mem,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HistoryData {
     pub cpu: VecDeque<f32>,
@@ -133,7 +155,9 @@ impl PerformanceMonitor {
     pub fn register_process(&mut self, category: &str, pid: usize) {
         self.processes.insert(category.to_string(), pid);
         if let Ok(mut history) = self.history.lock() {
-            history.entry(category.to_string()).or_insert_with(HistoryData::new);
+            history
+                .entry(category.to_string())
+                .or_insert_with(HistoryData::new);
         }
     }
 
@@ -160,7 +184,12 @@ impl PerformanceMonitor {
                 let threads = thread_names.len() as i32;
                 let name = process.name().to_string();
                 let status = format!("{:?}", process.status());
-                let cmd = process.cmd().iter().map(|s| s.clone()).collect::<Vec<_>>().join(" ");
+                let cmd = process
+                    .cmd()
+                    .iter()
+                    .map(|s| s.clone())
+                    .collect::<Vec<_>>()
+                    .join(" ");
                 let gpu_usage = if category == "frontend" || category == "backend" {
                     get_gpu_usage()
                 } else {
@@ -171,7 +200,10 @@ impl PerformanceMonitor {
                     if let Ok(mut history) = self.history.lock() {
                         if let Some(hist) = history.get_mut(category) {
                             hist.add(cpu, memory_mb);
-                            (hist.cpu.iter().cloned().collect(), hist.memory_mb.iter().cloned().collect())
+                            (
+                                hist.cpu.iter().cloned().collect(),
+                                hist.memory_mb.iter().cloned().collect(),
+                            )
                         } else {
                             (Vec::new(), Vec::new())
                         }
@@ -180,10 +212,22 @@ impl PerformanceMonitor {
                     }
                 };
 
-                processes.insert(category.clone(), ProcessStats {
-                    pid: pid as i32, name, cmd, status, cpu, memory_mb, threads,
-                    cpu_history, mem_history, thread_names, gpu_usage,
-                });
+                processes.insert(
+                    category.clone(),
+                    ProcessStats {
+                        pid: pid as i32,
+                        name,
+                        cmd,
+                        status,
+                        cpu,
+                        memory_mb,
+                        threads,
+                        cpu_history,
+                        mem_history,
+                        thread_names,
+                        gpu_usage,
+                    },
+                );
                 total_cpu += cpu;
                 total_memory_mb += memory_mb;
                 total_threads += threads;
@@ -195,7 +239,10 @@ impl PerformanceMonitor {
             total_memory_mb,
             total_threads,
             processes: processes.clone(),
-            timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
             cpu_cores: system.cpus().len(),
             total_memory_gb: system.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0,
             process_count: processes.len(),
@@ -215,6 +262,40 @@ impl PerformanceMonitor {
 
     pub fn clear_screenshot_history(&mut self) {
         self.screenshot_history.clear();
+    }
+
+    /// Start tracking a task (e.g., screenshot process)
+    pub fn start_task(&self, category: &str, pid: usize) -> TaskTracker {
+        let mut system = System::new();
+        system.refresh_processes();
+        
+        let (cpu, mem) = system
+            .process(Pid::from(pid))
+            .map(|p| (p.cpu_usage(), (p.memory() / 1024 / 1024) as f32))
+            .unwrap_or((0.0, 0.0));
+        
+        TaskTracker::new(category, pid, cpu, mem)
+    }
+
+    /// Stop tracking a task and return statistics
+    /// Returns: (duration, max_cpu, max_mem, avg_cpu, avg_mem)
+    pub fn stop_task(&self, tracker: &TaskTracker) -> (f32, f32, f32, f32, f32) {
+        let mut system = System::new();
+        system.refresh_processes();
+        
+        let duration = tracker.start_time.elapsed().as_secs_f32();
+        
+        let (end_cpu, end_mem) = system
+            .process(Pid::from(tracker.pid))
+            .map(|p| (p.cpu_usage(), (p.memory() / 1024 / 1024) as f32))
+            .unwrap_or((0.0, 0.0));
+        
+        let max_cpu = end_cpu.max(tracker.start_cpu_time);
+        let max_mem = end_mem.max(tracker.start_mem_mb);
+        let avg_cpu = (tracker.start_cpu_time + end_cpu) / 2.0;
+        let avg_mem = (tracker.start_mem_mb + end_mem) / 2.0;
+        
+        (duration, max_cpu, max_mem, avg_cpu, avg_mem)
     }
 }
 

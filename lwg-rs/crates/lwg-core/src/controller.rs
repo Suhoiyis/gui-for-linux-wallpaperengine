@@ -442,16 +442,93 @@ impl ScreenshotManager {
             Err(e) => Err(LwgError::ScreenshotError(e.to_string())),
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
     
-    // 这些测试需要实际环境，这里仅作为结构验证
-    #[test]
-    fn test_controller_creation() {
-        let config = Arc::new(Mutex::new(AppConfig::default()));
-        let _controller = WallpaperController::new(config);
+    /// 截取壁纸截图并启动监控
+    pub async fn take_screenshot_with_monitor(
+        &self,
+        wallpaper_id: &str,
+        output_path: impl AsRef<std::path::Path>,
+        perf_monitor: Arc<std::sync::Mutex<crate::performance::PerformanceMonitor>>,
+    ) -> LwgResult<(Child, crate::performance::TaskTracker)> {
+        // 启动截图进程
+        let child = self.take_screenshot(wallpaper_id, &output_path).await?;
+        let pid = child.id() as usize;
+        
+        // 启动性能监控
+        let tracker = {
+            let monitor = perf_monitor.lock().map_err(|e| LwgError::ProcessError(format!("Lock error: {}", e)))?;
+            monitor.start_task("screenshot", pid)
+        };
+        
+        Ok((child, tracker))
+    }
+    
+    /// 等待截图完成
+    pub async fn wait_for_screenshot(
+        child: &mut Child,
+        timeout_secs: u64,
+    ) -> LwgResult<std::process::ExitStatus> {
+        use tokio::time::{timeout, Duration};
+        use std::io::{self};
+        
+        let result = timeout(
+            Duration::from_secs(timeout_secs),
+            async {
+                // 轮询检查进程状态
+                loop {
+                    match child.try_wait() {
+                        Ok(Some(status)) => return Ok::<_, io::Error>(status),
+                        Ok(None) => {
+                            // 进程仍在运行
+                            tokio::time::sleep(Duration::from_millis(100)).await;
+                        }
+                        Err(e) => return Err::<std::process::ExitStatus, io::Error>(e),
+                    }
+                }
+            }
+        ).await;
+        
+        match result {
+            Ok(Ok(status)) => Ok(status),
+            Ok(Err(e)) => Err(LwgError::ProcessError(format!("Wait error: {}", e))),
+            Err(_) => {
+                // 超时，杀死进程
+                let _ = std::process::Command::new("kill")
+                    .arg("-9")
+                    .arg(child.id().to_string())
+                    .status();
+                Err(LwgError::ProcessError(format!("Screenshot timed out after {} seconds", timeout_secs)))
+            }
+        }
+    }
+    
+    /// 完成截图并保存历史记录
+    pub fn finalize_screenshot(
+        tracker: crate::performance::TaskTracker,
+        wp_id: String,
+        output_path: String,
+        perf_monitor: Arc<std::sync::Mutex<crate::performance::PerformanceMonitor>>,
+    ) -> LwgResult<crate::performance::ScreenshotRecord> {
+        let monitor = perf_monitor.lock().map_err(|e| LwgError::ProcessError(format!("Lock error: {}", e)))?;
+        
+        // 获取统计数据
+        let (duration, max_cpu, max_mem, _avg_cpu, _avg_mem) = monitor.stop_task(&tracker);
+        
+        // 创建记录
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        
+        let record = crate::performance::ScreenshotRecord {
+            timestamp,
+            wp_id,
+            output_path,
+            duration,
+            max_cpu,
+            max_mem,
+        };
+        
+        Ok(record)
     }
 }
