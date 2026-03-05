@@ -28,4 +28,4 @@ jobs:
       run: cargo test --verbose --manifest-path lwg-rs/Cargo.toml
     
     - name: Run clippy
-      run: cargo clippy -- -D warnings --manifest-path lwg-rs/Cargo.toml
+      run: cargo clippy --manifest-path lwg-rs/Cargo.toml -- -D warnings
