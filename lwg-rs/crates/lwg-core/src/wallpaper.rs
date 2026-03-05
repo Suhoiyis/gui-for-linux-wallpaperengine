@@ -1,6 +1,6 @@
 use crate::error::{LwgError, LwgResult};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tracing::{debug, error, info, warn};
 
@@ -23,7 +23,7 @@ pub struct Wallpaper {
 /// 壁纸管理器
 pub struct WallpaperManager {
     workshop_path: PathBuf,
-    wallpapers: HashMap<String, Wallpaper>,
+    wallpapers: IndexMap<String, Wallpaper>,
     manifest_path: Option<PathBuf>,
     pub last_scan_error: Option<String>,
     pub scan_errors: Vec<String>,
@@ -37,7 +37,7 @@ impl WallpaperManager {
 
         Self {
             workshop_path,
-            wallpapers: HashMap::new(),
+            wallpapers: IndexMap::new(),
             manifest_path,
             last_scan_error: None,
             scan_errors: Vec::new(),
@@ -60,7 +60,7 @@ impl WallpaperManager {
     }
 
     /// 扫描壁纸库
-    pub fn scan(&mut self) -> LwgResult<&HashMap<String, Wallpaper>> {
+    pub fn scan(&mut self) -> LwgResult<&IndexMap<String, Wallpaper>> {
         self.wallpapers.clear();
         self.last_scan_error = None;
         self.scan_errors.clear();
@@ -285,7 +285,7 @@ impl WallpaperManager {
         }
 
         std::fs::remove_dir_all(&folder_path)?;
-        self.wallpapers.remove(folder_id);
+        self.wallpapers.shift_remove(folder_id);
 
         info!("Deleted wallpaper {}", folder_id);
         Ok(true)
@@ -371,11 +371,9 @@ pub enum SortMode {
 impl WallpaperManager {
     /// 排序壁纸列表
     pub fn sort(&mut self, mode: SortMode, ascending: bool) {
-        let mut wallpapers: Vec<_> = self.wallpapers.values().collect();
-        
         match mode {
             SortMode::Title => {
-                wallpapers.sort_by(|a, b| {
+                self.wallpapers.sort_by(|_, a, _, b| {
                     if ascending {
                         a.title.cmp(&b.title)
                     } else {
@@ -384,7 +382,7 @@ impl WallpaperManager {
                 });
             }
             SortMode::Size => {
-                wallpapers.sort_by(|a, b| {
+                self.wallpapers.sort_by(|_, a, _, b| {
                     if ascending {
                         a.size.cmp(&b.size)
                     } else {
@@ -393,7 +391,7 @@ impl WallpaperManager {
                 });
             }
             SortMode::Type => {
-                wallpapers.sort_by(|a, b| {
+                self.wallpapers.sort_by(|_, a, _, b| {
                     if ascending {
                         a.wp_type.cmp(&b.wp_type)
                     } else {
@@ -402,7 +400,7 @@ impl WallpaperManager {
                 });
             }
             SortMode::Id => {
-                wallpapers.sort_by(|a, b| {
+                self.wallpapers.sort_by(|_, a, _, b| {
                     if ascending {
                         a.id.cmp(&b.id)
                     } else {
@@ -414,7 +412,7 @@ impl WallpaperManager {
                 use std::collections::hash_map::DefaultHasher;
                 use std::hash::{Hash, Hasher};
                 
-                wallpapers.sort_by(|a, b| {
+                self.wallpapers.sort_by(|_, a, _, b| {
                     let mut hasher_a = DefaultHasher::new();
                     let mut hasher_b = DefaultHasher::new();
                     a.id.hash(&mut hasher_a);
@@ -423,14 +421,6 @@ impl WallpaperManager {
                 });
             }
         }
-        
-        // 重建 HashMap（保持排序后的顺序）
-        let sorted: HashMap<String, Wallpaper> = wallpapers
-            .into_iter()
-            .map(|w| (w.id.clone(), w.clone()))
-            .collect();
-        
-        self.wallpapers = sorted;
         debug!("壁纸已排序：{:?}, 升序：{}", mode, ascending);
     }
     

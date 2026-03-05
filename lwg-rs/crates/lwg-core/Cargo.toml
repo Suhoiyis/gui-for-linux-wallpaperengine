@@ -20,5 +20,6 @@ chrono = { workspace = true, features = ["serde"] }
 walkdir = "2"
 tempfile = "3"
 which = "6"
+indexmap = { workspace = true }
 [dev-dependencies]
 tokio-test = "0.4"
