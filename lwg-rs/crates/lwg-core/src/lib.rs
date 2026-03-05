@@ -6,6 +6,7 @@ pub mod performance;
 pub mod error;
 pub mod history;
 pub mod nickname;
+pub mod properties;
 pub mod screen;
 pub mod wallpaper;
 

@@ -248,21 +248,21 @@ mod tests {
 
     #[test]
     fn test_parse_value_color() {
-        let manager = PropertiesManager::new(ConfigManager::new().unwrap());
+        let manager = PropertiesManager::new(ConfigManager::new_for_test().unwrap());
         let value = manager.parse_value("1.0,0.5,0.0", &PropertyType::Color);
         assert_eq!(value, serde_json::json!([1.0, 0.5, 0.0]));
     }
 
     #[test]
     fn test_parse_value_boolean() {
-        let manager = PropertiesManager::new(ConfigManager::new().unwrap());
+        let manager = PropertiesManager::new(ConfigManager::new_for_test().unwrap());
         let value = manager.parse_value("1", &PropertyType::Boolean);
         assert_eq!(value, serde_json::json!(true));
     }
 
     #[test]
     fn test_parse_value_number() {
-        let manager = PropertiesManager::new(ConfigManager::new().unwrap());
+        let manager = PropertiesManager::new(ConfigManager::new_for_test().unwrap());
         let value = manager.parse_value("50", &PropertyType::Slider);
         assert_eq!(value, serde_json::json!(50));
     }
@@ -272,17 +272,87 @@ mod tests {
 mod tests_properties_extended {
     use super::*;
 
+    fn make_manager() -> PropertiesManager {
+        PropertiesManager::new(ConfigManager::new_for_test().unwrap())
+    }
+
     #[test]
-    fn test_properties_manager_creation() {
-        let config = ConfigManager::new().unwrap();
-        let manager = PropertiesManager::new(config);
-        assert!(manager.get_properties("test").is_ok());
+    fn test_parse_properties_output_slider() {
+        let manager = make_manager();
+        let fixture = "\
+g_bloomstrength - Slider
+Text: Bloom Strength
+Value: 0.5
+Min: 0.0
+Max: 1.0
+Step: 0.01
+";
+        let props = manager.parse_properties_output(fixture).unwrap();
+        assert_eq!(props.len(), 1);
+        assert_eq!(props[0].name, "g_bloomstrength");
+        assert_eq!(props[0].prop_type, PropertyType::Slider);
+        assert_eq!(props[0].text, "Bloom Strength");
+        assert_eq!(props[0].value, Some(serde_json::json!(0.5)));
+        assert_eq!(props[0].min, 0.0);
+        assert_eq!(props[0].max, 1.0);
+        assert_eq!(props[0].step, 0.01);
+    }
+
+    #[test]
+    fn test_parse_properties_output_boolean() {
+        let manager = make_manager();
+        let fixture = "\
+g_enabled - Boolean
+Text: Enable Effect
+Value: 1
+";
+        let props = manager.parse_properties_output(fixture).unwrap();
+        assert_eq!(props.len(), 1);
+        assert_eq!(props[0].prop_type, PropertyType::Boolean);
+        assert_eq!(props[0].value, Some(serde_json::json!(true)));
+    }
+
+    #[test]
+    fn test_parse_properties_output_color() {
+        let manager = make_manager();
+        let fixture = "\
+g_color - Color
+Text: Tint Color
+Value: 1.0,0.5,0.0
+";
+        let props = manager.parse_properties_output(fixture).unwrap();
+        assert_eq!(props.len(), 1);
+        assert_eq!(props[0].prop_type, PropertyType::Color);
+        assert_eq!(props[0].value, Some(serde_json::json!([1.0, 0.5, 0.0])));
+    }
+
+    #[test]
+    fn test_parse_properties_output_empty() {
+        let manager = make_manager();
+        let props = manager.parse_properties_output("").unwrap();
+        assert!(props.is_empty());
+    }
+
+    #[test]
+    fn test_parse_properties_output_skips_running_with_header() {
+        let manager = make_manager();
+        let fixture = "\
+Running with: some args
+g_brightness - Slider
+Text: Brightness
+Value: 50
+Min: 0
+Max: 100
+Step: 1
+";
+        let props = manager.parse_properties_output(fixture).unwrap();
+        assert_eq!(props.len(), 1);
+        assert_eq!(props[0].name, "g_brightness");
     }
 
     #[test]
     fn test_user_property_persistence() {
-        let mut config = ConfigManager::new().unwrap();
-        let mut manager = PropertiesManager::new(config);
+        let mut manager = make_manager();
         manager.set_user_property("123", "brightness", serde_json::json!(0.8)).unwrap();
         let value = manager.get_user_property("123", "brightness");
         assert_eq!(value, Some(&serde_json::json!(0.8)));
