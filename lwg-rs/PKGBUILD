@@ -24,7 +24,7 @@ package() {
     
     # 安装二进制
     install -Dm755 target/release/lwg-gui "$pkgdir/usr/bin/lwg-gui"
-    install -Dm755 target/release/tray-rs "$pkgdir/usr/bin/tray-rs"
+    install -Dm755 target/release/lwg-tray "$pkgdir/usr/bin/lwg-tray"
     
     # 安装图标
     install -Dm644 resources/icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/com.wallpaperengine.gui.png"
