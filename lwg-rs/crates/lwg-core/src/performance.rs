@@ -35,6 +35,7 @@ pub struct SystemStatsPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScreenshotRecord {
     pub timestamp: u64,
     pub wp_id: String,

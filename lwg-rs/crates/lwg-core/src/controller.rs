@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+#[cfg(target_os = "linux")]
+use std::os::unix::process::CommandExt;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -123,7 +125,7 @@ impl WallpaperController {
             return Ok(());
         }
         
-        let mut cmd = Command::new("linux-wallpaperengine");
+        let mut cmd = Command::new("/opt/linux-wallpaperengine/linux-wallpaperengine");
         
         // 添加显示器参数
         for (screen, wp_id) in &active_monitors {
@@ -325,7 +327,7 @@ impl WallpaperController {
         
         // 确保所有引擤进程都被终止
         let _ = Command::new("pkill")
-            .args(["-f", "linux-wallpaperengine"])
+            .args(["-f", "/opt/linux-wallpaperengine/linux-wallpaperengine"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status();
@@ -372,6 +374,7 @@ impl ScreenshotManager {
         Self { config }
     }
     
+    
     /// 截取壁纸截图
     pub async fn take_screenshot(
         &self,
@@ -386,9 +389,6 @@ impl ScreenshotManager {
         let assets_path = config.assets_path.clone();
         
         drop(config);
-        
-        // 检查 Xvfb 可用性
-        let has_xvfb = prefer_xvfb && which::which("xvfb-run").is_ok();
         
         // 基础命令
         let mut args = vec![
@@ -407,13 +407,20 @@ impl ScreenshotManager {
             args.push(assets);
         }
         
+        // 检查 Xvfb 可用性
+        let has_xvfb = prefer_xvfb && which::which("xvfb-run").is_ok();
+        
+        // 创建错误日志文件，对齐 Python 逻辑
+        let err_log = std::fs::File::create("/tmp/wallpaper_screenshot_error.log")
+            .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        
         let mut cmd = if has_xvfb {
-            // 使用 Xvfb
+            // 使用 Xvfb - 使用绝对路径调用二进制
             let mut cmd = Command::new("xvfb-run");
             cmd.arg("-a")
                 .arg("-s")
                 .arg(format!("-screen 0 {}x24 +extension GLX", res))
-                .arg("linux-wallpaperengine")
+                .arg("/opt/linux-wallpaperengine/linux-wallpaperengine")  // 绝对路径
                 .args(&args)
                 .arg("--window")
                 .arg(format!("0x0x{}", res));
@@ -424,24 +431,41 @@ impl ScreenshotManager {
             cmd.env("SDL_VIDEODRIVER", "x11");
             cmd.env("GDK_BACKEND", "x11");
             cmd.env("LIBGL_ALWAYS_SOFTWARE", "1");
+            // 关键：设置动态库路径
+            cmd.env("LD_LIBRARY_PATH", "/opt/linux-wallpaperengine:/opt/linux-wallpaperengine/lib");
+            // 设置工作目录
+            cmd.current_dir("/opt/linux-wallpaperengine");
             
+            info!("Starting screenshot: Silent (Xvfb) at {}", res);
             cmd
         } else {
-            // 不使用 Xvfb
-            let mut cmd = Command::new("linux-wallpaperengine");
+            // Fallback: 窗口模式 - 使用绝对路径
+            let mut cmd = Command::new("/opt/linux-wallpaperengine/linux-wallpaperengine");
             cmd.args(&args)
                 .arg("--window")
                 .arg(format!("0x0x{}", res));
+            // 设置动态库路径
+            cmd.env("LD_LIBRARY_PATH", "/opt/linux-wallpaperengine:/opt/linux-wallpaperengine/lib");
+            cmd.current_dir("/opt/linux-wallpaperengine");
+            
+            info!("Starting screenshot: Windowed at {} (Xvfb not found)", res);
             cmd
         };
+        
+        // 静默标准输出，捕获错误输出
+        cmd.stdout(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::from(err_log));
+        
+        // 创建新进程组，这样可以通过 kill -<pid> 杀死整个进程树
+        cmd.process_group(0);
         
         info!("Starting screenshot for wallpaper {}", wallpaper_id);
         
         match cmd.spawn() {
             Ok(child) => Ok(child),
             Err(e) => Err(LwgError::ScreenshotError(e.to_string())),
-        }
     }
+        }
     
     /// 截取壁纸截图并启动监控
     pub async fn take_screenshot_with_monitor(
@@ -462,28 +486,65 @@ impl ScreenshotManager {
         
         Ok((child, tracker))
     }
-    
-    /// 等待截图完成
+    /// 等待截图完成（基于文件稳定性检测）
+    /// linux-wallpaperengine --screenshot 不会自动退出，需要手动终止
     pub async fn wait_for_screenshot(
         child: &mut Child,
+        output_path: &str,
         timeout_secs: u64,
     ) -> LwgResult<std::process::ExitStatus> {
         use tokio::time::{timeout, Duration};
-        use std::io::{self};
+        
+        let mut last_size: u64 = 0;
+        let mut stable_count: u32 = 0;
         
         let result = timeout(
             Duration::from_secs(timeout_secs),
             async {
-                // 轮询检查进程状态
                 loop {
+                    // 1. 先检查进程是否已经退出（崩溃或完成）
                     match child.try_wait() {
-                        Ok(Some(status)) => return Ok::<_, io::Error>(status),
-                        Ok(None) => {
-                            // 进程仍在运行
-                            tokio::time::sleep(Duration::from_millis(100)).await;
-                        }
-                        Err(e) => return Err::<std::process::ExitStatus, io::Error>(e),
+                        Ok(Some(status)) => return Ok::<_, std::io::Error>(status),
+                        Ok(None) => {}
+                        Err(e) => return Err::<std::process::ExitStatus, std::io::Error>(e),
                     }
+                    
+                    // 2. 检查文件是否存在且大小稳定
+                    if let Ok(metadata) = std::fs::metadata(output_path) {
+                        let curr_size = metadata.len();
+                        if curr_size > 0 {
+                            if curr_size == last_size {
+                                stable_count += 1;
+                            } else {
+                                stable_count = 0;
+                            }
+                            last_size = curr_size;
+                            
+                            // 文件大小稳定 2 次（约 200ms），截图完成
+                            if stable_count >= 2 {
+                                // 只杀死我们启动的截图进程组（通过负PID杀死整个进程组）
+                                let pgid = child.id() as i32;
+                                // kill -<pgid> 会杀死整个进程组
+                                let _ = std::process::Command::new("kill")
+                                    .arg("-9")
+                                    .arg(format!("-{}", pgid))
+                                    .status();
+                                
+                                // 等待进程退出
+                                tokio::time::sleep(Duration::from_millis(300)).await;
+                                match child.try_wait() {
+                                    Ok(Some(status)) => return Ok(status),
+                                    _ => {
+                                        let _ = child.kill();
+                                        return Ok(std::process::ExitStatus::default());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 每 100ms 检查一次
+                    tokio::time::sleep(Duration::from_millis(100)).await;
                 }
             }
         ).await;
@@ -492,11 +553,8 @@ impl ScreenshotManager {
             Ok(Ok(status)) => Ok(status),
             Ok(Err(e)) => Err(LwgError::ProcessError(format!("Wait error: {}", e))),
             Err(_) => {
-                // 超时，杀死进程
-                let _ = std::process::Command::new("kill")
-                    .arg("-9")
-                    .arg(child.id().to_string())
-                    .status();
+                // 超时，强制杀死进程
+                let _ = child.kill();
                 Err(LwgError::ProcessError(format!("Screenshot timed out after {} seconds", timeout_secs)))
             }
         }
