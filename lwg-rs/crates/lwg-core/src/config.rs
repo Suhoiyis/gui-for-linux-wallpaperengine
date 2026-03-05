@@ -172,6 +172,9 @@ impl AppConfig {
 pub struct ConfigManager {
     pub config: AppConfig,
     config_path: PathBuf,
+    /// Holds the backing temp file alive so it is deleted when this manager is dropped (test only).
+    #[cfg(test)]
+    _tempfile: Option<tempfile::NamedTempFile>,
 }
 
 impl ConfigManager {
@@ -196,6 +199,8 @@ impl ConfigManager {
         let manager = Self {
             config,
             config_path,
+            #[cfg(test)]
+            _tempfile: None,
         };
         manager.save()?;
 
@@ -339,6 +344,22 @@ impl ConfigManager {
         std::fs::write(&self.config_path, json)?;
         debug!("配置已保存：{:?}", self.config_path);
         Ok(())
+    }
+
+    /// Creates a config manager for testing backed by a unique temporary file,
+    /// avoiding concurrent read/write races on the shared config file.
+    /// The temporary file is deleted automatically when the returned manager is dropped.
+    #[cfg(test)]
+    pub fn new_for_test() -> LwgResult<Self> {
+        let tmp = tempfile::NamedTempFile::new()?;
+        let config_path = tmp.path().to_path_buf();
+        let manager = Self {
+            config: AppConfig::default(),
+            config_path,
+            _tempfile: Some(tmp),
+        };
+        manager.save()?;
+        Ok(manager)
     }
 
     /// 获取配置的可变引用
