@@ -1,0 +1,19 @@
+pub mod thumbnail_cache;
+
+pub mod context_menu;
+pub mod properties_editor;
+pub mod tray_manager;
+pub mod welcome_dialog;
+pub mod dialogs;
+pub mod utils;
+pub mod navbar;
+pub mod performance_page;
+pub mod wallpaper_list;
+pub mod sidebar;
+pub mod sparkline;
+pub mod animated_preview;
+pub mod history_dialog;
+pub mod nickname_manager_dialog;
+pub mod app;
+pub use app::App;
+pub mod settings_page;

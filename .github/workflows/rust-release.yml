@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
+    
+    - name: Build release
+      run: cargo build --release --manifest-path lwg-rs/Cargo.toml
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          lwg-rs/target/release/lwg-gui
+          lwg-rs/target/release/tray-rs
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
