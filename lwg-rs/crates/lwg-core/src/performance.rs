@@ -395,62 +395,10 @@ impl PerformanceMonitor {
 
     /// Sample the current CPU/memory usage for a task
     /// Call this periodically during the task execution
-    pub fn sample_task(&self, tracker: &TaskTracker) {
-        // 检查距离上次刷新的时间
-        let elapsed = {
-            if let Ok(last) = self.last_refresh.lock() {
-                last.elapsed()
-            } else {
-                MIN_CPU_INTERVAL
-            }
-        };
-
-        // 关键：如果间隔太短，等待足够时间
-        if elapsed < MIN_CPU_INTERVAL {
-            let wait = MIN_CPU_INTERVAL - elapsed;
-            std::thread::sleep(wait);
-        }
-
-        // 刷新进程信息
-        if let Ok(mut sys) = self.system.lock() {
-            sys.refresh_processes_specifics(ProcessRefreshKind::everything());
-
-            // 更新上次刷新时间
-            if let Ok(mut last) = self.last_refresh.lock() {
-                *last = Instant::now();
-            }
-
-            if let Some(process) = sys.process(Pid::from(tracker.pid)) {
-                // 不除以 cpu_count！多线程程序 CPU 可以 >100%
-                let cpu = process.cpu_usage();
-                let run_time = process.run_time();
-                let memory_mb = (process.memory() / 1024 / 1024) as f32;
-                let name = process.name().to_string();
-                
-                // 调试：打印进程名确认我们监控的是正确的进程
-                println!(
-                    "📊 [sample_task] PID={}, Name={}, CPU={}%, MEM={}MB, run_time={}s",
-                    tracker.pid, name, cpu, memory_mb, run_time
-                );
-
-                if let Ok(mut history) = self.history.lock() {
-                    if let Some(hist) = history.get_mut(&tracker.category) {
-                        hist.add(cpu, memory_mb);
-                        println!(
-                            "📊 [sample_task] Added to history, count={}",
-                            hist.cpu.len()
-                        );
-                    } else {
-                        println!(
-                            "⚠️ [sample_task] No history for category={}",
-                            tracker.category
-                        );
-                    }
-                }
-            } else {
-                println!("⚠️ [sample_task] Process not found: PID={}", tracker.pid);
-            }
-        }
+    /// NOTE: CPU/MEM monitoring temporarily disabled, only time tracking is active
+    pub fn sample_task(&self, _tracker: &TaskTracker) {
+        // CPU/MEM 监控暂时禁用，后期修复
+        // 只保留时间监控
     }
 
     /// Stop tracking a task and return statistics
