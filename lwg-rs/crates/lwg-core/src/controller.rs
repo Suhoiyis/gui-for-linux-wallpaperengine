@@ -480,10 +480,9 @@ impl ScreenshotManager {
         
         // 启动性能监控
         let tracker = {
-            let monitor = perf_monitor.lock().map_err(|e| LwgError::ProcessError(format!("Lock error: {}", e)))?;
+            let mut monitor = perf_monitor.lock().map_err(|e| LwgError::ProcessError(format!("Lock error: {}", e)))?;
             monitor.start_task("screenshot", pid)
         };
-        
         Ok((child, tracker))
     }
     /// 等待截图完成（基于文件稳定性检测）
@@ -492,6 +491,8 @@ impl ScreenshotManager {
         child: &mut Child,
         output_path: &str,
         timeout_secs: u64,
+        perf_monitor: Option<Arc<std::sync::Mutex<crate::performance::PerformanceMonitor>>>,
+        tracker: Option<&crate::performance::TaskTracker>,
     ) -> LwgResult<std::process::ExitStatus> {
         use tokio::time::{timeout, Duration};
         
@@ -502,6 +503,13 @@ impl ScreenshotManager {
             Duration::from_secs(timeout_secs),
             async {
                 loop {
+                    // 采样性能数据
+                    if let (Some(monitor), Some(tr)) = (&perf_monitor, &tracker) {
+                        if let Ok(m) = monitor.lock() {
+                            m.sample_task(tr);
+                        }
+                    }
+                    
                     // 1. 先检查进程是否已经退出（崩溃或完成）
                     match child.try_wait() {
                         Ok(Some(status)) => return Ok::<_, std::io::Error>(status),
