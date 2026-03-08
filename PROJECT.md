@@ -58,14 +58,14 @@ suw/
 
 ## 技术栈
 
-| 层级 | 技术 | 用途 |
-|------|------|------|
-| **前端 UI** | React 18 + TypeScript | 组件化界面 |
-| **样式** | Tailwind CSS + shadcn/ui | 现代 UI 组件库 |
-| **状态管理** | Zustand | 轻量级全局状态 |
-| **桌面框架** | Tauri v2 | 原生桌面应用 |
-| **后端** | Rust | 高性能原生逻辑 |
-| **核心引擎** | linux-wallpaperengine | 壁纸渲染引擎 (外部) |
+| 层级         | 技术                     | 用途                |
+| ------------ | ------------------------ | ------------------- |
+| **前端 UI**  | React 18 + TypeScript    | 组件化界面          |
+| **样式**     | Tailwind CSS + shadcn/ui | 现代 UI 组件库      |
+| **状态管理** | Zustand                  | 轻量级全局状态      |
+| **桌面框架** | Tauri v2                 | 原生桌面应用        |
+| **后端**     | Rust                     | 高性能原生逻辑      |
+| **核心引擎** | linux-wallpaperengine    | 壁纸渲染引擎 (外部) |
 
 ---
 
@@ -88,7 +88,7 @@ suw/
 
 ## 配置文件格式
 
-配置文件位于 `~/.config/lwg/config.json`，与 Python 版本**完全兼容**。
+配置文件位于 `/home/yua/.config/linux-wallpaperengine-gui/config.json`，与 Python 版本**完全兼容**。
 
 ### 关键配置字段
 
@@ -114,23 +114,23 @@ suw/
 
 在 `lwg-rs/crates/lwg-core/src/controller.rs` 中，参数按以下优先级传递给引擎：
 
-| 参数 | 引擎标志 | 说明 |
-|------|----------|------|
-| `muteAudio=true` | `--silent` | **最高优先级**，静音时不传其他音频参数 |
-| `volume` | `--volume` | 仅非静音时传递 |
-| `fps` | `-f` | 帧率限制 |
-| `scaling` | `--scaling` | 缩放模式 |
-| `clamping` | `--clamp` | ⚠️ 注意：引擎参数是 `--clamp` 不是 `--clamping` |
+| 参数             | 引擎标志    | 说明                                            |
+| ---------------- | ----------- | ----------------------------------------------- |
+| `muteAudio=true` | `--silent`  | **最高优先级**，静音时不传其他音频参数          |
+| `volume`         | `--volume`  | 仅非静音时传递                                  |
+| `fps`            | `-f`        | 帧率限制                                        |
+| `scaling`        | `--scaling` | 缩放模式                                        |
+| `clamping`       | `--clamp`   | ⚠️ 注意：引擎参数是 `--clamp` 不是 `--clamping` |
 
 ### 2. 前后端字段映射
 
 某些字段在前后端命名不同：
 
-| 前端 (TypeScript) | 后端 (Rust) | 说明 |
-|-------------------|-------------|------|
-| `type` | `wp_type` / `wtype` | 壁纸类型 |
-| `muteAudio` | `silence` | 静音设置 |
-| `description` | 可选字段 | 需要在 API 层映射 |
+| 前端 (TypeScript) | 后端 (Rust)         | 说明              |
+| ----------------- | ------------------- | ----------------- |
+| `type`            | `wp_type` / `wtype` | 壁纸类型          |
+| `muteAudio`       | `silence`           | 静音设置          |
+| `description`     | 可选字段            | 需要在 API 层映射 |
 
 ### 3. 壁纸路径结构
 
@@ -144,6 +144,7 @@ suw/
 ### 4. 壁纸 description 处理
 
 壁纸的 `description` 字段可能包含：
+
 - **BBCode 标签** (`[img]`, `[url]`, `[h1]` 等)
 - **长 URL**
 - **大量空格**（原作者用于"居中对齐"）
@@ -188,6 +189,7 @@ cd lwg-rs && cargo test
 ### ⚠️ 引擎 README 与实际参数不符
 
 `lwg-gui-tauri/public/README.md` 是 linux-wallpaperengine 的文档，但存在以下错误：
+
 - 文档写 `--clamping`，实际参数是 `--clamp`
 - 文档遗漏了 `--disable-particles` 参数
 
@@ -196,6 +198,7 @@ cd lwg-rs && cargo test
 ### ⚠️ 不要随意修改 config.json 结构
 
 配置文件需要与 Python 版本兼容，修改前请检查：
+
 - `py_GUI/core/config.py` 中的字段定义
 - `lwg-rs/crates/lwg-core/src/config.rs` 中的字段定义
 
@@ -218,6 +221,7 @@ cd lwg-rs && cargo test
 ### Steam Workshop
 
 壁纸默认存储在 Steam Workshop 目录：
+
 ```
 ~/.local/share/Steam/steamapps/workshop/content/431960/{wallpaperId}/
 ```
