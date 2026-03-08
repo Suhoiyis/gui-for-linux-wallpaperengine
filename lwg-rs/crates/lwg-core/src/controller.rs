@@ -3,24 +3,19 @@ use crate::logger::{LogManager, LogLevel, LogSource};
 use crate::error::{LwgError, LwgResult};
 use crate::performance::PerformanceMonitor;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 #[cfg(target_os = "linux")]
 use std::os::unix::process::CommandExt;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 pub struct WallpaperController {
     config: Arc<Mutex<AppConfig>>,
     current_proc: Option<Child>,
     detected_pids: HashMap<String, u32>,  // 检测到的进程 PID (屏幕 → PID)
     last_command: Vec<String>,
-    engine_log: Option<File>,
-    log_path: PathBuf,
     performance_monitor: Option<Arc<std::sync::Mutex<PerformanceMonitor>>>,
     log_manager: Option<Arc<std::sync::Mutex<LogManager>>>,
 }
@@ -28,19 +23,11 @@ pub struct WallpaperController {
 impl WallpaperController {
     /// 创建新的控制器
     pub fn new(config: Arc<Mutex<AppConfig>>) -> Self {
-        // 获取日志文件路径
-        let config_dir = dirs::config_dir()
-            .unwrap_or_else(|| std::path::PathBuf::from("."))
-            .join("linux-wallpaperengine-gui");
-        let log_path = config_dir.join("engine_last.log");
-        
         Self {
             config,
             current_proc: None,
             detected_pids: HashMap::new(),
             last_command: Vec::new(),
-            engine_log: None,
-            log_path,
             performance_monitor: None,
             log_manager: None,
         }
@@ -246,19 +233,6 @@ impl WallpaperController {
         
         debug!("Executing: linux-wallpaperengine {:?}", command_vec);
         
-        // 创建日志目录
-        if let Some(parent) = self.log_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        
-        // 打开日志文件
-        let _engine_log = match File::create(&self.log_path) {
-            Ok(f) => f,
-            Err(e) => {
-                error!("Failed to create log file: {}", e);
-                return Err(LwgError::ProcessError(format!("Failed to create log file: {}", e)));
-            }
-        };
         
         // 启动进程，使用 piped stdout/stderr 进行实时捕获
         let child = cmd
@@ -325,7 +299,6 @@ impl WallpaperController {
                 
                 // 保存进程
                 self.current_proc = Some(child);
-                self.engine_log = None;
                 self.last_command = command_vec;
                 
                 // 等待 0.5 秒检查进程是否存活
@@ -335,14 +308,24 @@ impl WallpaperController {
                 if let Some(ref mut proc) = self.current_proc {
                     match proc.try_wait() {
                         Ok(Some(status)) => {
-                            // 进程已退出，读取日志内容报告错误
+                            // 进程已退出，从 LogManager 获取日志
                             error!("Engine process exited immediately with status: {}", status);
                             
-                            let log_content = std::fs::read_to_string(&self.log_path)
-                                .unwrap_or_else(|_| "Unable to read log file".to_string());
+                            let log_content = if let Some(ref lm) = self.log_manager {
+                                if let Ok(m) = lm.lock() {
+                                    m.get_logs()
+                                        .iter()
+                                        .filter(|l| l.source == LogSource::Engine)
+                                        .map(|l| l.message.as_str())
+                                        .collect::<Vec<_>>()
+                                        .join("\n")
+                                } else {
+                                    "Unable to read logs".to_string()
+                                }
+                            } else {
+                                "No log manager available".to_string()
+                            };
                             
-                            // 关闭日志文件句柄
-                            self.engine_log = None;
                             self.current_proc = None;
                             
                             Err(LwgError::ProcessError(format!(
@@ -401,10 +384,6 @@ impl WallpaperController {
             }
         }
         
-        // 关闭日志文件句柄
-        if let Some(mut log) = self.engine_log.take() {
-            let _ = log.flush();
-        }
         
         if let Some(mut child) = self.current_proc.take() {
             let _ = child.kill();
@@ -491,9 +470,13 @@ impl WallpaperController {
             match args[i] {
                 "--screen-root" if i + 1 < args.len() => {
                     screen = Some(args[i + 1].to_string());
+                    i += 2;
+                    continue;
                 }
                 "--bg" if i + 1 < args.len() => {
                     wp_id = Some(args[i + 1].to_string());
+                    i += 2;
+                    continue;
                 }
                 _ => {}
             }
@@ -511,7 +494,8 @@ impl WallpaperController {
         Command::new("kill")
             .arg(pid.to_string())
             .output()
-            .is_ok()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
     }
     
     /// 强制杀死进程 (SIGKILL)
@@ -520,7 +504,8 @@ impl WallpaperController {
             .arg("-9")
             .arg(pid.to_string())
             .output()
-            .is_ok()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
     }
 }
 
@@ -679,7 +664,7 @@ impl ScreenshotManager {
                     }
                     
                     // 2. 检查文件是否存在且大小稳定
-                    if let Ok(metadata) = std::fs::metadata(output_path) {
+                    if let Ok(metadata) = tokio::fs::metadata(output_path).await {
                         let curr_size = metadata.len();
                         if curr_size > 0 {
                             if curr_size == last_size {
@@ -703,9 +688,17 @@ impl ScreenshotManager {
                                 tokio::time::sleep(Duration::from_millis(300)).await;
                                 match child.try_wait() {
                                     Ok(Some(status)) => return Ok(status),
-                                    _ => {
+                                    Ok(None) => {
+                                        // Process still running, force kill and wait
                                         let _ = child.kill();
-                                        return Ok(std::process::ExitStatus::default());
+                                        // Use blocking wait() to ensure process is reaped
+                                        match child.wait() {
+                                            Ok(status) => return Ok(status),
+                                            Err(e) => return Err(e),
+                                        }
+                                    }
+                                    Err(e) => {
+                                        return Err(e);
                                     }
                                 }
                             }

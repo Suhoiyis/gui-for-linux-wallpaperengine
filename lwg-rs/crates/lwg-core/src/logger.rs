@@ -91,7 +91,7 @@ impl LogManager {
     /// 添加日志条目
     pub fn log(&self, level: LogLevel, source: LogSource, message: &str) {
         let entry = LogEntry {
-            id: self.next_id.fetch_add(1, Ordering::SeqCst),
+            id: self.next_id.fetch_add(1, Ordering::Relaxed),
             timestamp: Local::now().format("%H:%M:%S").to_string(),
             level,
             source,

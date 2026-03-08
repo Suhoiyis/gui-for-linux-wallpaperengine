@@ -5,6 +5,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use sysinfo::{Pid, ProcessRefreshKind, RefreshKind, System};
+use tracing::{debug, warn};
 
 const HISTORY_SIZE: usize = 60;
 /// sysinfo 需要至少这个间隔才能正确计算 CPU 使用率
@@ -142,23 +143,29 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
     if let Ok(name) = std::fs::read_to_string(&comm_path) {
         let name = name.trim();
         if name.contains("wallpaper") {
-            println!("✅ [find_real_process] Found wallpaper directly: PID={}, name={}", pid, name);
+            debug!("Found wallpaper directly: PID={}, name={}", pid, name);
             return Some(pid);
         }
     }
     
     // 获取进程组 ID (PGID)
+    // /proc/[pid]/stat format: pid (comm) state ppid pgrp ...
+    // Process names can contain spaces, so we need to find the last ')' first
     let pgid = {
         let stat_path = format!("/proc/{}/stat", pid);
         if let Ok(stat) = std::fs::read_to_string(&stat_path) {
-            let parts: Vec<&str> = stat.split_whitespace().collect();
-            if parts.len() >= 5 {
-                parts[4].parse::<i32>().unwrap_or(-1)
+            // Find the last ')' to handle process names with spaces
+            if let Some(pos) = stat.rfind(')') {
+                let remainder = &stat[pos + 2..]; // Skip ") "
+                let parts: Vec<&str> = remainder.split_whitespace().collect();
+                if parts.len() >= 3 {
+                    parts[2].parse::<i32>().unwrap_or(-1) // pgrp is at index 2 after comm
+                } else { -1 }
             } else { -1 }
         } else { -1 }
     };
     
-    println!("🔍 [find_real_process] PID={}, PGID={}", pid, pgid);
+    debug!("PID={}, PGID={}", pid, pgid);
     
     // 在整个 /proc 中查找同进程组的 wallpaper 进程
     fn find_in_pgid(target_pgid: i32) -> Option<usize> {
@@ -167,16 +174,20 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
                 if let Ok(pid_str) = entry.file_name().to_string_lossy().parse::<i32>() {
                     let stat_path = format!("/proc/{}/stat", pid_str);
                     if let Ok(stat) = std::fs::read_to_string(&stat_path) {
-                        let parts: Vec<&str> = stat.split_whitespace().collect();
-                        if parts.len() >= 5 {
-                            if let Ok(pgrp) = parts[4].parse::<i32>() {
-                                if pgrp == target_pgid {
-                                    let comm_path = format!("/proc/{}/comm", pid_str);
-                                    if let Ok(comm) = std::fs::read_to_string(&comm_path) {
-                                        let comm = comm.trim();
-                                        if comm.contains("wallpaper") {
-                                            println!("✅ [find_in_pgid] Found: PID={}, name={}", pid_str, comm);
-                                            return Some(pid_str as usize);
+                        // Find the last ')' to handle process names with spaces
+                        if let Some(pos) = stat.rfind(')') {
+                            let remainder = &stat[pos + 2..]; // Skip ") "
+                            let parts: Vec<&str> = remainder.split_whitespace().collect();
+                            if parts.len() >= 3 {
+                                if let Ok(pgrp) = parts[2].parse::<i32>() {
+                                    if pgrp == target_pgid {
+                                        let comm_path = format!("/proc/{}/comm", pid_str);
+                                        if let Ok(comm) = std::fs::read_to_string(&comm_path) {
+                                            let comm = comm.trim();
+                                            if comm.contains("wallpaper") {
+                                                debug!("Found in pgid: PID={}, name={}", pid_str, comm);
+                                                return Some(pid_str as usize);
+                                            }
                                         }
                                     }
                                 }
@@ -200,14 +211,14 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
             std::thread::sleep(Duration::from_millis(100));
             if pgid > 0 {
                 if let Some(found) = find_in_pgid(pgid) {
-                    println!("✅ [find_real_process] Found after wait: PID={}", found);
+                    debug!("Found after wait: PID={}", found);
                     return Some(found);
                 }
             }
         }
     }
 
-    println!("⚠️ [find_real_process] No wallpaper found, using PID={}", pid);
+    warn!("No wallpaper found, using PID={}", pid);
     Some(pid)
 }
 
@@ -385,8 +396,8 @@ impl PerformanceMonitor {
             *last = Instant::now();
         }
 
-        println!(
-            "🚀 [start_task] category={}, original_pid={}, real_pid={}",
+        debug!(
+            "start_task: category={}, original_pid={}, real_pid={}",
             category, pid, real_pid
         );
 
@@ -412,8 +423,8 @@ impl PerformanceMonitor {
                 let cpu_hist: Vec<f32> = hist.cpu.iter().cloned().collect();
                 let mem_hist: Vec<f32> = hist.memory_mb.iter().cloned().collect();
 
-                println!(
-                    "🛑 [stop_task] category={}, cpu_samples={}, mem_samples={}",
+                debug!(
+                    "stop_task: category={}, cpu_samples={}, mem_samples={}",
                     tracker.category,
                     cpu_hist.len(),
                     mem_hist.len()
@@ -443,8 +454,8 @@ impl PerformanceMonitor {
                     0.0
                 };
 
-                println!(
-                    "🛑 [stop_task] max_cpu={}, max_mem={}, avg_cpu={}, avg_mem={}",
+                debug!(
+                    "stop_task: max_cpu={}, max_mem={}, avg_cpu={}, avg_mem={}",
                     max_cpu, max_mem, avg_cpu, avg_mem
                 );
 
@@ -453,14 +464,14 @@ impl PerformanceMonitor {
 
                 (max_cpu, max_mem, avg_cpu, avg_mem)
             } else {
-                println!(
-                    "⚠️ [stop_task] No history for category={}",
+                warn!(
+                    "No history for category={}",
                     tracker.category
                 );
                 (0.0, 0.0, 0.0, 0.0)
             }
         } else {
-            println!("⚠️ [stop_task] Failed to lock history");
+            warn!("Failed to lock history");
             (0.0, 0.0, 0.0, 0.0)
         };
 
