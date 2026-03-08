@@ -136,11 +136,18 @@ impl WallpaperController {
         // 全局参数
         cmd.arg("-f").arg(config.fps.to_string());
         
-        // 音频相关
+        // 音频相关 - silence 为最高优先级
         if config.silence {
             cmd.arg("--silent");
+            // 静音时，其他音频参数无意义，不传递
         } else {
             cmd.arg("--volume").arg(config.volume.to_string());
+            if config.no_auto_mute {
+                cmd.arg("--noautomute");
+            }
+            if config.no_audio_processing {
+                cmd.arg("--no-audio-processing");
+            }
         }
         
         // 缩放模式
@@ -154,12 +161,6 @@ impl WallpaperController {
         }
         if config.disable_mouse {
             cmd.arg("--disable-mouse");
-        }
-        if config.no_auto_mute {
-            cmd.arg("--noautomute");
-        }
-        if config.no_audio_processing {
-            cmd.arg("--no-audio-processing");
         }
         if config.disable_parallax {
             cmd.arg("--disable-parallax");
