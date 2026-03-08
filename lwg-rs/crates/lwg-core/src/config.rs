@@ -27,14 +27,20 @@ pub struct AppConfig {
     pub screenshot_delay: u32,
     pub screenshot_res: String,
     pub prefer_xvfb: bool,
+    /// 当前活动的壁纸映射（屏幕 → 壁纸ID）
+    /// 这是一个**运行时状态**，不应该持久化到磁盘
+    #[serde(skip, default)]
     pub active_monitors: HashMap<String, String>,
     pub cycle_enabled: bool,
     pub cycle_interval: u32,
     pub cycle_order: String,
     pub assets_path: Option<String>,
     pub workshop_path: Option<String>,
+    #[serde(alias = "wayland_only_active")]
     pub wayland_only_active: bool,
+    #[serde(alias = "wayland_ignore_appids")]
     pub wayland_ignore_appids: String,
+    #[serde(alias = "compact_mode")]
     pub compact_mode: bool,
     pub wallpaper_nicknames: HashMap<String, String>,
 }

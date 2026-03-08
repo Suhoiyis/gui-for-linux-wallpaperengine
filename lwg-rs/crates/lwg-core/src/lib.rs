@@ -17,3 +17,4 @@ pub use nickname::NicknameManager;
 pub use screen::{Display, ScreenManager};
 pub use wallpaper::{Wallpaper, WallpaperManager};
 pub use performance::{PerformanceMonitor, ScreenshotRecord, SystemStatsPayload, TaskTracker};
+pub use logger::{LogEntry, LogLevel, LogManager, LogSource};
