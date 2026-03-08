@@ -273,6 +273,13 @@ impl WallpaperController {
                 let pid = child.id();
                 info!("Engine started (PID: {:?}), checking if process stays alive...", pid);
                 
+                // Log to LogManager
+                if let Some(ref lm) = self.log_manager {
+                    if let Ok(m) = lm.lock() {
+                        m.info(LogSource::Controller, &format!("Engine started with PID: {:?}", pid));
+                    }
+                }
+                
                 // 获取 stdout 和 stderr
                 let stdout = child.stdout.take();
                 let stderr = child.stderr.take();
@@ -373,6 +380,12 @@ impl WallpaperController {
     /// 停止所有壁纸
     pub async fn stop(&mut self) {
         info!("Stopping wallpaper");
+        
+        if let Some(ref lm) = self.log_manager {
+            if let Ok(m) = lm.lock() {
+                m.info(LogSource::Controller, "Stopping wallpaper engine");
+            }
+        }
         
         // 杀死所有检测到的进程
         for (screen, &pid) in &self.detected_pids.clone() {
