@@ -27,7 +27,9 @@ pub struct AppConfig {
     pub screenshot_delay: u32,
     pub screenshot_res: String,
     pub prefer_xvfb: bool,
-    #[serde(alias = "active_monitors")]
+    /// 当前活动的壁纸映射（屏幕 → 壁纸ID）
+    /// 这是一个**运行时状态**，不应该持久化到磁盘
+    #[serde(skip, default)]
     pub active_monitors: HashMap<String, String>,
     pub cycle_enabled: bool,
     pub cycle_interval: u32,

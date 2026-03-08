@@ -16,6 +16,7 @@ use tracing::{debug, error, info, warn};
 pub struct WallpaperController {
     config: Arc<Mutex<AppConfig>>,
     current_proc: Option<Child>,
+    detected_pids: HashMap<String, u32>,  // 检测到的进程 PID (屏幕 → PID)
     last_command: Vec<String>,
     engine_log: Option<File>,
     log_path: PathBuf,
@@ -34,6 +35,7 @@ impl WallpaperController {
         Self {
             config,
             current_proc: None,
+            detected_pids: HashMap::new(),
             last_command: Vec::new(),
             engine_log: None,
             log_path,
@@ -41,11 +43,14 @@ impl WallpaperController {
         }
     }
 
-    /// Set the performance monitor reference for process tracking
     pub fn set_performance_monitor(&mut self, monitor: Arc<std::sync::Mutex<PerformanceMonitor>>) {
         self.performance_monitor = Some(monitor);
     }
     
+    /// Set detected process PIDs (called on startup when接管 existing processes)
+    pub fn set_detected_pids(&mut self, pids: HashMap<String, u32>) {
+        self.detected_pids = pids;
+    }
     /// 应用壁纸到指定显示器
     pub async fn apply(&mut self, wallpaper_id: &str, screen: Option<&str>) -> LwgResult<()> {
         let mut config = self.config.lock().await;
@@ -98,6 +103,13 @@ impl WallpaperController {
     pub async fn stop_screen(&mut self, screen: &str) -> LwgResult<()> {
         let mut config = self.config.lock().await;
         
+        // 检查是否有检测到的进程需要杀死
+        if let Some(&pid) = self.detected_pids.get(screen) {
+            info!("Killing detected process {} for screen {}", pid, screen);
+            Self::kill_process_by_pid(pid);
+            self.detected_pids.remove(screen);
+        }
+        
         if config.active_monitors.remove(screen).is_some() {
             info!("Stopped wallpaper on {}", screen);
             
@@ -106,7 +118,10 @@ impl WallpaperController {
                 self.stop().await;
             } else {
                 drop(config);
-                self.restart_wallpapers().await?;
+                // 只有当我们自己启动的进程存在时才需要重启
+                if self.current_proc.is_some() {
+                    self.restart_wallpapers().await?;
+                }
             }
         }
         
@@ -310,6 +325,13 @@ impl WallpaperController {
     pub async fn stop(&mut self) {
         info!("Stopping wallpaper");
         
+        // 杀死所有检测到的进程
+        for (screen, &pid) in &self.detected_pids.clone() {
+            info!("Killing detected process {} for screen {}", pid, screen);
+            Self::kill_process_by_pid(pid);
+        }
+        self.detected_pids.clear();
+        
         // Unregister backend process from performance monitoring
         if let Some(ref monitor) = self.performance_monitor {
             if let Ok(mut mon) = monitor.lock() {
@@ -361,6 +383,82 @@ impl WallpaperController {
     pub async fn is_wallpaper_running(&self) -> bool {
         let config = self.config.lock().await;
         !config.active_monitors.is_empty()
+    }
+    
+    // ================= 进程检测与接管 =================
+    
+    /// 检测已运行的 linux-wallpaperengine 进程
+    /// 返回 HashMap<屏幕名, (PID, 壁纸ID)>
+    pub fn detect_existing_processes() -> HashMap<String, (u32, String)> {
+        let mut result = HashMap::new();
+        
+        // 遍历 /proc 目录
+        if let Ok(entries) = std::fs::read_dir("/proc") {
+            for entry in entries.flatten() {
+                let name = entry.file_name();
+                let name_str = name.to_string_lossy();
+                
+                // 只处理数字目录（PID）
+                if let Ok(pid) = name_str.parse::<u32>() {
+                    let cmdline_path = format!("/proc/{}/cmdline", pid);
+                    
+                    if let Ok(cmdline) = std::fs::read_to_string(&cmdline_path) {
+                        if cmdline.contains("linux-wallpaperengine") {
+                            // 解析参数
+                            if let Some((screen, wp_id)) = Self::parse_screen_and_bg(&cmdline) {
+                                result.insert(screen, (pid, wp_id));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        result
+    }
+    
+    /// 解析 cmdline 中的 --screen-root 和 --bg 参数
+    fn parse_screen_and_bg(cmdline: &str) -> Option<(String, String)> {
+        let args: Vec<&str> = cmdline.split('\0').collect();
+        
+        let mut screen = None;
+        let mut wp_id = None;
+        
+        let mut i = 0;
+        while i < args.len() {
+            match args[i] {
+                "--screen-root" if i + 1 < args.len() => {
+                    screen = Some(args[i + 1].to_string());
+                }
+                "--bg" if i + 1 < args.len() => {
+                    wp_id = Some(args[i + 1].to_string());
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        
+        match (screen, wp_id) {
+            (Some(s), Some(w)) => Some((s, w)),
+            _ => None,
+        }
+    }
+    
+    /// 通过 PID 杀死进程 (SIGTERM)
+    pub fn kill_process_by_pid(pid: u32) -> bool {
+        Command::new("kill")
+            .arg(pid.to_string())
+            .output()
+            .is_ok()
+    }
+    
+    /// 强制杀死进程 (SIGKILL)
+    pub fn kill_process_by_pid_force(pid: u32) -> bool {
+        Command::new("kill")
+            .arg("-9")
+            .arg(pid.to_string())
+            .output()
+            .is_ok()
     }
 }
 
