@@ -1,4 +1,5 @@
 use crate::config::AppConfig;
+use crate::logger::{LogManager, LogLevel, LogSource};
 use crate::error::{LwgError, LwgResult};
 use crate::performance::PerformanceMonitor;
 use std::collections::HashMap;
@@ -21,6 +22,7 @@ pub struct WallpaperController {
     engine_log: Option<File>,
     log_path: PathBuf,
     performance_monitor: Option<Arc<std::sync::Mutex<PerformanceMonitor>>>,
+    log_manager: Option<Arc<std::sync::Mutex<LogManager>>>,
 }
 
 impl WallpaperController {
@@ -40,11 +42,16 @@ impl WallpaperController {
             engine_log: None,
             log_path,
             performance_monitor: None,
+            log_manager: None,
         }
     }
 
     pub fn set_performance_monitor(&mut self, monitor: Arc<std::sync::Mutex<PerformanceMonitor>>) {
         self.performance_monitor = Some(monitor);
+    }
+
+    pub fn set_log_manager(&mut self, manager: Arc<std::sync::Mutex<LogManager>>) {
+        self.log_manager = Some(manager);
     }
     
     /// Set detected process PIDs (called on startup when接管 existing processes)
@@ -245,7 +252,7 @@ impl WallpaperController {
         }
         
         // 打开日志文件
-        let engine_log = match File::create(&self.log_path) {
+        let _engine_log = match File::create(&self.log_path) {
             Ok(f) => f,
             Err(e) => {
                 error!("Failed to create log file: {}", e);
@@ -253,12 +260,11 @@ impl WallpaperController {
             }
         };
         
-        // 启动进程，将 stdout/stderr 重定向到日志文件
-        // 设置 LD_LIBRARY_PATH 以找到 libcef.so 等库
+        // 启动进程，使用 piped stdout/stderr 进行实时捕获
         let child = cmd
             .env("LD_LIBRARY_PATH", "/opt/linux-wallpaperengine:/opt/linux-wallpaperengine/lib")
-            .stdout(engine_log.try_clone().unwrap_or_else(|_| File::create(&self.log_path).unwrap()))
-            .stderr(engine_log.try_clone().unwrap_or_else(|_| File::create(&self.log_path).unwrap()))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .stdin(Stdio::null())
             .spawn();
         
@@ -267,9 +273,52 @@ impl WallpaperController {
                 let pid = child.id();
                 info!("Engine started (PID: {:?}), checking if process stays alive...", pid);
                 
-                // 保存进程和日志文件句柄
+                // 获取 stdout 和 stderr
+                let stdout = child.stdout.take();
+                let stderr = child.stderr.take();
+                
+                // 克隆 log_manager 用于线程
+                let log_manager = self.log_manager.clone();
+                
+                // 启动线程读取 stdout
+                if let Some(stdout) = stdout {
+                    let lm = log_manager.clone();
+                    std::thread::spawn(move || {
+                        use std::io::{BufRead, BufReader};
+                        let reader = BufReader::new(stdout);
+                        for line in reader.lines() {
+                            if let Ok(line) = line {
+                                if let Some(ref manager) = lm {
+                                    if let Ok(m) = manager.lock() {
+                                        m.log(LogLevel::Info, LogSource::Engine, &line);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // 启动线程读取 stderr
+                if let Some(stderr) = stderr {
+                    let lm = log_manager.clone();
+                    std::thread::spawn(move || {
+                        use std::io::{BufRead, BufReader};
+                        let reader = BufReader::new(stderr);
+                        for line in reader.lines() {
+                            if let Ok(line) = line {
+                                if let Some(ref manager) = lm {
+                                    if let Ok(m) = manager.lock() {
+                                        m.log(LogLevel::Error, LogSource::Engine, &line);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // 保存进程
                 self.current_proc = Some(child);
-                self.engine_log = Some(engine_log);
+                self.engine_log = None;
                 self.last_command = command_vec;
                 
                 // 等待 0.5 秒检查进程是否存活
