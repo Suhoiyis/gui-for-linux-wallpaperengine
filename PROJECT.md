@@ -206,6 +206,21 @@ cd lwg-rs && cargo test
 
 `src/api/wallpaper.ts` 中有字段映射逻辑，添加新字段时记得更新。
 
+### 修改版本号：只需编辑 tauri.conf.json 的 version 字段
+
+#### 手动同步版本号
+
+```
+npm run sync-version
+```
+
+#### 开发/构建时自动同步
+
+```
+npm run dev # predev 钩子自动同步
+npm run build # prebuild 钩子自动同步
+```
+
 ---
 
 ## 外部依赖
