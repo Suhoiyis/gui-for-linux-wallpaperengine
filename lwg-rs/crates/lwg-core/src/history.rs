@@ -44,7 +44,9 @@ impl HistoryManager {
         Ok(manager)
     }
 
-    /// Creates a history manager for testing backed by a unique temporary file.
+    /// Creates a history manager for testing backed by a unique temporary directory.
+    /// Note: The temporary directory is NOT automatically cleaned up.
+    /// Note: The temporary directory is NOT automatically cleaned up.
     /// The temporary file is deleted automatically when the returned manager is dropped.
     #[cfg(test)]
     pub fn new_for_test() -> LwgResult<Self> {

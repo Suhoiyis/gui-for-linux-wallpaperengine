@@ -112,10 +112,14 @@ Tauri 版本采用了全新的 JSON 文件分离方案，**不再与 Python 版�
 ```json
 {
   "lastWallpaper": "2874425843",
-  "lastScreen": "HDMI-1"
+  "lastScreen": "HDMI-1",
+  "activeMonitors": {
+    "HDMI-1": "2874425843",
+    "eDP-1": "2810924556"
+  }
 }
 ```
-> **注意**: `active_monitors` 仅保留在内存中，**不再持久化**。
+> **注意**: `activeMonitors` 会持久化到 state.json，用于支持多显示器壁纸恢复。
 
 ### 3. 播放历史 (Playback History)
 位置: `~/.cache/linux-wallpaperengine-gui/history.json`

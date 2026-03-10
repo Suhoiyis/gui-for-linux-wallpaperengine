@@ -40,8 +40,10 @@ impl WallpaperController {
         let mut state_manager = StateManager::new()?;
         state_manager.state.last_wallpaper = state.last_wallpaper.clone();
         state_manager.state.last_screen = state.last_screen.clone();
+        state_manager.state.active_monitors = state.active_monitors.clone();
         state_manager.save()
     }
+
 
     pub fn set_state(&mut self, state: Arc<Mutex<AppState>>) {
         self.state = state;
@@ -79,18 +81,21 @@ impl WallpaperController {
         if target_screens.len() == 1 {
             state.last_screen = Some(target_screens[0].clone());
         }
-
-        Self::save_state(&state)?;
+        
+        // Clone state for I/O, then release lock before blocking operation
+        let state_clone = state.clone();
+        drop(state);
+        
+        Self::save_state(&state_clone)?;
         
         info!(
             "Applying wallpaper {} to {:?}",
             wallpaper_id, target_screens
         );
         
-        drop(state);
         self.restart_wallpapers().await
     }
-    
+
     /// 应用壁纸到多个显示器
     pub async fn apply_to_screens(&mut self, wallpaper_id: &str, screens: &[String]) -> LwgResult<()> {
         let mut state = self.state.lock().await;
@@ -99,16 +104,21 @@ impl WallpaperController {
             state.active_monitors.insert(s.clone(), wallpaper_id.to_string());
         }
         state.last_wallpaper = Some(wallpaper_id.to_string());
-        Self::save_state(&state)?;
+        
+        // Clone state for I/O, then release lock before blocking operation
+        let state_clone = state.clone();
+        drop(state);
+        
+        Self::save_state(&state_clone)?;
         
         info!(
             "Applying wallpaper {} to screens: {:?}",
             wallpaper_id, screens
         );
         
-        drop(state);
         self.restart_wallpapers().await
     }
+
     
     /// 停止指定显示器的壁纸
     pub async fn stop_screen(&mut self, screen: &str) -> LwgResult<()> {
@@ -121,15 +131,18 @@ impl WallpaperController {
             self.detected_pids.remove(screen);
         }
         
-        if state.active_monitors.remove(screen).is_some() {
+        let removed = state.active_monitors.remove(screen).is_some();
+        let is_empty = state.active_monitors.is_empty();
+        let state_clone = state.clone();
+        drop(state);
+        
+        if removed {
             info!("Stopped wallpaper on {}", screen);
-            Self::save_state(&state)?;
+            Self::save_state(&state_clone)?;
             
-            if state.active_monitors.is_empty() {
-                drop(state);
+            if is_empty {
                 self.stop().await;
             } else {
-                drop(state);
                 // 只有当我们自己启动的进程存在时才需要重启
                 if self.current_proc.is_some() {
                     self.restart_wallpapers().await?;
@@ -139,6 +152,7 @@ impl WallpaperController {
         
         Ok(())
     }
+
     
     /// 重启所有活动的壁纸
     pub async fn restart_wallpapers(&mut self) -> LwgResult<()> {
