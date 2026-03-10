@@ -2,6 +2,7 @@ use crate::config::AppConfig;
 use crate::logger::{LogManager, LogLevel, LogSource};
 use crate::error::{LwgError, LwgResult};
 use crate::performance::PerformanceMonitor;
+use crate::state::{AppState, StateManager};
 use std::collections::HashMap;
 use std::process::{Child, Command, Stdio};
 #[cfg(target_os = "linux")]
@@ -13,6 +14,7 @@ use tracing::{debug, error, info};
 
 pub struct WallpaperController {
     config: Arc<Mutex<AppConfig>>,
+    state: Arc<Mutex<AppState>>,
     current_proc: Option<Child>,
     detected_pids: HashMap<String, u32>,  // 检测到的进程 PID (屏幕 → PID)
     last_command: Vec<String>,
@@ -22,15 +24,27 @@ pub struct WallpaperController {
 
 impl WallpaperController {
     /// 创建新的控制器
-    pub fn new(config: Arc<Mutex<AppConfig>>) -> Self {
+    pub fn new(config: Arc<Mutex<AppConfig>>, state: Arc<Mutex<AppState>>) -> Self {
         Self {
             config,
+            state,
             current_proc: None,
             detected_pids: HashMap::new(),
             last_command: Vec::new(),
             performance_monitor: None,
             log_manager: None,
         }
+    }
+
+    fn save_state(state: &AppState) -> LwgResult<()> {
+        let mut state_manager = StateManager::new()?;
+        state_manager.state.last_wallpaper = state.last_wallpaper.clone();
+        state_manager.state.last_screen = state.last_screen.clone();
+        state_manager.save()
+    }
+
+    pub fn set_state(&mut self, state: Arc<Mutex<AppState>>) {
+        self.state = state;
     }
 
     pub fn set_performance_monitor(&mut self, monitor: Arc<std::sync::Mutex<PerformanceMonitor>>) {
@@ -47,55 +61,58 @@ impl WallpaperController {
     }
     /// 应用壁纸到指定显示器
     pub async fn apply(&mut self, wallpaper_id: &str, screen: Option<&str>) -> LwgResult<()> {
-        let mut config = self.config.lock().await;
+        let mut state = self.state.lock().await;
         
         let target_screens = if let Some(s) = screen {
             vec![s.to_string()]
-        } else if let Some(last) = &config.last_screen {
+        } else if let Some(last) = &state.last_screen {
             vec![last.clone()]
         } else {
             vec!["eDP-1".to_string()]
         };
         
         for s in &target_screens {
-            config.active_monitors.insert(s.clone(), wallpaper_id.to_string());
+            state.active_monitors.insert(s.clone(), wallpaper_id.to_string());
         }
-        config.last_wallpaper = Some(wallpaper_id.to_string());
+        state.last_wallpaper = Some(wallpaper_id.to_string());
         
         if target_screens.len() == 1 {
-            config.last_screen = Some(target_screens[0].clone());
+            state.last_screen = Some(target_screens[0].clone());
         }
+
+        Self::save_state(&state)?;
         
         info!(
             "Applying wallpaper {} to {:?}",
             wallpaper_id, target_screens
         );
         
-        drop(config);
+        drop(state);
         self.restart_wallpapers().await
     }
     
     /// 应用壁纸到多个显示器
     pub async fn apply_to_screens(&mut self, wallpaper_id: &str, screens: &[String]) -> LwgResult<()> {
-        let mut config = self.config.lock().await;
+        let mut state = self.state.lock().await;
         
         for s in screens {
-            config.active_monitors.insert(s.clone(), wallpaper_id.to_string());
+            state.active_monitors.insert(s.clone(), wallpaper_id.to_string());
         }
-        config.last_wallpaper = Some(wallpaper_id.to_string());
+        state.last_wallpaper = Some(wallpaper_id.to_string());
+        Self::save_state(&state)?;
         
         info!(
             "Applying wallpaper {} to screens: {:?}",
             wallpaper_id, screens
         );
         
-        drop(config);
+        drop(state);
         self.restart_wallpapers().await
     }
     
     /// 停止指定显示器的壁纸
     pub async fn stop_screen(&mut self, screen: &str) -> LwgResult<()> {
-        let mut config = self.config.lock().await;
+        let mut state = self.state.lock().await;
         
         // 检查是否有检测到的进程需要杀死
         if let Some(&pid) = self.detected_pids.get(screen) {
@@ -104,14 +121,15 @@ impl WallpaperController {
             self.detected_pids.remove(screen);
         }
         
-        if config.active_monitors.remove(screen).is_some() {
+        if state.active_monitors.remove(screen).is_some() {
             info!("Stopped wallpaper on {}", screen);
+            Self::save_state(&state)?;
             
-            if config.active_monitors.is_empty() {
-                drop(config);
+            if state.active_monitors.is_empty() {
+                drop(state);
                 self.stop().await;
             } else {
-                drop(config);
+                drop(state);
                 // 只有当我们自己启动的进程存在时才需要重启
                 if self.current_proc.is_some() {
                     self.restart_wallpapers().await?;
@@ -126,8 +144,11 @@ impl WallpaperController {
     pub async fn restart_wallpapers(&mut self) -> LwgResult<()> {
         self.stop().await;
         
+        let state = self.state.lock().await;
+        let active_monitors: HashMap<_, _> = state.active_monitors.clone();
+        drop(state);
+
         let config = self.config.lock().await;
-        let active_monitors: HashMap<_, _> = config.active_monitors.clone();
         
         if active_monitors.is_empty() {
             info!("No active wallpapers");
@@ -416,14 +437,14 @@ impl WallpaperController {
     
     /// 获取当前活跃壁纸信息
     pub async fn get_active_wallpapers(&self) -> HashMap<String, String> {
-        let config = self.config.lock().await;
-        config.active_monitors.clone()
+        let state = self.state.lock().await;
+        state.active_monitors.clone()
     }
     
     /// 检查是否有活跃壁纸
     pub async fn is_wallpaper_running(&self) -> bool {
-        let config = self.config.lock().await;
-        !config.active_monitors.is_empty()
+        let state = self.state.lock().await;
+        !state.active_monitors.is_empty()
     }
     
     // ================= 进程检测与接管 =================

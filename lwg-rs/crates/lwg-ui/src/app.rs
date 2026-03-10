@@ -190,7 +190,8 @@ impl Component for App {
         ));
         
         let history_manager = Arc::new(Mutex::new(
-            lwg_core::history::HistoryManager::new(&config_dir)
+            lwg_core::history::HistoryManager::new()
+                .expect("Failed to initialize history manager")
         ));
         
         // 初始化控制器

@@ -21,16 +21,10 @@ pub struct AppConfig {
     pub disable_parallax: bool,
     pub disable_particles: bool,
     pub clamping: String,
-    pub last_wallpaper: Option<String>,
-    pub last_screen: Option<String>,
     pub wallpaper_properties: HashMap<String, serde_json::Value>,
     pub screenshot_delay: u32,
     pub screenshot_res: String,
     pub prefer_xvfb: bool,
-    /// 当前活动的壁纸映射（屏幕 → 壁纸ID）
-    /// 这是一个**运行时状态**，不应该持久化到磁盘
-    #[serde(skip, default)]
-    pub active_monitors: HashMap<String, String>,
     pub cycle_enabled: bool,
     pub cycle_interval: u32,
     pub cycle_order: String,
@@ -59,13 +53,10 @@ impl Default for AppConfig {
             disable_parallax: false,
             disable_particles: false,
             clamping: "clamp".to_string(),
-            last_wallpaper: None,
-            last_screen: None,
             wallpaper_properties: HashMap::new(),
             screenshot_delay: 20,
             screenshot_res: "3840x2160".to_string(),
             prefer_xvfb: true,
-            active_monitors: HashMap::new(),
             cycle_enabled: false,
             cycle_interval: 15,
             cycle_order: "random".to_string(),
@@ -127,12 +118,6 @@ impl AppConfig {
             if let Some(v) = map.get("clamping").and_then(|v| v.as_str()) {
                 config.clamping = v.to_string();
             }
-            if let Some(v) = map.get("lastWallpaper").and_then(|v| v.as_str()) {
-                config.last_wallpaper = Some(v.to_string());
-            }
-            if let Some(v) = map.get("lastScreen").and_then(|v| v.as_str()) {
-                config.last_screen = Some(v.to_string());
-            }
             if let Some(v) = map.get("screenshotDelay").and_then(|v| v.as_u64()) {
                 config.screenshot_delay = v as u32;
             }
@@ -170,7 +155,7 @@ impl AppConfig {
             return config;
         }
 
-        default
+        Self::default()
     }
 }
 
@@ -227,16 +212,6 @@ impl ConfigManager {
             "disableParallax" => Some(serde_json::json!(self.config.disable_parallax)),
             "disableParticles" => Some(serde_json::json!(self.config.disable_particles)),
             "clamping" => Some(serde_json::json!(self.config.clamping)),
-            "lastWallpaper" => self
-                .config
-                .last_wallpaper
-                .as_ref()
-                .map(|v| serde_json::json!(v)),
-            "lastScreen" => self
-                .config
-                .last_screen
-                .as_ref()
-                .map(|v| serde_json::json!(v)),
             "cycleEnabled" => Some(serde_json::json!(self.config.cycle_enabled)),
             "cycleInterval" => Some(serde_json::json!(self.config.cycle_interval)),
             "cycleOrder" => Some(serde_json::json!(self.config.cycle_order)),
@@ -287,19 +262,6 @@ impl ConfigManager {
                     self.config.silence = v;
                 }
             }
-            "lastWallpaper" => {
-                self.config.last_wallpaper = json_value.as_str().map(|s| s.to_string());
-            }
-            "lastScreen" => {
-                self.config.last_screen = json_value.as_str().map(|s| s.to_string());
-            }
-            "active_monitors" => {
-                if let Ok(map) =
-                    serde_json::from_value::<HashMap<String, String>>(json_value.clone())
-                {
-                    self.config.active_monitors = map;
-                }
-            }
             "cycleEnabled" => {
                 if let Some(v) = json_value.as_bool() {
                     self.config.cycle_enabled = v;
@@ -344,13 +306,18 @@ impl ConfigManager {
         Ok(())
     }
 
-    /// 保存配置
+    /// 保存配置（原子写入）
     pub fn save(&self) -> LwgResult<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
-        std::fs::write(&self.config_path, json)?;
+        let tmp_path = self.config_path.with_extension("tmp");
+        
+        std::fs::write(&tmp_path, json)?;
+        std::fs::rename(&tmp_path, &self.config_path)?;
+        
         debug!("配置已保存：{:?}", self.config_path);
         Ok(())
     }
+
 
     /// Creates a config manager for testing backed by a unique temporary file,
     /// avoiding concurrent read/write races on the shared config file.
@@ -399,7 +366,6 @@ mod tests {
             "fps": 60,
             "volume": 0,  // 测试 0 值不会被忽略
             "scaling": "stretch",
-            "lastWallpaper": "12345",
             "workshopPath": "/path/to/workshop"
         });
 
@@ -407,7 +373,6 @@ mod tests {
         assert_eq!(config.fps, 60);
         assert_eq!(config.volume, 0); // 正确读取 0
         assert_eq!(config.scaling, "stretch");
-        assert_eq!(config.last_wallpaper, Some("12345".to_string()));
         assert_eq!(config.workshop_path, Some("/path/to/workshop".to_string()));
     }
 

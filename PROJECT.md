@@ -88,25 +88,40 @@ suw/
 
 ## 配置文件格式
 
-配置文件位于 `/home/yua/.config/linux-wallpaperengine-gui/config.json`，与 Python 版本**完全兼容**。
+Tauri 版本采用了全新的 JSON 文件分离方案，**不再与 Python 版本兼容**。
 
-### 关键配置字段
+### 1. 用户配置 (User Preferences)
+位置: `~/.config/linux-wallpaperengine-gui/config.json`
 
 ```json
 {
   "fps": 30,
-  "volume": 15,
-  "muteAudio": false,
+  "volume": 50,
   "scaling": "default",
   "clamping": "clamp",
-  "workshopPath": "/home/user/.local/share/Steam/steamapps/workshop/content/431960",
+  "muteAudio": false,
+  "workshopPath": "/path/to/workshop",
   "wallpaperProperties": {},
-  "wallpaperNicknames": {},
-  "activeMonitors": { "HDMI-1": "12345678" }
+  "wallpaperNicknames": {}
 }
 ```
 
----
+### 2. 运行时状态 (Runtime State)
+位置: `~/.local/state/linux-wallpaperengine-gui/state.json`
+
+```json
+{
+  "lastWallpaper": "2874425843",
+  "lastScreen": "HDMI-1"
+}
+```
+> **注意**: `active_monitors` 仅保留在内存中，**不再持久化**。
+
+### 3. 播放历史 (Playback History)
+位置: `~/.cache/linux-wallpaperengine-gui/history.json`
+
+遵循 XDG 缓存规范，存储最近播放的壁纸记录。
+
 
 ## 重要开发规则
 

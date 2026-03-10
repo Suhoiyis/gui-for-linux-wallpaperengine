@@ -2,7 +2,7 @@ use crate::error::LwgResult;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
-use std::path::Path;
+
 use tracing::info;
 
 /// 历史记录条目
@@ -23,8 +23,13 @@ pub struct HistoryManager {
 
 impl HistoryManager {
     /// 创建新的历史记录管理器
-    pub fn new(config_dir: impl AsRef<Path>) -> Self {
-        let history_path = config_dir.as_ref().join("history.json");
+    pub fn new() -> LwgResult<Self> {
+        let cache_dir = dirs::cache_dir().ok_or_else(|| {
+            crate::error::LwgError::ConfigError("Cannot get cache directory".to_string())
+        })?;
+        let history_dir = cache_dir.join("linux-wallpaperengine-gui");
+        std::fs::create_dir_all(&history_dir)?;
+        let history_path = history_dir.join("history.json");
 
         let mut manager = Self {
             history: VecDeque::new(),
@@ -36,7 +41,27 @@ impl HistoryManager {
             tracing::warn!("Failed to load history: {}", e);
         }
 
-        manager
+        Ok(manager)
+    }
+
+    /// Creates a history manager for testing backed by a unique temporary file.
+    /// The temporary file is deleted automatically when the returned manager is dropped.
+    #[cfg(test)]
+    pub fn new_for_test() -> LwgResult<Self> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let id = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let temp_dir = std::env::temp_dir().join(format!("lwg-history-test-{}", id));
+        std::fs::create_dir_all(&temp_dir)?;
+        let history_path = temp_dir.join("history.json");
+        
+        let manager = Self {
+            history: VecDeque::new(),
+            max_entries: 30,
+            history_path,
+        };
+        
+        Ok(manager)
     }
 
     /// 加载历史记录
@@ -54,13 +79,18 @@ impl HistoryManager {
         Ok(())
     }
 
-    /// 保存历史记录
+    /// 保存历史记录（原子写入）
     pub fn save(&self) -> LwgResult<()> {
         let entries: Vec<_> = self.history.iter().cloned().collect();
         let content = serde_json::to_string_pretty(&entries)?;
-        std::fs::write(&self.history_path, content)?;
+        let tmp_path = self.history_path.with_extension("tmp");
+        
+        std::fs::write(&tmp_path, content)?;
+        std::fs::rename(&tmp_path, &self.history_path)?;
+        
         Ok(())
     }
+
 
     /// 添加历史记录
     pub fn add(
@@ -127,12 +157,10 @@ impl HistoryManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
 
     #[test]
     fn test_add_and_list() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut manager = HistoryManager::new(temp_dir.path());
+        let mut manager = HistoryManager::new_for_test().unwrap();
 
         manager.add("1", "Wallpaper 1", "/path/1.jpg").unwrap();
         manager.add("2", "Wallpaper 2", "/path/2.jpg").unwrap();
@@ -143,8 +171,7 @@ mod tests {
 
     #[test]
     fn test_deduplication() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut manager = HistoryManager::new(temp_dir.path());
+        let mut manager = HistoryManager::new_for_test().unwrap();
 
         manager.add("1", "Wallpaper 1", "/path/1.jpg").unwrap();
         manager.add("2", "Wallpaper 2", "/path/2.jpg").unwrap();
@@ -158,8 +185,7 @@ mod tests {
 
     #[test]
     fn test_max_entries() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut manager = HistoryManager::new(temp_dir.path());
+        let mut manager = HistoryManager::new_for_test().unwrap();
 
         for i in 0..35 {
             manager
