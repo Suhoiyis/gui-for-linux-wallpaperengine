@@ -19,4 +19,4 @@ pub use screen::{Display, ScreenManager};
 pub use wallpaper::{Wallpaper, WallpaperManager};
 pub use performance::{PerformanceMonitor, ScreenshotRecord, SystemStatsPayload, TaskTracker};
 pub use logger::{LogEntry, LogLevel, LogManager, LogSource};
-pub use state::{AppState, StateManager};
+pub use state::{ActiveWallpaper, AppState, StateManager};
