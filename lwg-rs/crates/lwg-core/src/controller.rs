@@ -469,6 +469,12 @@ impl WallpaperController {
         !state.is_empty()
     }
 
+    /// 同步状态（从外部状态源更新控制器的内部状态）
+    pub async fn sync_state(&mut self, new_state: AppState) {
+        let mut state = self.state.lock().await;
+        *state = new_state;
+        info!("Controller state synced");
+    }
     
     // ================= 进程检测与接管 =================
     
