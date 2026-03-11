@@ -37,6 +37,8 @@ pub struct AppConfig {
     #[serde(alias = "compact_mode")]
     pub compact_mode: bool,
     pub wallpaper_nicknames: HashMap<String, String>,
+    #[serde(rename = "autoRestore")]
+    pub auto_restore: bool,
 }
 
 impl Default for AppConfig {
@@ -66,6 +68,7 @@ impl Default for AppConfig {
             wayland_ignore_appids: String::new(),
             compact_mode: false,
             wallpaper_nicknames: HashMap::new(),
+            auto_restore: false,
         }
     }
 }
@@ -151,6 +154,9 @@ impl AppConfig {
             if let Some(v) = map.get("compactMode").and_then(|v| v.as_bool()) {
                 config.compact_mode = v;
             }
+            if let Some(v) = map.get("autoRestore").and_then(|v| v.as_bool()) {
+                config.auto_restore = v;
+            }
 
             return config;
         }
@@ -225,6 +231,7 @@ impl ConfigManager {
                 .workshop_path
                 .as_ref()
                 .map(|v| serde_json::json!(v)),
+            "autoRestore" => Some(serde_json::json!(self.config.auto_restore)),
             _ => None,
         }
     }
@@ -385,6 +392,7 @@ mod tests {
         assert!(json.contains("noAutomute"));
         assert!(json.contains("noFullscreenPause"));
         assert!(json.contains("workshopPath"));
+        assert!(json.contains("autoRestore"));
     }
 }
 
