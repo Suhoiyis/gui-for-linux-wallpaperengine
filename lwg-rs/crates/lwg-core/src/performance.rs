@@ -224,7 +224,6 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
 
 pub struct PerformanceMonitor {
     history: Arc<std::sync::Mutex<HashMap<String, HistoryData>>>,
-    screenshot_history: VecDeque<ScreenshotRecord>,
     processes: HashMap<String, usize>,
     cpu_count: usize,
     /// 持久的 System 实例用于正确计算 CPU 使用率
@@ -244,7 +243,6 @@ impl PerformanceMonitor {
 
         let monitor = Self {
             history: Arc::new(std::sync::Mutex::new(HashMap::new())),
-            screenshot_history: VecDeque::with_capacity(10),
             processes: HashMap::new(),
             cpu_count,
             system: std::sync::Mutex::new(system),
@@ -253,9 +251,11 @@ impl PerformanceMonitor {
                 Instant::now() - MIN_CPU_INTERVAL - Duration::from_millis(100),
             ),
         };
+
         let pid = std::process::id() as usize;
         let mut m = monitor;
         m.register_process("frontend", pid);
+
         m
     }
 
@@ -357,22 +357,7 @@ impl PerformanceMonitor {
         }
     }
 
-    pub fn add_screenshot_history(&mut self, record: ScreenshotRecord) {
-        if self.screenshot_history.len() >= 10 {
-            self.screenshot_history.pop_front();
-        }
-        self.screenshot_history.push_back(record);
-    }
-
-    pub fn get_screenshot_history(&self) -> Vec<ScreenshotRecord> {
-        self.screenshot_history.iter().cloned().collect()
-    }
-
-    pub fn clear_screenshot_history(&mut self) {
-        self.screenshot_history.clear();
-    }
-
-    /// Start tracking a task (e.g., screenshot process)
+    /// Start tracking a task
     /// This initializes history for the task
     pub fn start_task(&mut self, category: &str, pid: usize) -> TaskTracker {
         // 对于 screenshot 进程，查找真正的 linux-wallpaperengine 子进程
