@@ -153,7 +153,7 @@ impl WallpaperController {
     
     /// 重启所有活动的壁纸
     pub async fn restart_wallpapers(&mut self) -> LwgResult<()> {
-        self.stop().await;
+        self.kill_all_processes().await;
         
         let state = self.state.lock().await;
         let active_monitors: HashMap<_, _> = state.clone();
@@ -412,6 +412,13 @@ impl WallpaperController {
             let _ = Self::save_state(&state_clone);
         }
         
+        // 杀死所有进程（不修改 state）
+        self.kill_all_processes().await;
+    }
+
+    /// 仅杀死所有引擎进程，不修改 state
+    /// 供 restart_wallpapers() 使用，避免在重启时丢失 is_playing 状态
+    async fn kill_all_processes(&mut self) {
         // 杀死所有检测到的进程
         for (screen, &pid) in &self.detected_pids.clone() {
             info!("Killing detected process {} for screen {}", pid, screen);
@@ -431,7 +438,7 @@ impl WallpaperController {
             let _ = child.kill();
         }
         
-        // 确保所有引擤进程都被终止
+        // 确保所有引擎进程都被终止
         let _ = Command::new("pkill")
             .args(["-f", "/opt/linux-wallpaperengine/linux-wallpaperengine"])
             .stdout(Stdio::null())
