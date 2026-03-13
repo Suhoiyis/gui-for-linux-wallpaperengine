@@ -1,30 +1,47 @@
-use crate::error::LwgResult;
-use serde::{Deserialize, Serialize};
+use crate::error::{LwgError, LwgResult};
 use std::collections::HashMap;
-use std::path::Path;
 use tracing::info;
 
-/// 别名管理器
+const MAX_NICKNAME_LENGTH: usize = 100;
+
 pub struct NicknameManager {
     nicknames: HashMap<String, String>,
-    config_path: std::path::PathBuf,
+    nicknames_path: std::path::PathBuf,
 }
 
 impl NicknameManager {
-    /// 创建新的别名管理器
-    pub fn new(config_dir: impl AsRef<Path>) -> Self {
-        let config_path = config_dir.as_ref().join("nicknames.json");
+    pub fn new() -> LwgResult<Self> {
+        let data_dir = dirs::data_local_dir()
+            .ok_or_else(|| LwgError::ConfigError("Cannot get data directory".to_string()))?
+            .join("linux-wallpaperengine-gui");
+        std::fs::create_dir_all(&data_dir)?;
+        let nicknames_path = data_dir.join("nicknames.json");
 
         let mut manager = Self {
             nicknames: HashMap::new(),
-            config_path,
+            nicknames_path,
         };
 
         if let Err(e) = manager.load() {
             tracing::warn!("Failed to load nicknames: {}", e);
         }
 
-        manager
+        Ok(manager)
+    }
+
+    #[cfg(test)]
+    pub fn new_for_test() -> LwgResult<Self> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let id = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let temp_dir = std::env::temp_dir().join(format!("lwg-nickname-test-{}", id));
+        std::fs::create_dir_all(&temp_dir)?;
+        let nicknames_path = temp_dir.join("nicknames.json");
+
+        Ok(Self {
+            nicknames: HashMap::new(),
+            nicknames_path,
+        })
     }
 
     /// 从配置文件中加载别名（兼容 Python 版的 wallpaperNicknames 字段）
@@ -39,27 +56,26 @@ impl NicknameManager {
         Ok(())
     }
 
-    /// 加载别名（独立文件）
     fn load(&mut self) -> LwgResult<()> {
-        if !self.config_path.exists() {
+        if !self.nicknames_path.exists() {
             return Ok(());
         }
 
-        let content = std::fs::read_to_string(&self.config_path)?;
+        let content = std::fs::read_to_string(&self.nicknames_path)?;
         self.nicknames = serde_json::from_str(&content)?;
         info!("Loaded {} nicknames", self.nicknames.len());
 
         Ok(())
     }
 
-    /// 保存别名到文件
     pub fn save(&self) -> LwgResult<()> {
         let content = serde_json::to_string_pretty(&self.nicknames)?;
-        std::fs::write(&self.config_path, content)?;
+        let tmp_path = self.nicknames_path.with_extension("tmp");
+        std::fs::write(&tmp_path, content)?;
+        std::fs::rename(&tmp_path, &self.nicknames_path)?;
         Ok(())
     }
 
-    /// 设置别名
     pub fn set(
         &mut self,
         wallpaper_id: impl Into<String>,
@@ -67,11 +83,17 @@ impl NicknameManager {
     ) -> LwgResult<()> {
         let id = wallpaper_id.into();
         let name = nickname.into();
+        let trimmed = name.trim();
 
-        if name.is_empty() {
+        if trimmed.is_empty() {
             self.nicknames.remove(&id);
         } else {
-            self.nicknames.insert(id, name);
+            let truncated = if trimmed.len() > MAX_NICKNAME_LENGTH {
+                &trimmed[..MAX_NICKNAME_LENGTH]
+            } else {
+                trimmed
+            };
+            self.nicknames.insert(id, truncated.to_string());
         }
 
         self.save()?;
@@ -132,12 +154,10 @@ impl NicknameManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
 
     #[test]
     fn test_set_and_get() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut manager = NicknameManager::new(temp_dir.path());
+        let mut manager = NicknameManager::new_for_test().unwrap();
 
         manager.set("12345", "My Wallpaper").unwrap();
         assert_eq!(manager.get("12345"), Some(&"My Wallpaper".to_string()));
@@ -148,8 +168,7 @@ mod tests {
 
     #[test]
     fn test_display_name() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut manager = NicknameManager::new(temp_dir.path());
+        let mut manager = NicknameManager::new_for_test().unwrap();
 
         assert_eq!(
             manager.get_display_name("12345", "Original Title"),
@@ -161,5 +180,17 @@ mod tests {
             manager.get_display_name("12345", "Original Title"),
             "My Nickname"
         );
+    }
+
+    #[test]
+    fn test_trim_and_truncate() {
+        let mut manager = NicknameManager::new_for_test().unwrap();
+
+        manager.set("12345", "  Hello World  ").unwrap();
+        assert_eq!(manager.get("12345"), Some(&"Hello World".to_string()));
+
+        let long_name = "x".repeat(150);
+        manager.set("12346", &long_name).unwrap();
+        assert_eq!(manager.get("12346").unwrap().len(), MAX_NICKNAME_LENGTH);
     }
 }
