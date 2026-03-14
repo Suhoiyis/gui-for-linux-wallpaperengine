@@ -29,7 +29,7 @@ impl HistoryManager {
         })?;
         let history_dir = cache_dir.join("linux-wallpaperengine-gui");
         std::fs::create_dir_all(&history_dir)?;
-        let history_path = history_dir.join("history.json");
+        let history_path = history_dir.join("playback_history.json");
 
         let mut manager = Self {
             history: VecDeque::new(),
@@ -55,14 +55,14 @@ impl HistoryManager {
         let id = COUNTER.fetch_add(1, Ordering::SeqCst);
         let temp_dir = std::env::temp_dir().join(format!("lwg-history-test-{}", id));
         std::fs::create_dir_all(&temp_dir)?;
-        let history_path = temp_dir.join("history.json");
-        
+        let history_path = temp_dir.join("playback_history.json");
+
         let manager = Self {
             history: VecDeque::new(),
             max_entries: 30,
             history_path,
         };
-        
+
         Ok(manager)
     }
 
@@ -86,13 +86,12 @@ impl HistoryManager {
         let entries: Vec<_> = self.history.iter().cloned().collect();
         let content = serde_json::to_string_pretty(&entries)?;
         let tmp_path = self.history_path.with_extension("tmp");
-        
+
         std::fs::write(&tmp_path, content)?;
         std::fs::rename(&tmp_path, &self.history_path)?;
-        
+
         Ok(())
     }
-
 
     /// 添加历史记录
     pub fn add(
