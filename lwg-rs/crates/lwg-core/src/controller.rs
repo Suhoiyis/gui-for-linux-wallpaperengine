@@ -156,7 +156,11 @@ impl WallpaperController {
         self.kill_all_processes().await;
         
         let state = self.state.lock().await;
-        let active_monitors: HashMap<_, _> = state.clone();
+        let active_monitors: HashMap<_, _> = state
+            .iter()
+            .filter(|(_, aw)| aw.is_playing)
+            .map(|(screen, aw)| (screen.clone(), aw.clone()))
+            .collect();
         drop(state);
 
         let config = self.config.lock().await;
