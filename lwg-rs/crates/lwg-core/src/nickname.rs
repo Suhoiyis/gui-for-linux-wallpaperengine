@@ -88,12 +88,12 @@ impl NicknameManager {
         if trimmed.is_empty() {
             self.nicknames.remove(&id);
         } else {
-            let truncated = if trimmed.len() > MAX_NICKNAME_LENGTH {
-                &trimmed[..MAX_NICKNAME_LENGTH]
+            let truncated = if trimmed.chars().count() > MAX_NICKNAME_LENGTH {
+                trimmed.chars().take(MAX_NICKNAME_LENGTH).collect::<String>()
             } else {
-                trimmed
+                trimmed.to_string()
             };
-            self.nicknames.insert(id, truncated.to_string());
+            self.nicknames.insert(id, truncated);
         }
 
         self.save()?;
