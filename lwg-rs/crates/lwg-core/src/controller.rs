@@ -473,7 +473,7 @@ impl WallpaperController {
     /// 检查是否有活跃壁纸
     pub async fn is_wallpaper_running(&self) -> bool {
         let state = self.state.lock().await;
-        !state.is_empty()
+        state.values().any(|wallpaper| wallpaper.is_playing)
     }
 
     /// 同步状态（从外部状态源更新控制器的内部状态）
