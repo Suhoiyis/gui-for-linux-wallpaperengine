@@ -428,10 +428,12 @@ impl WallpaperController {
             // 保存 state
             let state_clone = state.clone();
             drop(state);
-            let _ = Self::save_state(&state_clone);
+            if let Err(e) = Self::save_state(&state_clone) {
+                error!("Failed to save app state while stopping wallpapers: {}", e);
+            }
         }
         
-        // 杀死所有进程（不修改 state）
+        // 抢死所有进程（不修改 state）
         self.kill_all_processes().await;
     }
 
