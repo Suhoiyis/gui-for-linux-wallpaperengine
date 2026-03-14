@@ -66,7 +66,22 @@ impl WallpaperController {
         
         let target_screens = match screen {
             Some(s) => vec![s.to_string()],
-            None => vec!["eDP-1".to_string()],
+            None => {
+                // Prefer existing screens from state (already active wallpapers),
+                // then fall back to detected screens, and only then to "eDP-1".
+                let existing_screens: Vec<String> = state.keys().cloned().collect();
+                if !existing_screens.is_empty() {
+                    existing_screens
+                } else {
+                    let detected_screens: Vec<String> =
+                        self.detected_pids.keys().cloned().collect();
+                    if !detected_screens.is_empty() {
+                        detected_screens
+                    } else {
+                        vec!["eDP-1".to_string()]
+                    }
+                }
+            }
         };
         
         for s in &target_screens {
