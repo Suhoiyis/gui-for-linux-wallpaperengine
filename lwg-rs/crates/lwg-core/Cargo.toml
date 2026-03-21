@@ -21,5 +21,7 @@ walkdir = "2"
 tempfile = "3"
 which = "6"
 indexmap = { workspace = true }
+uuid = { workspace = true }
+
 [dev-dependencies]
 tokio-test = "0.4"
