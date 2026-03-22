@@ -21,6 +21,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: lwg-gui-tauri/package-lock.json
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -28,9 +30,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            lwg-gui-tauri/src-tauri
-            lwg-rs
+          workspaces: lwg-gui-tauri/src-tauri
 
       - name: Install system dependencies
         run: |
@@ -52,37 +52,29 @@ jobs:
         working-directory: lwg-gui-tauri
         run: npm ci
 
-      - name: Build frontend
-        working-directory: lwg-gui-tauri
-        run: npm run build
-
-      - name: Verify frontend build
-        working-directory: lwg-gui-tauri
-        run: |
-          if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
-            echo "ERROR: Frontend build failed - dist/index.html not found"
-            exit 1
-          fi
-          echo "Frontend build OK - dist contents:"
-          ls -la dist/
-
       - name: Build AppImage
         working-directory: lwg-gui-tauri
         run: npm run tauri:build
 
+      - name: Verify build output
+        run: |
+          APPIMAGE=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppImage" -type f | head -1)
+          if [ -z "$APPIMAGE" ]; then
+            echo "ERROR: AppImage not found"
+            exit 1
+          fi
+          echo "AppImage built: $APPIMAGE"
+
       - name: Fix symlinks in AppDir
         run: |
-          # Find the AppDir
           APPDIR=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppDir" -type d 2>/dev/null | head -1)
           
           if [ -n "$APPDIR" ]; then
             echo "Found AppDir: $APPDIR"
             cd "$APPDIR"
             
-            # Fix .DirIcon symlink (remove absolute path, use relative)
             if [ -L .DirIcon ]; then
               rm -f .DirIcon
-              # Find the largest icon and link it
               ICON=$(find usr/share/icons -name "*.png" -type f | sort -r | head -1)
               if [ -n "$ICON" ]; then
                 ln -s "$ICON" .DirIcon
@@ -90,7 +82,6 @@ jobs:
               fi
             fi
             
-            # Fix .desktop symlink
             DESKTOP_FILE=$(ls usr/share/applications/*.desktop 2>/dev/null | head -1)
             if [ -n "$DESKTOP_FILE" ] && [ -L "$(basename $DESKTOP_FILE)" ]; then
               rm -f "$(basename $DESKTOP_FILE)"
