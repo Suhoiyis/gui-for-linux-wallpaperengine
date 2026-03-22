@@ -209,15 +209,67 @@ Tauri 版本采用了全新的 JSON 文件分离方案，**不再与 Python 版�
 
 ### 运行项目
 
+#### 系统要求 (Linux)
+
+- **操作系统**: Ubuntu 22.04+ 或其他支持 `webkit2gtk-4.1` 的发行版
+- **Node.js**: 18+
+- **Rust**: stable
+
+#### 必需的系统依赖
+
 ```bash
-# 开发模式
+# Ubuntu/Debian
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev \
+  libappindicator3-dev \
+  librsvg2-dev \
+  libssl-dev \
+  libgtk-3-dev \
+  libayatana-appindicator3-dev \
+  libsoup-3.0-dev \
+  javascriptcoregtk-4.1-dev \
+  build-essential \
+  libgstreamer1.0-dev \
+  libgstreamer-plugins-base1.0-dev \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly \
+  gstreamer1.0-libav
+```
+
+#### 开发模式
+
+```bash
 cd lwg-gui-tauri
+npm install
 npm run tauri dev
+```
 
-# 构建
-npm run tauri build
+#### 构建 AppImage
 
-# 测试 Rust 核心
+```bash
+cd lwg-gui-tauri
+npm run tauri:build
+```
+
+构建产物位于: `lwg-gui-tauri/src-tauri/target/release/bundle/appimage/`
+
+#### CI 自动构建
+
+- **触发条件**: 推送 `v*` 标签 或 手动触发
+- **构建环境**: Ubuntu 22.04
+- **产物**: AppImage 文件自动上传到 GitHub Release
+
+```bash
+# 创建并推送标签触发构建
+git tag v2.0.0
+git push origin v2.0.0
+```
+
+#### 测试 Rust 核心
+
+```bash
 cd lwg-rs && cargo test
 ```
 

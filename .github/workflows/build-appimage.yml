@@ -1,0 +1,123 @@
+name: Build AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: lwg-gui-tauri/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            lwg-gui-tauri/src-tauri
+            lwg-rs
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            libsoup-3.0-dev \
+            javascriptcoregtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav
+
+      - name: Install frontend dependencies
+        working-directory: lwg-gui-tauri
+        run: npm ci
+
+      - name: Build AppImage
+        working-directory: lwg-gui-tauri
+        run: npm run tauri:build
+
+      - name: Fix symlinks in AppDir
+        run: |
+          # Find the AppDir
+          APPDIR=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppDir" -type d 2>/dev/null | head -1)
+          
+          if [ -n "$APPDIR" ]; then
+            echo "Found AppDir: $APPDIR"
+            cd "$APPDIR"
+            
+            # Fix .DirIcon symlink (remove absolute path, use relative)
+            if [ -L .DirIcon ]; then
+              rm -f .DirIcon
+              # Find the largest icon and link it
+              ICON=$(find usr/share/icons -name "*.png" -type f | sort -r | head -1)
+              if [ -n "$ICON" ]; then
+                ln -s "$ICON" .DirIcon
+                echo "Fixed .DirIcon symlink"
+              fi
+            fi
+            
+            # Fix .desktop symlink
+            DESKTOP_FILE=$(ls usr/share/applications/*.desktop 2>/dev/null | head -1)
+            if [ -n "$DESKTOP_FILE" ] && [ -L "$(basename $DESKTOP_FILE)" ]; then
+              rm -f "$(basename $DESKTOP_FILE)"
+              ln -s "$DESKTOP_FILE" "$(basename $DESKTOP_FILE)"
+              echo "Fixed .desktop symlink"
+            fi
+            
+            cd -
+          else
+            echo "AppDir not found, skipping symlink fix"
+          fi
+
+      - name: Get AppImage path
+        id: appimage
+        run: |
+          APPIMAGE_PATH=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppImage" -type f | head -1)
+          echo "path=$APPIMAGE_PATH" >> $GITHUB_OUTPUT
+          echo "name=$(basename $APPIMAGE_PATH)" >> $GITHUB_OUTPUT
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WallpaperEngine-GUI-AppImage
+          path: ${{ steps.appimage.outputs.path }}
+          retention-days: 30
+
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.appimage.outputs.path }}
+          draft: false
+          generate_release_notes: true
