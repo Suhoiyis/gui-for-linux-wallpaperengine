@@ -75,13 +75,12 @@ pub struct AppConfig {
     #[serde(alias = "compact_mode")]
     pub compact_mode: bool,
     pub wallpaper_nicknames: HashMap<String, String>,
+    #[serde(rename = "startHidden")]
+    pub start_hidden: bool,
     #[serde(rename = "autoRestore")]
     pub auto_restore: bool,
-    /// 用户自定义播放列表
     pub playlists: Vec<Playlist>,
-    /// 轮换使用的列表 ID（None = ALL）
     pub cycle_playlist_id: Option<String>,
-    /// Playlist 侧边栏显示状态
     pub playlist_sidebar_open: bool,
 }
 
@@ -112,6 +111,7 @@ impl Default for AppConfig {
             wayland_ignore_appids: String::new(),
             compact_mode: false,
             wallpaper_nicknames: HashMap::new(),
+            start_hidden: false,
             auto_restore: false,
             playlists: Vec::new(),
             cycle_playlist_id: None,
@@ -200,6 +200,9 @@ impl AppConfig {
             }
             if let Some(v) = map.get("compactMode").and_then(|v| v.as_bool()) {
                 config.compact_mode = v;
+            }
+            if let Some(v) = map.get("startHidden").and_then(|v| v.as_bool()) {
+                config.start_hidden = v;
             }
             if let Some(v) = map.get("autoRestore").and_then(|v| v.as_bool()) {
                 config.auto_restore = v;
