@@ -1,6 +1,9 @@
 name: Build AppImage (WebKitGTK Fix)
 
 on:
+  push:
+    tags:
+      - 'v1.3.4'
   workflow_dispatch:
 
 permissions:
