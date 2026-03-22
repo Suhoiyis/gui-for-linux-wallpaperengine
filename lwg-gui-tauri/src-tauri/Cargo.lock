@@ -2181,7 +2181,7 @@ dependencies = [
 
 [[package]]
 name = "lwg-gui-tauri"
-version = "1.3.1"
+version = "1.3.2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
