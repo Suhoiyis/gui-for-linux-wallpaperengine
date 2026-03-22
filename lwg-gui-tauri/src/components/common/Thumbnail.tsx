@@ -1,15 +1,12 @@
-// src/components/ui/thumbnail.tsx
-import React, { memo, useMemo, useRef, useEffect } from "react";
+import React, { memo, useMemo, useRef, useEffect, useState } from "react";
 import { Camera } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
 
 interface ThumbnailProps {
   wallpaperId: string;
-  // ✨ 这里是关键：允许父组件传入样式（尤其是宽度和高度）
   className?: string;
-  // 允许父组件自定义找不到壁纸时的占位图标
   fallbackIcon?: React.ReactNode;
 }
 
@@ -21,36 +18,53 @@ export const Thumbnail = memo(
       return wallpapers.find((w) => w.id === wallpaperId);
     }, [wallpapers, wallpaperId]);
 
-    const previewUrl = useMemo(() => {
-      if (!wallpaper?.preview) return null;
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+      if (!wallpaper?.preview) {
+        setPreviewUrl(null);
+        return;
+      }
+
+      // HTTP/HTTPS 链接直接使用
       if (
         wallpaper.preview.startsWith("http://") ||
         wallpaper.preview.startsWith("https://")
       ) {
-        return wallpaper.preview;
+        setPreviewUrl(wallpaper.preview);
+        return;
       }
-      return convertFileSrc(wallpaper.preview);
+
+      // 本地路径：通过 Rust 命令读取并返回 base64
+      let cancelled = false;
+      invoke<string>("read_preview_image", { path: wallpaper.preview })
+        .then((dataUrl) => {
+          if (!cancelled) setPreviewUrl(dataUrl);
+        })
+        .catch(() => {
+          if (!cancelled) setPreviewUrl(null);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }, [wallpaper?.preview]);
 
-    // 判断是否为 GIF 动图
     const isGif = useMemo(() => {
       return wallpaper?.preview?.toLowerCase().endsWith(".gif");
     }, [wallpaper?.preview]);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // ✨ 性能核心：如果是 GIF，用 Canvas 绘制静态的第一帧来冻结动画，节省 GPU 资源
     useEffect(() => {
       if (!isGif || !previewUrl || !canvasRef.current) return;
 
       const img = new Image();
       img.src = previewUrl;
-      img.crossOrigin = "anonymous";
       img.onload = () => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
         if (ctx && canvas) {
-          // 画布尺寸匹配真实图片尺寸以保证清晰度
           canvas.width = img.width;
           canvas.height = img.height;
           ctx.drawImage(img, 0, 0);
@@ -58,13 +72,12 @@ export const Thumbnail = memo(
       };
     }, [previewUrl, isGif]);
 
-    // 1. 找不到壁纸时的 fallback UI
     if (!wallpaper || !previewUrl) {
       return (
         <div
           className={cn(
             "bg-muted rounded overflow-hidden border border-white/10 flex items-center justify-center shrink-0",
-            className, // 由父组件决定 w 和 h
+            className,
           )}
         >
           {fallbackIcon || <Camera className="w-4 h-4 text-muted-foreground" />}
@@ -72,22 +85,19 @@ export const Thumbnail = memo(
       );
     }
 
-    // 2. 正常渲染 UI
     return (
       <div
         className={cn(
           "bg-black/40 rounded overflow-hidden border border-white/10 shrink-0 relative group",
-          className, // ✨ 由父组件决定 w 和 h，组件自身不包含任何固定尺寸！
+          className,
         )}
       >
         {isGif ? (
-          // 渲染静态画布
           <canvas
             ref={canvasRef}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          // 渲染普通图片
           <img
             src={previewUrl}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

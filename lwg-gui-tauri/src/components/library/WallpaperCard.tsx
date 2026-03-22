@@ -3,7 +3,7 @@ import { memo, useMemo } from "react";
 import { Star, Video, Monitor, Globe, Image as ImageIcon, Check } from "lucide-react";
 import { Wallpaper } from "@/types";
 import { renderInlineMarkdown } from "@/lib/markdown";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { usePreviewUrl } from "@/hooks/usePreviewUrl";
 import { useAppStore } from "@/store/appStore";
 import { toast } from "sonner";
 import { Toggle } from "@/components/ui/toggle";
@@ -15,18 +15,10 @@ interface WallpaperCardProps {
   isSelected: boolean;
   onSelect: () => void;
 
-  // ✨ 细粒度显示控制
   showTitle?: boolean;
   showIcons?: boolean;
   className?: string;
   children?: React.ReactNode;
-}
-
-function getPreviewUrl(preview: string): string {
-  if (preview.startsWith("http://") || preview.startsWith("https://")) {
-    return preview;
-  }
-  return convertFileSrc(preview);
 }
 
 export const WallpaperCard = memo(function WallpaperCard({
@@ -68,7 +60,7 @@ export const WallpaperCard = memo(function WallpaperCard({
     }
   };
 
-  const previewUrl = useMemo(() => getPreviewUrl(wp.preview), [wp.preview]);
+  const previewUrl = usePreviewUrl(wp.preview);
 
   const TypeIcon = useMemo(() => {
     const type = wp.type?.toLowerCase() ?? "";
@@ -108,7 +100,7 @@ export const WallpaperCard = memo(function WallpaperCard({
 
         {/* 图片 */}
         <img
-          src={previewUrl}
+          src={previewUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23374151" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="12">Loading...</text></svg>'}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           alt={wp.title}
           loading="lazy"

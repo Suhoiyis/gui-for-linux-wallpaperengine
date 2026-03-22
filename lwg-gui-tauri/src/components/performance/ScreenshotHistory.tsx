@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScreenshotRecord } from "@/api/wallpaper";
 import { useAppStore } from "@/store/appStore";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { usePreviewUrl } from "@/hooks/usePreviewUrl";
 import { openFolder, openImage } from "@/api/wallpaper";
 import { toast } from "sonner";
 import { Thumbnail } from "@/components/common/Thumbnail";
@@ -30,7 +30,6 @@ interface ScreenshotRowProps {
   record: ScreenshotRecord;
 }
 
-// 缩略图预览组件
 const ScreenshotThumbnail: React.FC<{ wallpaperId: string }> = memo(
   ({ wallpaperId }) => {
     const wallpapers = useAppStore((state) => state.wallpapers);
@@ -39,16 +38,7 @@ const ScreenshotThumbnail: React.FC<{ wallpaperId: string }> = memo(
       return wallpapers.find((w) => w.id === wallpaperId);
     }, [wallpapers, wallpaperId]);
 
-    const previewUrl = useMemo(() => {
-      if (!wallpaper?.preview) return null;
-      if (
-        wallpaper.preview.startsWith("http://") ||
-        wallpaper.preview.startsWith("https://")
-      ) {
-        return wallpaper.preview;
-      }
-      return convertFileSrc(wallpaper.preview);
-    }, [wallpaper?.preview]);
+    const previewUrl = usePreviewUrl(wallpaper?.preview);
 
     if (!wallpaper) {
       return (

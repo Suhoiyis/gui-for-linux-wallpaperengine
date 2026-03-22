@@ -1517,6 +1517,42 @@ async fn open_image(path: String) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+async fn read_preview_image(path: String) -> Result<String, String> {
+    use base64::{engine::general_purpose, Engine as _};
+
+    let canonical = std::fs::canonicalize(&path)
+        .map_err(|e| format!("Path resolve failed: {}", e))?;
+
+    let filename = canonical
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or("");
+    
+    if !matches!(filename, "preview.jpg" | "preview.jpeg" | "preview.png" | "preview.gif" | "preview.webp") {
+        return Err("Only preview images are allowed".to_string());
+    }
+
+    let data = std::fs::read(&canonical)
+        .map_err(|e| format!("Read failed: {}", e))?;
+
+    let ext = canonical.extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("jpg");
+    let mime = match ext {
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        _ => "image/jpeg",
+    };
+
+    Ok(format!(
+        "data:{};base64,{}",
+        mime,
+        general_purpose::STANDARD.encode(&data)
+    ))
+}
+
 
 #[tauri::command]
 async fn get_active_wallpapers(
@@ -2579,6 +2615,7 @@ pub fn run() {
             get_active_wallpapers,
             open_folder,
             open_image,
+            read_preview_image,
             // Log commands
             get_logs,
             clear_logs,
