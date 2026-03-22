@@ -1,0 +1,3 @@
+[target.x86_64-pc-windows-gnu]
+# 不直接指定 linker，而是通过 rustflags 告诉 gcc 使用 lld
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
