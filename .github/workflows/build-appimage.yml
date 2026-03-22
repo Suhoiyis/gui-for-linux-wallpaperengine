@@ -21,8 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: lwg-gui-tauri/package-lock.json
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -53,6 +51,20 @@ jobs:
       - name: Install frontend dependencies
         working-directory: lwg-gui-tauri
         run: npm ci
+
+      - name: Build frontend
+        working-directory: lwg-gui-tauri
+        run: npm run build
+
+      - name: Verify frontend build
+        working-directory: lwg-gui-tauri
+        run: |
+          if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
+            echo "ERROR: Frontend build failed - dist/index.html not found"
+            exit 1
+          fi
+          echo "Frontend build OK - dist contents:"
+          ls -la dist/
 
       - name: Build AppImage
         working-directory: lwg-gui-tauri
