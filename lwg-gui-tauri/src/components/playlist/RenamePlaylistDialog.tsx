@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppStore } from "@/store/appStore";
+import { toast } from "sonner";
 
 interface RenamePlaylistDialogProps {
   open: boolean;
@@ -55,6 +56,8 @@ export function RenamePlaylistDialog({
       await renamePlaylist(playlistId, name.trim());
       onOpenChange(false);
     } catch (error) {
+      console.error("Failed to rename playlist:", error);
+      toast.error("Failed to rename playlist");
     } finally {
       setIsLoading(false);
     }
