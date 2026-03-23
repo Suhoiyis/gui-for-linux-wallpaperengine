@@ -38,3 +38,4 @@ walkdir = "2"
 tempfile = "3"
 which = "6"
 indexmap = "2"
+uuid = { version = "1.0", features = ["v4", "serde"] }

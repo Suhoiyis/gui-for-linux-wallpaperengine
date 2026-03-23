@@ -607,19 +607,19 @@ impl ScreenshotManager {
     ) -> LwgResult<Child> {
         let config = self.config.lock().await;
         
-        let delay = config.screenshot_delay;
         let res = config.screenshot_res.clone();
         let prefer_xvfb = config.prefer_xvfb;
         let assets_path = config.assets_path.clone();
         
         drop(config);
         
-        // 基础命令
+        const SCREENSHOT_DELAY: u32 = 15;
+        
         let mut args = vec![
             "--screenshot".to_string(),
             output_path.as_ref().to_string_lossy().to_string(),
             "--screenshot-delay".to_string(),
-            delay.to_string(),
+            SCREENSHOT_DELAY.to_string(),
             "--silent".to_string(),
             "-f".to_string(),
             "60".to_string(),

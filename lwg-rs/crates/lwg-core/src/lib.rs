@@ -13,7 +13,7 @@ pub mod wallpaper;
 pub mod state;
 pub mod favorite;
 
-pub use config::{AppConfig, ConfigManager};
+pub use config::{AppConfig, ConfigManager, Playlist};
 pub use error::{LwgError, LwgResult};
 pub use history::{HistoryEntry, HistoryManager};
 pub use screenshot_history::ScreenshotHistoryManager;

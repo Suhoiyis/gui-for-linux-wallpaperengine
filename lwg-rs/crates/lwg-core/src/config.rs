@@ -4,6 +4,44 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, warn};
 
+/// 播放列表
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Playlist {
+    /// 唯一标识符 (UUID)
+    pub id: String,
+    /// 列表名称
+    pub name: String,
+    /// 壁纸 ID 列表（有序）
+    pub wallpaper_ids: Vec<String>,
+    /// 创建时间戳（秒）
+    pub created_at: u64,
+    /// 更新时间戳（秒）
+    pub updated_at: u64,
+}
+
+impl Playlist {
+    /// 创建新播放列表（仅用于测试）
+    ///
+    /// ⚠️ 生产环境中 ID 由前端生成，后端 create_playlist 命令接收前端传来的 ID
+    /// 此方法仅用于单元测试
+    #[cfg(test)]
+    pub fn new(name: String, wallpaper_ids: Vec<String>) -> Self {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            name,
+            wallpaper_ids,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+}
+
 /// 应用配置结构体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -37,8 +75,13 @@ pub struct AppConfig {
     #[serde(alias = "compact_mode")]
     pub compact_mode: bool,
     pub wallpaper_nicknames: HashMap<String, String>,
+    #[serde(rename = "startHidden")]
+    pub start_hidden: bool,
     #[serde(rename = "autoRestore")]
     pub auto_restore: bool,
+    pub playlists: Vec<Playlist>,
+    pub cycle_playlist_id: Option<String>,
+    pub playlist_sidebar_open: bool,
 }
 
 impl Default for AppConfig {
@@ -68,7 +111,11 @@ impl Default for AppConfig {
             wayland_ignore_appids: String::new(),
             compact_mode: false,
             wallpaper_nicknames: HashMap::new(),
+            start_hidden: false,
             auto_restore: false,
+            playlists: Vec::new(),
+            cycle_playlist_id: None,
+            playlist_sidebar_open: true,
         }
     }
 }
@@ -154,8 +201,24 @@ impl AppConfig {
             if let Some(v) = map.get("compactMode").and_then(|v| v.as_bool()) {
                 config.compact_mode = v;
             }
+            if let Some(v) = map.get("startHidden").and_then(|v| v.as_bool()) {
+                config.start_hidden = v;
+            }
             if let Some(v) = map.get("autoRestore").and_then(|v| v.as_bool()) {
                 config.auto_restore = v;
+            }
+
+            // Playlist fields
+            if let Some(v) = map.get("playlists") {
+                if let Ok(playlists) = serde_json::from_value(v.clone()) {
+                    config.playlists = playlists;
+                }
+            }
+            if let Some(v) = map.get("cyclePlaylistId").and_then(|v| v.as_str()) {
+                config.cycle_playlist_id = Some(v.to_string());
+            }
+            if let Some(v) = map.get("playlistSidebarOpen").and_then(|v| v.as_bool()) {
+                config.playlist_sidebar_open = v;
             }
 
             return config;
@@ -317,14 +380,13 @@ impl ConfigManager {
     pub fn save(&self) -> LwgResult<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
         let tmp_path = self.config_path.with_extension("tmp");
-        
+
         std::fs::write(&tmp_path, json)?;
         std::fs::rename(&tmp_path, &self.config_path)?;
-        
+
         debug!("配置已保存：{:?}", self.config_path);
         Ok(())
     }
-
 
     /// Creates a config manager for testing backed by a unique temporary file,
     /// avoiding concurrent read/write races on the shared config file.
@@ -421,5 +483,96 @@ mod tests_config_extended {
         let config = ConfigManager::new().unwrap();
         assert!(config.validate_path("/tmp").is_ok());
         assert!(config.validate_path("/nonexistent_path_12345").is_err());
+    }
+}
+
+#[cfg(test)]
+mod tests_playlist {
+    use super::*;
+
+    #[test]
+    fn test_playlist_creation() {
+        let playlist = Playlist::new(
+            "Test Playlist".to_string(),
+            vec!["wp1".to_string(), "wp2".to_string()],
+        );
+
+        assert!(!playlist.id.is_empty());
+        assert_eq!(playlist.name, "Test Playlist");
+        assert_eq!(playlist.wallpaper_ids, vec!["wp1", "wp2"]);
+        assert!(playlist.created_at > 0);
+        assert_eq!(playlist.created_at, playlist.updated_at);
+    }
+
+    #[test]
+    fn test_playlist_serialization() {
+        let playlist = Playlist {
+            id: "test-id-123".to_string(),
+            name: "My Playlist".to_string(),
+            wallpaper_ids: vec!["wp1".to_string(), "wp2".to_string()],
+            created_at: 1000,
+            updated_at: 2000,
+        };
+
+        let json = serde_json::to_string(&playlist).unwrap();
+        assert!(json.contains("\"id\":\"test-id-123\""));
+        assert!(json.contains("\"name\":\"My Playlist\""));
+        assert!(json.contains("\"wallpaperIds\""));
+        assert!(json.contains("\"createdAt\":1000"));
+        assert!(json.contains("\"updatedAt\":2000"));
+    }
+
+    #[test]
+    fn test_appconfig_playlists_default() {
+        let config = AppConfig::default();
+        assert!(config.playlists.is_empty());
+        assert!(config.cycle_playlist_id.is_none());
+        assert!(config.playlist_sidebar_open);
+    }
+
+    #[test]
+    fn test_appconfig_with_playlists_serialization() {
+        let playlist = Playlist {
+            id: "pl-1".to_string(),
+            name: "Favorites".to_string(),
+            wallpaper_ids: vec!["wp1".to_string()],
+            created_at: 100,
+            updated_at: 100,
+        };
+
+        let config = AppConfig {
+            playlists: vec![playlist],
+            cycle_playlist_id: Some("pl-1".to_string()),
+            playlist_sidebar_open: false,
+            ..AppConfig::default()
+        };
+
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(json.contains("\"playlists\""));
+        assert!(json.contains("\"cyclePlaylistId\":\"pl-1\""));
+        assert!(json.contains("\"playlistSidebarOpen\":false"));
+    }
+
+    #[test]
+    fn test_merge_with_default_playlists() {
+        let user = serde_json::json!({
+            "playlists": [
+                {
+                    "id": "pl-1",
+                    "name": "Test",
+                    "wallpaperIds": ["wp1", "wp2"],
+                    "createdAt": 100,
+                    "updatedAt": 200
+                }
+            ],
+            "cyclePlaylistId": "pl-1",
+            "playlistSidebarOpen": false
+        });
+
+        let config = AppConfig::merge_with_default(user);
+        assert_eq!(config.playlists.len(), 1);
+        assert_eq!(config.playlists[0].name, "Test");
+        assert_eq!(config.cycle_playlist_id, Some("pl-1".to_string()));
+        assert!(!config.playlist_sidebar_open);
     }
 }
