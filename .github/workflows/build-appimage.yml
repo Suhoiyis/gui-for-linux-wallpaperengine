@@ -58,43 +58,65 @@ jobs:
         env:
           NO_STRIP: "1"
 
-      - name: Verify build output
-        run: |
-          APPIMAGE=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppImage" -type f | head -1)
-          if [ -z "$APPIMAGE" ]; then
-            echo "ERROR: AppImage not found"
-            exit 1
-          fi
-          echo "AppImage built: $APPIMAGE"
-
-      - name: Fix symlinks in AppDir
+      - name: Inject WebKitGTK compatibility fix
         run: |
           APPDIR=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppDir" -type d 2>/dev/null | head -1)
           
-          if [ -n "$APPDIR" ]; then
-            echo "Found AppDir: $APPDIR"
-            cd "$APPDIR"
-            
-            if [ -L .DirIcon ]; then
-              rm -f .DirIcon
-              ICON=$(find usr/share/icons -name "*.png" -type f | sort -r | head -1)
-              if [ -n "$ICON" ]; then
-                ln -s "$ICON" .DirIcon
-                echo "Fixed .DirIcon symlink"
-              fi
-            fi
-            
-            DESKTOP_FILE=$(ls usr/share/applications/*.desktop 2>/dev/null | head -1)
-            if [ -n "$DESKTOP_FILE" ] && [ -L "$(basename $DESKTOP_FILE)" ]; then
-              rm -f "$(basename $DESKTOP_FILE)"
-              ln -s "$DESKTOP_FILE" "$(basename $DESKTOP_FILE)"
-              echo "Fixed .desktop symlink"
-            fi
-            
-            cd -
-          else
-            echo "AppDir not found, skipping symlink fix"
+          if [ -z "$APPDIR" ]; then
+            echo "ERROR: AppDir not found"
+            exit 1
           fi
+          
+          echo "Found AppDir: $APPDIR"
+          
+          cd "$APPDIR"
+          
+          if [ -L .DirIcon ]; then
+            rm -f .DirIcon
+            ICON=$(find usr/share/icons -name "*.png" -type f | sort -r | head -1)
+            if [ -n "$ICON" ]; then
+              ln -s "$ICON" .DirIcon
+              echo "Fixed .DirIcon symlink"
+            fi
+          fi
+          
+          DESKTOP_FILE=$(ls usr/share/applications/*.desktop 2>/dev/null | head -1)
+          if [ -n "$DESKTOP_FILE" ] && [ -L "$(basename $DESKTOP_FILE)" ]; then
+            rm -f "$(basename $DESKTOP_FILE)"
+            ln -s "$DESKTOP_FILE" "$(basename $DESKTOP_FILE)"
+            echo "Fixed .desktop symlink"
+          fi
+          
+          cd -
+          
+          cp lwg-gui-tauri/scripts/appimage-webkit-fix.sh "$APPDIR/AppRun"
+          chmod +x "$APPDIR/AppRun"
+          echo "Injected custom AppRun script"
+
+      - name: Repackage AppImage
+        run: |
+          APPIMAGE=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppImage" -type f | head -1)
+          APPDIR=$(find lwg-gui-tauri/src-tauri/target/release/bundle/appimage -name "*.AppDir" -type d | head -1)
+          
+          if [ -z "$APPIMAGE" ] || [ -z "$APPDIR" ]; then
+            echo "ERROR: AppImage or AppDir not found"
+            exit 1
+          fi
+          
+          rm -f "$APPIMAGE"
+          
+          ARCH=x86_64
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${ARCH}.AppImage" -O /tmp/appimagetool
+          chmod +x /tmp/appimagetool
+          
+          cd /tmp
+          ./appimagetool --appimage-extract >/dev/null 2>&1
+          APPIMAGETOOL_BIN="/tmp/squashfs-root/AppRun"
+          cd -
+          
+          ARCH=x86_64 "$APPIMAGETOOL_BIN" --no-appstream "$APPDIR" "$APPIMAGE"
+          
+          echo "AppImage size: $(du -sh "$APPIMAGE" | cut -f1)"
 
       - name: Get AppImage path
         id: appimage
