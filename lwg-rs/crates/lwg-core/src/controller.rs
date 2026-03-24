@@ -681,7 +681,11 @@ impl ScreenshotManager {
         cmd.stderr(std::process::Stdio::from(err_log));
         
         // 创建新进程组，这样可以通过 kill -<pid> 杀死整个进程树
-        cmd.process_group(0);
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
         
         info!("Starting screenshot for wallpaper {}", wallpaper_id);
         

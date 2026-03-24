@@ -133,6 +133,7 @@ pub struct AppConfig {
     pub playlists: Vec<Playlist>,
     pub cycle_playlist_id: Option<String>,
     pub playlist_sidebar_open: bool,
+    pub onboarding_completed: bool,
 }
 
 impl Default for AppConfig {
@@ -167,6 +168,7 @@ impl Default for AppConfig {
             playlists: Vec::new(),
             cycle_playlist_id: None,
             playlist_sidebar_open: true,
+            onboarding_completed: false,
         }
     }
 }
@@ -215,6 +217,7 @@ impl From<LwgAppConfig> for AppConfig {
             playlists: config.playlists.into_iter().map(|p| p.into()).collect(),
             cycle_playlist_id: config.cycle_playlist_id,
             playlist_sidebar_open: config.playlist_sidebar_open,
+            onboarding_completed: config.onboarding_completed,
         }
     }
 }
@@ -252,6 +255,7 @@ impl From<AppConfig> for LwgAppConfig {
             playlists: config.playlists.into_iter().map(|p| p.into()).collect(),
             cycle_playlist_id: config.cycle_playlist_id,
             playlist_sidebar_open: config.playlist_sidebar_open,
+            onboarding_completed: config.onboarding_completed,
         }
     }
 }
@@ -1180,6 +1184,19 @@ fn get_display_server() -> String {
 #[tauri::command]
 fn check_xvfb_available() -> bool {
     which::which("xvfb-run").is_ok()
+}
+
+#[tauri::command]
+fn check_wallpaperengine_installed() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        which::which("linux-wallpaperengine").is_ok()
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
 }
 
 #[tauri::command]
@@ -2604,6 +2621,7 @@ pub fn run() {
             // System integration commands
             get_display_server,
             check_xvfb_available,
+            check_wallpaperengine_installed,
             get_connected_monitors,
             // Performance monitoring commands
             start_performance_monitor,

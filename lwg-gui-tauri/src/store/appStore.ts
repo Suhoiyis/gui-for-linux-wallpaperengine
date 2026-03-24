@@ -118,8 +118,9 @@ interface AppStoreState {
   // ✨✨ Command Palette 状态 ✨✨
   isCommandPaletteOpen: boolean;
 
-
-
+  // ✨✨ Onboarding / Welcome Dialog 状态 ✨✨
+  welcomeDialogOpen: boolean;
+  welcomeDialogRequired: boolean;
 
   // Actions
   fetchAppVersion: () => Promise<void>;
@@ -139,6 +140,11 @@ interface AppStoreState {
 
   // ✨✨ Command Palette 方法 ✨✨
   setCommandPaletteOpen: (open: boolean) => void;
+
+  // ✨✨ Onboarding 方法 ✨✨
+  openWelcomeDialog: (required: boolean) => void;
+  closeWelcomeDialog: () => void;
+  completeOnboarding: () => Promise<void>;
 
   toggleFavorite: (id: string) => void;
   addToFavorites: (id: string) => void;
@@ -250,6 +256,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   // ✨✨ Command Palette 默认关闭 ✨✨
   isCommandPaletteOpen: false,
 
+  // ✨✨ Onboarding 默认关闭，非必须模式 ✨✨
+  welcomeDialogOpen: false,
+  welcomeDialogRequired: false,
 
   // App version action
   fetchAppVersion: async () => {
@@ -307,6 +316,50 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   // ✨✨ Command Palette 开关 ✨✨
   setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
+
+  // ✨✨ Onboarding 方法实现 ✨✨
+  openWelcomeDialog: (required: boolean) => {
+    set({ welcomeDialogOpen: true, welcomeDialogRequired: required });
+  },
+
+  closeWelcomeDialog: () => {
+    const { welcomeDialogRequired } = get();
+    // If dialog is required (first launch), ignore close requests
+    if (welcomeDialogRequired) return;
+    set({ welcomeDialogOpen: false });
+  },
+
+  completeOnboarding: async () => {
+    const isTauri = isTauriEnv();
+    const currentSettings = get().settings;
+    
+    if (!currentSettings) {
+      console.error('[Onboarding] No settings to update');
+      return;
+    }
+    
+    // Optimistic update
+    const newSettings = { ...currentSettings, onboardingCompleted: true };
+    set({ settings: newSettings });
+    
+    // Persist to backend
+    if (isTauri) {
+      try {
+        await invoke("save_settings", { config: newSettings });
+        console.log('[Onboarding] Completed and saved');
+        // Close dialog after successful save
+        set({ welcomeDialogOpen: false, welcomeDialogRequired: false });
+      } catch (error) {
+        console.error('[Onboarding] Failed to save:', error);
+        toast.error('Failed to complete onboarding', { description: String(error) });
+        // Revert on error
+        set({ settings: currentSettings });
+      }
+    } else {
+      // Mock mode
+      set({ welcomeDialogOpen: false, welcomeDialogRequired: false });
+    }
+  },
 
   // Favorites & nicknames actions
   toggleFavorite: async (id: string) => {
@@ -474,6 +527,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           waylandIgnoreAppids: "firefox,steam",
           compactMode: false,
           wallpaperNicknames: {},
+          onboardingCompleted: false,
         } as unknown as AppConfig;
       }
 
@@ -544,6 +598,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
           compactMode: false,
           startHidden: false,
           autoRestore: false,
+          onboardingCompleted: false,
         };
         set({ settings: defaultSettings, settingsLoading: false });
         // Mock runtime state
