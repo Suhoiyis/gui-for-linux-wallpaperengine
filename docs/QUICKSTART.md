@@ -1,19 +1,21 @@
+<strong>English</strong> | <a href="QUICKSTART_ZH.md">中文</a>
+
 # Quickstart Guide
 
 This guide helps you set up and start using the Linux Wallpaper Engine (LWG) GUI on your system.
 
 ## System Requirements
 
-LWG GUI needs a modern Linux distribution like Ubuntu 22.04 or newer. The application relies on several libraries to function correctly.
+LWG GUI needs a modern Linux distribution like Ubuntu 22.04 or newer. The application relies on WebKitGTK for the webview.
 
-You must have these installed:
-- `webkit2gtk-4.1`
-- `libadwaita`
-- `gtk4`
-
-Install the webview dependency on Ubuntu or Debian with this command:
+Install the webview dependency on Ubuntu or Debian:
 ```bash
 sudo apt install libwebkit2gtk-4.1-0
+```
+
+**Arch Linux / Manjaro:**
+```bash
+sudo pacman -S webkit2gtk-4.1
 ```
 
 ## Installation
@@ -53,7 +55,7 @@ Double-click the file to start the app. It'll scan your Steam Workshop folders f
 Open the **Library** tab to see your wallpapers. Click any card to view its details, then hit the **Apply** button.
 
 ### Multi-Monitor Setup
-Use the monitor dropdown at the top to pick a specific screen. You can set unique wallpapers for each display or link them together.
+Use the monitor dropdown at the top to pick a specific screen or select "All Screens" to apply the same wallpaper to all displays.
 
 ### System Tray
 The app puts an icon in your system tray. Right-click it to pause, resume, or change wallpapers quickly.

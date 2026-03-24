@@ -1,19 +1,21 @@
+<a href="QUICKSTART.md">English</a> | <strong>中文</strong>
+
 # 快速入门指南
 
 本指南将帮助您在系统上设置并开始使用 Linux Wallpaper Engine (LWG) GUI。
 
 ## 系统要求
 
-LWG GUI 需要现代 Linux 发行版，如 Ubuntu 22.04 或更高版本。该应用程序依赖多个库才能正常运行。
+LWG GUI 需要现代 Linux 发行版，如 Ubuntu 22.04 或更高版本。应用程序依赖 WebKitGTK 作为网页视图。
 
-您必须安装以下组件：
-- `webkit2gtk-4.1`
-- `libadwaita`
-- `gtk4`
-
-在 Ubuntu 或 Debian 上使用此命令安装 webview 依赖：
+在 Ubuntu 或 Debian 上安装网页视图依赖：
 ```bash
 sudo apt install libwebkit2gtk-4.1-0
+```
+
+**Arch Linux / Manjaro:**
+```bash
+sudo pacman -S webkit2gtk-4.1
 ```
 
 ## 安装
@@ -53,7 +55,7 @@ chmod +x linux-wallpaperengine-gui-v2.0.0-x86_64.AppImage
 打开**库**选项卡查看您的壁纸。点击任何卡片查看其详细信息，然后点击**应用**按钮。
 
 ### 多显示器设置
-使用顶部的屏幕选择器下拉菜单选择特定屏幕。您可以为每个显示器设置独特的壁纸，或将它们链接在一起。
+使用顶部的屏幕选择器下拉菜单选择特定屏幕，或选择"All Screens"将同一壁纸应用于所有显示器。
 
 ### 系统托盘
 应用程序会在系统托盘中放置一个图标。右键单击它可以快速暂停、恢复或更换壁纸。

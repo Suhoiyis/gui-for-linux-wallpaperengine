@@ -29,14 +29,13 @@
 
 ### Core Features
 
-- 🎨 **Light/Dark Theme Adaptive**: Fully adapts to your system theme with automatic accent color sync
-- 🖥️ **Multi-Monitor Support**: Set independent wallpapers for each display with Link/Unlink mode
+- 🎨 **Light/Dark Theme Adaptive**: Adapts to your system's light or dark theme
+- 🖥️ **Multi-Monitor Support**: Set independent wallpapers for each display via screen selector dropdown
 - ✏️ **Nickname System**: Assign custom nicknames to wallpapers for easier identification
 - ⭐ **Favorites System**: Mark your favorite wallpapers for quick access (NEW)
 - 📋 **Playlists**: Create custom wallpaper collections with drag-and-drop ordering (NEW)
 - 🔍 **Search & Sort**: Real-time keyword search; sort by name, size, or ID
 - 📺 **System Tray**: Native tray icon with play/stop/random controls
-- ⌨️ **Command-Line Control**: Full CLI support for headless operation
 
 ### Advanced Features
 
@@ -115,6 +114,30 @@ Settings are organized into 4 tabs:
 | **System** | Paths, Autostart, Screenshot, Nicknames, Favorites |
 | **Logs** | Real-time log viewer with filtering |
 
+## 🚀 Autostart
+
+The app can be configured to launch automatically on login via **Settings → System → Run on Startup**.
+
+To start the app hidden (minimized to tray), enable **Settings → System → Start Hidden**.
+
+**Example:** Autostart with Niri
+```bash
+# In your niri config.kdl
+spawn-at-startup "path/to/linux-wallpaperengine-gui" "--hidden"
+```
+
+**Example:** Autostart with Hyprland
+```ini
+# In your hyprland.conf
+exec-once = path/to/linux-wallpaperengine-gui --hidden
+```
+
+**Example:** Autostart with i3
+```
+# In your i3 config
+exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
+```
+
 ## ⚙️ Configuration
 
 Configuration files follow XDG specifications:
@@ -145,7 +168,61 @@ For complete configuration reference, see [docs/CONFIGURATION.md](docs/CONFIGURA
 - ❌ **Mouse interaction disabled**: Cannot obtain global cursor position
 - ❌ **Web property injection limited**: CEF communication restricted
 
-For detailed compatibility information, see [docs/old/COMPATIBILITY.md](docs/old/COMPATIBILITY.md).
+## ❓ FAQ
+
+### How can I reduce memory usage?
+
+1. Avoid Web wallpapers (they use CEF/Chromium internally)
+2. Enable timed rotation (Settings → Automation) to periodically restart the backend
+3. Lower FPS (Settings → Playback)
+4. Disable audio processing (Settings → Playback)
+
+### The compact preview window doesn't float in my tiling WM
+
+You need to add a window rule in your WM configuration. For Niri and Hyprland examples, see the System Integration section in [docs/old/ADVANCED.md](docs/old/ADVANCED.md#compact-preview-mode).
+
+### Why are screenshots slow (5–10 seconds)?
+
+If Xvfb is installed, the app uses CPU software rendering to produce 4K screenshots silently (no popup window). This is slower but guarantees consistent quality regardless of your physical screen resolution or tiling WM layout. You can disable Xvfb mode in Settings → System for faster (but windowed) screenshots.
+
+### System tray icon is not showing
+
+1. GNOME users: Install the "AppIndicator Support" extension
+2. Waybar users: Ensure the `tray` module is configured
+3. i3/Sway users: You may need `waybar` or another status bar with tray support
+
+### How do I set different wallpapers for each monitor?
+
+Select the target display from the top bar dropdown (e.g., "eDP-1" or "HDMI-A-1"), then browse and apply a wallpaper. To apply the same wallpaper to all monitors, select "All Screens" from the dropdown.
+
+### Can I use this with Flatpak or AppImage?
+
+**AppImage**: Fully supported. Download, make executable, and run.
+
+**Flatpak**: Not officially supported yet. File access and sandbox restrictions may affect functionality.
+
+### How do I report a bug?
+
+1. Go to Settings → Logs and click **Copy Logs**
+2. Open a [GitHub Issue](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues)
+3. Include: system info (`uname -a`), desktop environment, wallpaper ID/type, and the copied logs
+
+## 🔄 Update & Uninstall
+
+### Updating
+
+Download the latest AppImage from the [Releases page](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases) and replace the old file. Your configuration and playlists are preserved in `~/.config/linux-wallpaperengine-gui/`.
+
+### Uninstalling
+
+1. **AppImage**: Simply delete the AppImage file
+2. **Config files** (optional):
+   ```bash
+   rm -rf ~/.config/linux-wallpaperengine-gui
+   rm -rf ~/.local/state/linux-wallpaperengine-gui
+   rm -rf ~/.local/share/linux-wallpaperengine-gui
+   rm -rf ~/.cache/linux-wallpaperengine-gui
+   ```
 
 ## 📚 Documentation
 
@@ -158,6 +235,31 @@ For detailed compatibility information, see [docs/old/COMPATIBILITY.md](docs/old
 | [docs/old/](docs/old/) | Legacy Python version documentation |
 
 ## 🏛️ Technical Architecture
+
+### Project Structure
+
+```
+gui-for-linux-wallpaperengine/
+├── lwg-gui-tauri/              # Main Tauri application
+│   ├── src/                     # React frontend
+│   │   ├── components/          # UI components (library, settings, performance)
+│   │   ├── pages/               # Page views (Library, Settings, Performance)
+│   │   ├── store/               # Zustand state management
+│   │   └── api/                 # Tauri API wrappers
+│   └── src-tauri/               # Rust backend
+│       └── src/lib.rs           # Tauri commands and business logic
+│
+├── lwg-rs/                      # Rust core library
+│   └── crates/lwg-core/         # Config, controller, wallpaper management
+│
+├── py_GUI/                      # Legacy Python version (reference only)
+├── docs/                        # Documentation
+│   ├── old/                     # Legacy Python documentation
+│   └── assets/                  # Screenshots and images
+└── pic/                         # Application icons
+```
+
+### Architecture Overview
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -177,9 +279,17 @@ For detailed compatibility information, see [docs/old/COMPATIBILITY.md](docs/old
 │                     │ subprocess                 │
 │  ┌──────────────────┴───────────────────────────┐│
 │  │         linux-wallpaperengine (C++)          ││
+│  │         Rendering · Audio · Screenshot       ││
 │  └──────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────┘
 ```
+
+### Key Design Decisions
+
+- **Single-instance architecture**: All CLI commands route to the running application, avoiding process duplication
+- **Hybrid save strategy**: Optimistic UI updates with debounced backend persistence
+- **XDG compliance**: Config, state, and cache files follow XDG specifications
+- **Type-safe IPC**: Full TypeScript types for Tauri commands
 
 ## 🔧 Tech Stack
 

@@ -1,3 +1,5 @@
+<strong>English</strong> | <a href="CONFIGURATION_ZH.md">中文</a>
+
 # Configuration Reference
 
 This document provides a complete reference for the configuration settings available in LWG (Linux Wallpaper Engine) GUI v2.0.0.
@@ -82,3 +84,163 @@ The configuration is stored in `~/.config/linux-wallpaperengine-gui/config.json`
 | Playlists | `playlists` | `array` | `[]` |
 | Cycle Playlist ID | `cyclePlaylistId` | `string` | `null` |
 | Playlist Sidebar Open | `playlistSidebarOpen` | `boolean` | `true` |
+
+---
+
+## Backend Parameter Mapping
+
+GUI settings are translated into command-line arguments for the `linux-wallpaperengine` backend. This table shows how each GUI setting maps to the backend CLI:
+
+| GUI Setting | Backend Argument | Example |
+|-------------|------------------|---------|
+| Target FPS Limit | `--fps` | `--fps 30` |
+| Scaling Mode | `--scaling` | `--scaling stretch` |
+| Mute Audio | `--silent` | `--silent` |
+| Master Volume | `--volume` | `--volume 50` |
+| No Fullscreen Pause | `--no-fullscreen-pause` | `--no-fullscreen-pause` |
+| Disable Mouse Interaction | `--disable-mouse` | `--disable-mouse` |
+| Texture Clamping | `--clamping` | `--clamping clamp` |
+| Disable Parallax | `--disable-parallax` | `--disable-parallax` |
+| Disable Particles | `--disable-particles` | `--disable-particles` |
+| Disable Auto Mute | `--no-auto-mute` | `--no-auto-mute` |
+| No Audio Processing | `--no-audio-processing` | `--no-audio-processing` |
+| Assets Directory | `--assets-dir` | `--assets-dir /path/to/assets` |
+
+### Full Command Example
+
+When you apply a wallpaper, the GUI constructs a command like:
+
+```bash
+linux-wallpaperengine \
+  --screen-root eDP-1 \
+  --fps 30 \
+  --volume 50 \
+  --scaling default \
+  --silent \
+  --no-fullscreen-pause \
+  /path/to/wallpaper/folder
+```
+
+### Wayland-Specific Arguments
+
+| GUI Setting | Backend Argument | Description |
+|-------------|------------------|-------------|
+| Pause Only When Active | `--fullscreen-pause-only-active` | Only pause if the focused window is fullscreen |
+| Ignore Application IDs | `--fullscreen-pause-ignore-appid` | Comma-separated app IDs to ignore (e.g., `waybar,niri`) |
+
+---
+
+## System Integration
+
+### Autostart Configuration
+
+Enable "Run on Startup" in Settings → System to launch the app automatically on login.
+
+**Location**: `~/.config/autostart/linux-wallpaperengine-gui.desktop`
+
+If "Start Hidden" is enabled, the app launches minimized to the system tray.
+
+### Window Manager Integration
+
+#### Compact Mode Window Rules
+
+For the best experience in tiling window managers, add floating rules for the compact preview window:
+
+**Niri** (config.kdl):
+```kdl
+window-rule {
+    match title="Wallpaper Preview"
+    open-floating true
+}
+```
+
+**Hyprland** (hyprland.conf):
+```ini
+windowrulev2 = float,title:^(Wallpaper Preview)$
+windowrulev2 = size 300 700,title:^(Wallpaper Preview)$
+windowrulev2 = center,title:^(Wallpaper Preview)$
+```
+
+#### Startup & Keybinds
+
+**Niri**:
+```kdl
+spawn-at-startup "path/to/lwg-gui" "--hidden"
+
+binds {
+    Mod+W { spawn "path/to/lwg-gui" "--toggle"; }
+    Mod+Shift+W { spawn "path/to/lwg-gui" "--random"; }
+}
+```
+
+**i3**:
+```
+exec --no-startup-id path/to/lwg-gui --hidden
+
+bindsym $mod+w exec path/to/lwg-gui --toggle
+bindsym $mod+Shift+w exec path/to/lwg-gui --random
+```
+
+**Hyprland**:
+```ini
+exec-once = path/to/lwg-gui --hidden
+
+bind = SUPER, W, exec, path/to/lwg-gui --toggle
+bind = SUPER SHIFT, W, exec, path/to/lwg-gui --random
+```
+
+---
+
+## Performance Tuning
+
+### Reducing CPU Usage
+
+1. **Lower FPS**: Reduce from 30fps to 24fps or lower (Settings → Playback)
+2. **Disable Particles**: Enable "Disable Particles" (Settings → Playback)
+3. **Disable Parallax**: Enable "Disable Parallax" (Settings → Playback)
+4. **Wallpaper Type**: Use Video wallpapers instead of Scene or Web types
+
+### Reducing Memory Usage
+
+1. **Avoid Web Wallpapers**: They use an internal Chromium engine (CEF)
+2. **Enable Timed Rotation**: Periodically restarts the backend to clear memory leaks (Settings → Playback → Enable Auto-Cycle)
+3. **Disable Audio Processing**: Turn off in Settings → Playback
+
+### Reducing GPU Usage
+
+1. Lower the FPS
+2. Use simpler wallpapers (Video preferred over Scene)
+3. Ensure "No Fullscreen Pause" is **unchecked** to pause when gaming
+
+---
+
+## Configuration File Locations
+
+The application follows XDG Base Directory specifications:
+
+| Type | Path | Purpose |
+|------|------|---------|
+| **Config** | `~/.config/linux-wallpaperengine-gui/` | Main settings (`config.json`) |
+| **State** | `~/.local/state/linux-wallpaperengine-gui/` | Runtime state (`state.json`) |
+| **Data** | `~/.local/share/linux-wallpaperengine-gui/` | Persistent data (nicknames, favorites, playlists) |
+| **Cache** | `~/.cache/linux-wallpaperengine-gui/` | Temporary data (history, logs) |
+
+### File Summary
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `config.json` | `~/.config/linux-wallpaperengine-gui/` | Main settings |
+| `state.json` | `~/.local/state/linux-wallpaperengine-gui/` | Runtime state (screen → wallpaper mappings) |
+| `nicknames.json` | `~/.local/share/linux-wallpaperengine-gui/` | Custom wallpaper names |
+| `favorites.json` | `~/.local/share/linux-wallpaperengine-gui/` | Favorites list |
+| `playlists.json` | `~/.local/share/linux-wallpaperengine-gui/` | User playlists |
+| `playback_history.json` | `~/.cache/linux-wallpaperengine-gui/` | Recent wallpaper history |
+| `screenshot_history.json` | `~/.cache/linux-wallpaperengine-gui/` | Screenshot history |
+
+---
+
+## Related Documentation
+
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues and solutions
+- [MIGRATION.md](MIGRATION.md) - Migration guide from Python version
+- [docs/old/ADVANCED.md](old/ADVANCED.md) - Legacy Python documentation (for reference)
