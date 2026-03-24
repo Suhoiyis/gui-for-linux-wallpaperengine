@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use sysinfo::{Pid, ProcessRefreshKind, RefreshKind, System};
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, Pid, ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, warn};
 
 const HISTORY_SIZE: usize = 60;
@@ -147,7 +147,7 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
             return Some(pid);
         }
     }
-    
+
     // 获取进程组 ID (PGID)
     // /proc/[pid]/stat format: pid (comm) state ppid pgrp ...
     // Process names can contain spaces, so we need to find the last ')' first
@@ -160,13 +160,19 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
                 let parts: Vec<&str> = remainder.split_whitespace().collect();
                 if parts.len() >= 3 {
                     parts[2].parse::<i32>().unwrap_or(-1) // pgrp is at index 2 after comm
-                } else { -1 }
-            } else { -1 }
-        } else { -1 }
+                } else {
+                    -1
+                }
+            } else {
+                -1
+            }
+        } else {
+            -1
+        }
     };
-    
+
     debug!("PID={}, PGID={}", pid, pgid);
-    
+
     // 在整个 /proc 中查找同进程组的 wallpaper 进程
     fn find_in_pgid(target_pgid: i32) -> Option<usize> {
         if let Ok(entries) = std::fs::read_dir("/proc") {
@@ -185,7 +191,10 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
                                         if let Ok(comm) = std::fs::read_to_string(&comm_path) {
                                             let comm = comm.trim();
                                             if comm.contains("wallpaper") {
-                                                debug!("Found in pgid: PID={}, name={}", pid_str, comm);
+                                                debug!(
+                                                    "Found in pgid: PID={}, name={}",
+                                                    pid_str, comm
+                                                );
                                                 return Some(pid_str as usize);
                                             }
                                         }
@@ -199,11 +208,13 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
         }
         None
     }
-    
+
     if pgid > 0 {
-        if let Some(found) = find_in_pgid(pgid) { return Some(found); }
+        if let Some(found) = find_in_pgid(pgid) {
+            return Some(found);
+        }
     }
-    
+
     // 超时重试
     if timeout_ms > 0 {
         let start = Instant::now();
@@ -235,10 +246,13 @@ pub struct PerformanceMonitor {
 impl PerformanceMonitor {
     pub fn new() -> Self {
         let mut system = System::new_with_specifics(
-            RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
+            RefreshKind::new()
+                .with_processes(ProcessRefreshKind::everything())
+                .with_memory(MemoryRefreshKind::everything())
+                .with_cpu(CpuRefreshKind::everything()),
         );
-        // 关键：启动时做第一次刷新，建立基准
         system.refresh_processes_specifics(ProcessRefreshKind::everything());
+        system.refresh_memory();
         let cpu_count = system.cpus().len().max(1);
 
         let monitor = Self {
@@ -276,28 +290,65 @@ impl PerformanceMonitor {
     }
 
     pub fn get_stats(&self) -> SystemStatsPayload {
-        let mut system = System::new_all();
-        system.refresh_all();
+        // 使用持久的 System 实例以正确计算 CPU 使用率
+        // sysinfo 的 cpu_usage() 需要两次刷新之间的时间差
+        let now = Instant::now();
+        let should_refresh = {
+            if let Ok(last) = self.last_refresh.lock() {
+                now - *last >= MIN_CPU_INTERVAL
+            } else {
+                false
+            }
+        };
+
+        if should_refresh {
+            if let Ok(mut sys) = self.system.lock() {
+                sys.refresh_processes_specifics(ProcessRefreshKind::everything());
+                sys.refresh_memory();
+            }
+            if let Ok(mut last) = self.last_refresh.lock() {
+                *last = now;
+            }
+        }
+
         let mut total_cpu = 0.0f32;
         let mut total_memory_mb = 0.0f32;
         let mut total_threads = 0i32;
         let mut processes = HashMap::new();
 
+        // 获取系统信息（CPU 核心数、总内存等）
+        let (cpu_cores, total_memory_gb) = {
+            if let Ok(sys) = self.system.lock() {
+                (
+                    sys.cpus().len(),
+                    sys.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0,
+                )
+            } else {
+                (self.cpu_count, 0.0)
+            }
+        };
+
         for (category, &pid) in &self.processes {
-            if let Some(process) = system.process(Pid::from(pid)) {
-                let cpu = process.cpu_usage();
-                let run_time = process.run_time();
-                let memory_mb = (process.memory() / 1024 / 1024) as f32;
+            // 从持久的 System 实例获取进程信息
+            let process_info = self.system.lock().ok().and_then(|sys| {
+                sys.process(Pid::from(pid)).map(|p| {
+                    (
+                        p.cpu_usage(),
+                        p.memory(),
+                        p.name().to_string(),
+                        p.status(),
+                        p.cmd().to_vec(),
+                    )
+                })
+            });
+
+            if let Some((cpu, memory, name, status, cmd)) = process_info {
+                let cpu_normalized = cpu / cpu_cores as f32;
+                let memory_mb = (memory / 1024 / 1024) as f32;
                 let thread_names = get_thread_names(pid as i32);
                 let threads = thread_names.len() as i32;
-                let name = process.name().to_string();
-                let status = format!("{:?}", process.status());
-                let cmd = process
-                    .cmd()
-                    .iter()
-                    .map(|s| s.clone())
-                    .collect::<Vec<_>>()
-                    .join(" ");
+                let status_str = format!("{:?}", status);
+                let cmd_str = cmd.iter().cloned().collect::<Vec<_>>().join(" ");
                 let gpu_usage = if category == "frontend" || category == "backend" {
                     get_gpu_usage()
                 } else {
@@ -307,7 +358,7 @@ impl PerformanceMonitor {
                 let (cpu_history, mem_history) = {
                     if let Ok(mut history) = self.history.lock() {
                         if let Some(hist) = history.get_mut(category) {
-                            hist.add(cpu, memory_mb);
+                            hist.add(cpu_normalized, memory_mb);
                             (
                                 hist.cpu.iter().cloned().collect(),
                                 hist.memory_mb.iter().cloned().collect(),
@@ -325,9 +376,9 @@ impl PerformanceMonitor {
                     ProcessStats {
                         pid: pid as i32,
                         name,
-                        cmd,
-                        status,
-                        cpu,
+                        cmd: cmd_str,
+                        status: status_str,
+                        cpu: cpu_normalized,
                         memory_mb,
                         threads,
                         cpu_history,
@@ -336,7 +387,7 @@ impl PerformanceMonitor {
                         gpu_usage,
                     },
                 );
-                total_cpu += cpu;
+                total_cpu += cpu_normalized;
                 total_memory_mb += memory_mb;
                 total_threads += threads;
             }
@@ -351,8 +402,8 @@ impl PerformanceMonitor {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
-            cpu_cores: system.cpus().len(),
-            total_memory_gb: system.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0,
+            cpu_cores,
+            total_memory_gb,
             process_count: processes.len(),
         }
     }
@@ -449,10 +500,7 @@ impl PerformanceMonitor {
 
                 (max_cpu, max_mem, avg_cpu, avg_mem)
             } else {
-                warn!(
-                    "No history for category={}",
-                    tracker.category
-                );
+                warn!("No history for category={}", tracker.category);
                 (0.0, 0.0, 0.0, 0.0)
             }
         } else {
