@@ -140,18 +140,7 @@ exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
 
 ## ⚙️ Configuration
 
-Configuration files follow XDG specifications:
-
-| File | Location | Purpose |
-|------|----------|---------|
-| `config.json` | `~/.config/linux-wallpaperengine-gui/` | Main settings |
-| `state.json` | `~/.local/state/linux-wallpaperengine-gui/` | Runtime state |
-| `nicknames.json` | `~/.local/share/linux-wallpaperengine-gui/` | Custom names |
-| `favorites.json` | `~/.local/share/linux-wallpaperengine-gui/` | Favorites list |
-| `playback_history.json` | `~/.cache/linux-wallpaperengine-gui/` | Playback history |
-| `screenshot_history.json` | `~/.cache/linux-wallpaperengine-gui/` | Screenshot history |
-
-For complete configuration reference, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+Configuration files follow XDG specifications. For a complete list of settings and file locations, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## ⚠️ Known Limitations
 
@@ -170,21 +159,6 @@ For complete configuration reference, see [docs/CONFIGURATION.md](docs/CONFIGURA
 
 ## ❓ FAQ
 
-### How can I reduce memory usage?
-
-1. Avoid Web wallpapers (they use CEF/Chromium internally)
-2. Enable timed rotation (Settings → Automation) to periodically restart the backend
-3. Lower FPS (Settings → Playback)
-4. Disable audio processing (Settings → Playback)
-
-### The compact preview window doesn't float in my tiling WM
-
-You need to add a window rule in your WM configuration. For Niri and Hyprland examples, see the System Integration section in [docs/old/ADVANCED.md](docs/old/ADVANCED.md#compact-preview-mode).
-
-### Why are screenshots slow (5–10 seconds)?
-
-If Xvfb is installed, the app uses CPU software rendering to produce 4K screenshots silently (no popup window). This is slower but guarantees consistent quality regardless of your physical screen resolution or tiling WM layout. You can disable Xvfb mode in Settings → System for faster (but windowed) screenshots.
-
 ### System tray icon is not showing
 
 1. GNOME users: Install the "AppIndicator Support" extension
@@ -194,6 +168,10 @@ If Xvfb is installed, the app uses CPU software rendering to produce 4K screensh
 ### How do I set different wallpapers for each monitor?
 
 Select the target display from the top bar dropdown (e.g., "eDP-1" or "HDMI-A-1"), then browse and apply a wallpaper. To apply the same wallpaper to all monitors, select "All Screens" from the dropdown.
+
+### The compact preview window doesn't float in my tiling WM
+
+You need to add a window rule in your WM configuration. For Niri and Hyprland examples, see [docs/old/ADVANCED.md](docs/old/ADVANCED.md#compact-preview-mode).
 
 ### Can I use this with Flatpak or AppImage?
 
@@ -206,6 +184,8 @@ Select the target display from the top bar dropdown (e.g., "eDP-1" or "HDMI-A-1"
 1. Go to Settings → Logs and click **Copy Logs**
 2. Open a [GitHub Issue](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues)
 3. Include: system info (`uname -a`), desktop environment, wallpaper ID/type, and the copied logs
+
+For more troubleshooting help, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). For performance tuning, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md#performance-tuning).
 
 ## 🔄 Update & Uninstall
 
@@ -228,7 +208,7 @@ Download the latest AppImage from the [Releases page](https://github.com/Suhoiyi
 
 | Document | Description |
 |----------|-------------|
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Quick start guide |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version history and release notes |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Complete settings reference |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 | [docs/MIGRATION.md](docs/MIGRATION.md) | Migration guide from Python version |
@@ -286,7 +266,7 @@ gui-for-linux-wallpaperengine/
 
 ### Key Design Decisions
 
-- **Single-instance architecture**: All CLI commands route to the running application, avoiding process duplication
+- **Single-instance architecture**: Only one instance can run at a time; second launch focuses the existing window
 - **Hybrid save strategy**: Optimistic UI updates with debounced backend persistence
 - **XDG compliance**: Config, state, and cache files follow XDG specifications
 - **Type-safe IPC**: Full TypeScript types for Tauri commands

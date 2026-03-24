@@ -31,7 +31,6 @@ This document provides a complete reference for the configuration settings avail
 | Master Volume | `volume` | `number` | `0` | Global volume level (0–100). |
 | Disable Auto Mute | `noAutomute` | `boolean` | `false` | Prevent the app from muting when other applications play sound. |
 | No Audio Processing | `noAudioProcessing` | `boolean` | `false` | Disable spectrum analysis to save CPU resources. |
-| App Appearance | `theme` | `string` | `"system"` | Interface theme (`system`, `dark`, `light`). |
 
 ### System & Tools
 
@@ -159,34 +158,6 @@ window-rule {
 windowrulev2 = float,title:^(Wallpaper Preview)$
 windowrulev2 = size 300 700,title:^(Wallpaper Preview)$
 windowrulev2 = center,title:^(Wallpaper Preview)$
-```
-
-#### Startup & Keybinds
-
-**Niri**:
-```kdl
-spawn-at-startup "path/to/lwg-gui" "--hidden"
-
-binds {
-    Mod+W { spawn "path/to/lwg-gui" "--toggle"; }
-    Mod+Shift+W { spawn "path/to/lwg-gui" "--random"; }
-}
-```
-
-**i3**:
-```
-exec --no-startup-id path/to/lwg-gui --hidden
-
-bindsym $mod+w exec path/to/lwg-gui --toggle
-bindsym $mod+Shift+w exec path/to/lwg-gui --random
-```
-
-**Hyprland**:
-```ini
-exec-once = path/to/lwg-gui --hidden
-
-bind = SUPER, W, exec, path/to/lwg-gui --toggle
-bind = SUPER SHIFT, W, exec, path/to/lwg-gui --random
 ```
 
 ---

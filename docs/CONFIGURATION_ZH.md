@@ -31,7 +31,6 @@
 | 主音量 | `volume` | `number` | `0` | 全局音量级别 (0–100)。 |
 | 禁用自动静音 | `noAutomute` | `boolean` | `false` | 防止应用在其他应用播放声音时自动静音。 |
 | 禁用音频处理 | `noAudioProcessing` | `boolean` | `false` | 禁用频谱分析以节省 CPU 资源。 |
-| 应用外观 | `theme` | `string` | `"system"` | 界面主题 (`system`, `dark`, `light`)。 |
 
 ### 系统与工具
 

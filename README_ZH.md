@@ -140,18 +140,7 @@ exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
 
 ## ⚙️ 配置
 
-配置文件遵循 XDG 规范：
-
-| 文件 | 位置 | 用途 |
-|------|------|------|
-| `config.json` | `~/.config/linux-wallpaperengine-gui/` | 主设置 |
-| `state.json` | `~/.local/state/linux-wallpaperengine-gui/` | 运行时状态 |
-| `nicknames.json` | `~/.local/share/linux-wallpaperengine-gui/` | 自定义别名 |
-| `favorites.json` | `~/.local/share/linux-wallpaperengine-gui/` | 收藏列表 |
-| `playback_history.json` | `~/.cache/linux-wallpaperengine-gui/` | 播放历史 |
-| `screenshot_history.json` | `~/.cache/linux-wallpaperengine-gui/` | 截图历史 |
-
-完整配置参考请参阅 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
+配置文件遵循 XDG 规范。完整的设置列表和文件位置请参阅 [docs/CONFIGURATION_ZH.md](docs/CONFIGURATION_ZH.md)。
 
 ## ⚠️ 已知限制
 
@@ -170,21 +159,6 @@ exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
 
 ## ❓ 常见问题
 
-### 如何降低内存占用？
-
-1. 避免使用 Web 壁纸（它们内部使用 CEF/Chromium）
-2. 启用定时轮换（设置 → 自动化）以定期重启后端
-3. 降低 FPS（设置 → 播放）
-4. 禁用音频处理（设置 → 播放）
-
-### 紧凑预览窗口在我的平铺式窗口管理器中没有浮动
-
-您需要在窗口管理器配置中添加窗口规则。Niri 和 Hyprland 的示例请参阅 [docs/old/ADVANCED.md](docs/old/ADVANCED.md#compact-preview-mode) 中的系统集成部分。
-
-### 为什么截图很慢（5–10 秒）？
-
-如果安装了 Xvfb，应用会使用 CPU 软件渲染来静默生成 4K 截图（无弹出窗口）。这虽然较慢，但无论您的物理屏幕分辨率或平铺式窗口管理器布局如何，都能保证一致的质量。您可以在"设置 → 系统"中禁用 Xvfb 模式以获得更快的（但会弹出窗口的）截图。
-
 ### 系统托盘图标不显示
 
 1. GNOME 用户：安装 "AppIndicator Support" 扩展
@@ -194,6 +168,10 @@ exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
 ### 如何为每个显示器设置不同的壁纸？
 
 从顶栏下拉菜单中选择目标显示器（如 "eDP-1" 或 "HDMI-A-1"），然后浏览并应用壁纸。如需将同一壁纸应用于所有显示器，请选择 "All Screens"。
+
+### 紧凑预览窗口在我的平铺式窗口管理器中没有浮动
+
+您需要在窗口管理器配置中添加窗口规则。Niri 和 Hyprland 的示例请参阅 [docs/old/ADVANCED.md](docs/old/ADVANCED.md#compact-preview-mode)。
 
 ### 我可以使用 Flatpak 或 AppImage 吗？
 
@@ -206,6 +184,8 @@ exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
 1. 前往 设置 → 日志，点击 **Copy Logs**
 2. 提交一个 [GitHub Issue](https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/issues)
 3. 包含：系统信息 (`uname -a`)、桌面环境、壁纸 ID/类型以及复制的日志
+
+更多故障排除帮助请参阅 [docs/TROUBLESHOOTING_ZH.md](docs/TROUBLESHOOTING_ZH.md)。性能调优请参阅 [docs/CONFIGURATION_ZH.md](docs/CONFIGURATION_ZH.md#性能调优)。
 
 ## 🔄 更新与卸载
 
@@ -228,10 +208,10 @@ exec --no-startup-id path/to/linux-wallpaperengine-gui --hidden
 
 | 文档 | 描述 |
 |------|------|
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速入门指南 |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | 完整设置参考 |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | 常见问题与解决方案 |
-| [docs/MIGRATION.md](docs/MIGRATION.md) | 从 Python 版本迁移指南 |
+| [docs/CHANGELOG_ZH.md](docs/CHANGELOG_ZH.md) | 版本历史与更新说明 |
+| [docs/CONFIGURATION_ZH.md](docs/CONFIGURATION_ZH.md) | 完整设置参考 |
+| [docs/TROUBLESHOOTING_ZH.md](docs/TROUBLESHOOTING_ZH.md) | 常见问题与解决方案 |
+| [docs/MIGRATION_ZH.md](docs/MIGRATION_ZH.md) | 从 Python 版本迁移指南 |
 | [docs/old/](docs/old/) | 旧版 Python 文档 |
 
 ## 🏛️ 技术架构
@@ -286,7 +266,7 @@ gui-for-linux-wallpaperengine/
 
 ### 关键设计决策
 
-- **单实例架构**: 所有 CLI 命令都路由到运行中的应用，避免进程重复
+- **单实例架构**: 同时只能运行一个实例；第二次启动会聚焦到已有的窗口
 - **混合保存策略**: 乐观 UI 更新配合防抖后端持久化
 - **XDG 合规**: 配置、状态和缓存文件遵循 XDG 规范
 - **类型安全 IPC**: Tauri 命令使用完整的 TypeScript 类型

@@ -101,7 +101,7 @@ Wayland's security model introduces several limitations:
 
 ### Wayland Tweaks
 
-In **Settings > Playback & Perf**, you can find Wayland-specific options:
+In **Settings > Playback**, you can find Wayland-specific options:
 
 - **Pause Only When Active**: Only pauses the wallpaper if the _currently focused_ window is fullscreen.
 - **Ignore Application IDs**: Prevent specific apps (like docks or bars) from triggering the auto-pause logic.
