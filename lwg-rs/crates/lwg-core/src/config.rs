@@ -82,6 +82,7 @@ pub struct AppConfig {
     pub playlists: Vec<Playlist>,
     pub cycle_playlist_id: Option<String>,
     pub playlist_sidebar_open: bool,
+    pub onboarding_completed: bool,
 }
 
 impl Default for AppConfig {
@@ -116,6 +117,7 @@ impl Default for AppConfig {
             playlists: Vec::new(),
             cycle_playlist_id: None,
             playlist_sidebar_open: true,
+            onboarding_completed: false,
         }
     }
 }
@@ -219,6 +221,12 @@ impl AppConfig {
             }
             if let Some(v) = map.get("playlistSidebarOpen").and_then(|v| v.as_bool()) {
                 config.playlist_sidebar_open = v;
+            }
+            // Support both "onboardingCompleted" (new camelCase) and "onboarding_completed" (legacy snake_case)
+            if let Some(v) = map.get("onboardingCompleted").and_then(|v| v.as_bool()) {
+                config.onboarding_completed = v;
+            } else if let Some(v) = map.get("onboarding_completed").and_then(|v| v.as_bool()) {
+                config.onboarding_completed = v;
             }
 
             return config;
@@ -455,6 +463,38 @@ mod tests {
         assert!(json.contains("noFullscreenPause"));
         assert!(json.contains("workshopPath"));
         assert!(json.contains("autoRestore"));
+    }
+
+    #[test]
+    fn test_onboarding_completed_default() {
+        let config = AppConfig::default();
+        assert!(!config.onboarding_completed);
+    }
+
+    #[test]
+    fn test_onboarding_completed_merge() {
+        let user = serde_json::json!({
+            "onboardingCompleted": true
+        });
+        let config = AppConfig::merge_with_default(user);
+        assert!(config.onboarding_completed);
+
+        // Test legacy snake_case alias
+        let user2 = serde_json::json!({
+            "onboarding_completed": true
+        });
+        let config2 = AppConfig::merge_with_default(user2);
+        assert!(config2.onboarding_completed);
+    }
+
+    #[test]
+    fn test_onboarding_completed_serialization() {
+        let config = AppConfig {
+            onboarding_completed: true,
+            ..AppConfig::default()
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(json.contains("\"onboardingCompleted\":true"));
     }
 }
 

@@ -13,6 +13,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "./components/layout/Layout";
 import { AppNavbar } from "./components/layout/AppNavbar";
 import { CommandPalette } from "./components/layout/CommandPalette";
+import { WelcomeDialog } from "./components/dialogs/WelcomeDialog";
 
 // 页面组件
 import { Library } from "./pages/Library";
@@ -42,6 +43,9 @@ export function App() {
   const isCompactMode = useAppStore((s) => s.isCompactMode);
   const toggleCompactMode = useAppStore((s) => s.toggleCompactMode);
 
+  const welcomeDialogOpen = useAppStore((s) => s.welcomeDialogOpen);
+  const welcomeDialogRequired = useAppStore((s) => s.welcomeDialogRequired);
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -66,6 +70,16 @@ export function App() {
   useEffect(() => {
     useAppStore.getState().initApp();
   }, []);
+
+  // Check onboarding after settings load
+  const onboardingCompleted = useAppStore((s) => s.settings?.onboardingCompleted);
+  useEffect(() => {
+    const settings = useAppStore.getState().settings;
+    if (settings && !settings.onboardingCompleted) {
+      // First launch - show required welcome dialog
+      useAppStore.getState().openWelcomeDialog(true);
+    }
+  }, [onboardingCompleted]);
 
   // 监听 Tauri System Tray 事件和壁纸轮换事件
   useEffect(() => {
@@ -261,6 +275,16 @@ export function App() {
       <Toaster />
       {/* CommandPalette rendered once outside conditional to prevent remounting */}
       <CommandPalette />
+      {/* Welcome / Onboarding Dialog */}
+      <WelcomeDialog
+        open={welcomeDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            useAppStore.getState().closeWelcomeDialog();
+          }
+        }}
+        isRequired={welcomeDialogRequired}
+      />
     </TooltipProvider>
   );
 }

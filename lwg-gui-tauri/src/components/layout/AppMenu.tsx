@@ -43,6 +43,7 @@ interface UpdateInfo {
 
 export function AppMenu() {
   const loadWallpapers = useAppStore((state) => state.loadWallpapers);
+  const openWelcomeDialog = useAppStore((state) => state.openWelcomeDialog);
   // const appVersion = useAppStore((state) => state.appVersion);
   const [showAbout, setShowAbout] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -57,8 +58,7 @@ export function AppMenu() {
   };
 
   const handleHistory = () => setShowHistory(true);
-  const handleGetStarted = () =>
-    toast.info("Show Welcome Screen (Coming soon)");
+  const handleGetStarted = () => openWelcomeDialog(false);
 
   const handleCheckUpdate = async () => {
     // Guard: Only run in Tauri environment

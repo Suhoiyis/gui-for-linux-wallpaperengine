@@ -51,6 +51,7 @@ export interface AppConfig {
   wallpaperNicknames: Record<string, string>;
   compactMode: boolean;
   autoRestore: boolean;
+  onboardingCompleted: boolean;
 }
 
 // Represents an active wallpaper on a screen
