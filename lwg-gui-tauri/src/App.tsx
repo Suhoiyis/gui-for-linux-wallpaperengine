@@ -43,6 +43,9 @@ export function App() {
   const isCompactMode = useAppStore((s) => s.isCompactMode);
   const toggleCompactMode = useAppStore((s) => s.toggleCompactMode);
 
+  const welcomeDialogOpen = useAppStore((s) => s.welcomeDialogOpen);
+  const welcomeDialogRequired = useAppStore((s) => s.welcomeDialogRequired);
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -274,13 +277,13 @@ export function App() {
       <CommandPalette />
       {/* Welcome / Onboarding Dialog */}
       <WelcomeDialog
-        open={useAppStore((s) => s.welcomeDialogOpen)}
+        open={welcomeDialogOpen}
         onOpenChange={(open) => {
           if (!open) {
             useAppStore.getState().closeWelcomeDialog();
           }
         }}
-        isRequired={useAppStore((s) => s.welcomeDialogRequired)}
+        isRequired={welcomeDialogRequired}
       />
     </TooltipProvider>
   );

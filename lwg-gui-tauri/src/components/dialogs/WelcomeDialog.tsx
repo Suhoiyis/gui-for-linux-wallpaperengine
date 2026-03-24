@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,13 @@ export function WelcomeDialog({ open, onOpenChange, isRequired }: WelcomeDialogP
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
+
+  useEffect(() => {
+    if (open) {
+      setStep(0);
+      setDirection(1);
+    }
+  }, [open]);
 
   const dots = useMemo(() => {
     const total = 5;

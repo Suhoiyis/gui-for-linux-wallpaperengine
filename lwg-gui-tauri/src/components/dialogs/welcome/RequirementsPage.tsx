@@ -17,9 +17,11 @@ export function RequirementsPage() {
   ]);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     async function runChecks() {
       if (!isTauriEnv()) {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
             setChecks([
             { name: "linux-wallpaperengine", status: "ok", message: "Mock mode" },
             { name: "Xvfb (Recommended)", status: "ok", message: "Mock mode" },
@@ -57,6 +59,12 @@ export function RequirementsPage() {
     }
 
     runChecks();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   return (
