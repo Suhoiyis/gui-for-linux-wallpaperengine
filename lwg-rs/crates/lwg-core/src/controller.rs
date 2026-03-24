@@ -4,9 +4,10 @@ use crate::error::{LwgError, LwgResult};
 use crate::performance::PerformanceMonitor;
 use crate::state::{ActiveWallpaper, AppState, StateManager};
 use std::collections::HashMap;
+#[allow(unused_imports)]
+use std::os::unix::process::CommandExt;
 use std::process::{Child, Command, Stdio};
 #[cfg(target_os = "linux")]
-use std::os::unix::process::CommandExt;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -683,7 +684,6 @@ impl ScreenshotManager {
         // 创建新进程组，这样可以通过 kill -<pid> 杀死整个进程树
         #[cfg(unix)]
         {
-            use std::os::unix::process::CommandExt;
             cmd.process_group(0);
         }
         

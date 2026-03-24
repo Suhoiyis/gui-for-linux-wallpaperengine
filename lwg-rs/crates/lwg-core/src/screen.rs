@@ -1,6 +1,6 @@
 use crate::error::{LwgError, LwgResult};
 use std::process::Command;
-use tracing::{debug, error, info, warn};
+use tracing::{info, warn};
 
 /// 显示器信息
 #[derive(Debug, Clone)]

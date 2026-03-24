@@ -1,8 +1,8 @@
-use crate::error::{LwgError, LwgResult};
+use crate::error::LwgResult;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info};
 
 /// 壁纸信息结构体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,6 +24,7 @@ pub struct Wallpaper {
 pub struct WallpaperManager {
     workshop_path: PathBuf,
     wallpapers: IndexMap<String, Wallpaper>,
+    #[allow(dead_code)]
     manifest_path: Option<PathBuf>,
     pub last_scan_error: Option<String>,
     pub scan_errors: Vec<String>,
@@ -411,7 +412,7 @@ impl WallpaperManager {
             SortMode::Random => {
                 use std::collections::hash_map::DefaultHasher;
                 use std::hash::{Hash, Hasher};
-                
+
                 self.wallpapers.sort_by(|_, a, _, b| {
                     let mut hasher_a = DefaultHasher::new();
                     let mut hasher_b = DefaultHasher::new();
@@ -423,11 +424,11 @@ impl WallpaperManager {
         }
         debug!("壁纸已排序：{:?}, 升序：{}", mode, ascending);
     }
-    
+
     /// 获取排序后的壁纸列表
     pub fn get_sorted(&self, mode: SortMode, ascending: bool) -> Vec<&Wallpaper> {
         let mut wallpapers: Vec<_> = self.wallpapers.values().collect();
-        
+
         match mode {
             SortMode::Title => {
                 if ascending {
@@ -460,7 +461,7 @@ impl WallpaperManager {
             SortMode::Random => {
                 use std::collections::hash_map::DefaultHasher;
                 use std::hash::{Hash, Hasher};
-                
+
                 wallpapers.sort_by(|a, b| {
                     let mut hasher_a = DefaultHasher::new();
                     let mut hasher_b = DefaultHasher::new();
@@ -470,7 +471,7 @@ impl WallpaperManager {
                 });
             }
         }
-        
+
         wallpapers
     }
 }

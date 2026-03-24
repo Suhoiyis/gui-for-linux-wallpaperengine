@@ -3,7 +3,7 @@ use crate::config::ConfigManager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::process::Command;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 /// 属性类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
