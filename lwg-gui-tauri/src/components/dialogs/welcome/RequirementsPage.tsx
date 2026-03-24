@@ -1,13 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { isTauriEnv } from "@/lib/utils";
-
-interface RequirementsPageProps {
-  onNext: () => void;
-}
+import { cn, isTauriEnv } from "@/lib/utils";
 
 interface CheckResult {
   name: string;
@@ -15,7 +9,7 @@ interface CheckResult {
   message: string;
 }
 
-export function RequirementsPage({ onNext }: RequirementsPageProps) {
+export function RequirementsPage() {
   const [checks, setChecks] = useState<CheckResult[]>([
     { name: "linux-wallpaperengine", status: "checking", message: "Checking..." },
     { name: "Xvfb", status: "checking", message: "Checking..." },
@@ -36,7 +30,6 @@ export function RequirementsPage({ onNext }: RequirementsPageProps) {
       }
 
       try {
-        // Run checks in parallel if possible, or sequentially
         const wpInstalled = await invoke<boolean>("check_wallpaperengine_installed").catch(() => false);
         const xvfbAvailable = await invoke<boolean>("check_xvfb_available").catch(() => false);
         const displayServer = await invoke<string>("get_display_server").catch(() => "unknown");
@@ -67,15 +60,8 @@ export function RequirementsPage({ onNext }: RequirementsPageProps) {
   }, []);
 
   return (
-    <div className="py-4">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Requirements Check</h2>
-        <p className="text-sm text-muted-foreground">
-          Before we start, let's check your environment.
-        </p>
-      </div>
-
-      <div className="space-y-3 mb-6">
+    <div className="flex flex-col justify-center h-full py-4">
+      <div className="space-y-3">
         {checks.map((check) => (
           <div
             key={check.name}
@@ -109,12 +95,6 @@ export function RequirementsPage({ onNext }: RequirementsPageProps) {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="flex justify-end">
-        <Button onClick={onNext} disabled={checks.some(c => c.status === "checking")}>
-            Continue
-        </Button>
       </div>
     </div>
   );
