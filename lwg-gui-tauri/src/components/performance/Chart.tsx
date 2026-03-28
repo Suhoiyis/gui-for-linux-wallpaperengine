@@ -1,5 +1,5 @@
 // src/components/performance/Chart.tsx
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -21,6 +21,11 @@ interface PerformanceChartProps {
 
 const PerformanceChart: React.FC<PerformanceChartProps> = memo(
   ({ data, color, unit, title, height = 120 }) => {
+    const gradientId = useMemo(
+      () => `grad-${color}-${Math.random().toString(36).slice(2, 9)}`,
+      [color]
+    );
+
     return (
       <div style={{ height }} className="w-full">
         {title && (
@@ -31,7 +36,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = memo(
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
-              <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={color} stopOpacity={0.2} />
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
@@ -71,7 +76,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = memo(
               dataKey="value"
               stroke={color}
               strokeWidth={2}
-              fill={`url(#grad-${color})`}
+              fill={`url(#${gradientId})`}
               isAnimationActive={false}
             />
           </AreaChart>

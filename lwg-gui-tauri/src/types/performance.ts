@@ -26,7 +26,9 @@ export interface SystemStats {
   processes: {
     backend: ProcessStats;
     frontend: ProcessStats;
-    tray: ProcessStats;
+    webkit_web?: ProcessStats;
+    webkit_net?: ProcessStats;
+    webkit_gpu?: ProcessStats;
   };
   // System info
   cpuCores: number;

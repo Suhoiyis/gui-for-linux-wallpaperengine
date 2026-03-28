@@ -97,6 +97,29 @@ impl Default for HistoryData {
     }
 }
 
+fn classify_webkit_category(process_name: &str) -> Option<&'static str> {
+    let lower = process_name.to_ascii_lowercase();
+
+    // GPU process should be checked first before "web" substring match
+    if lower.contains("gpu") {
+        return Some("webkit_gpu");
+    }
+
+    if lower.contains("network") {
+        return Some("webkit_net");
+    }
+
+    if lower.contains("webprocess") || lower.contains("webkitwebprocess") {
+        return Some("webkit_web");
+    }
+
+    if lower.contains("web") {
+        return Some("webkit_web");
+    }
+
+    None
+}
+
 fn get_thread_names(pid: i32) -> Vec<String> {
     let mut names = Vec::new();
     let task_dir = format!("/proc/{}/task", pid);
@@ -237,10 +260,10 @@ pub struct PerformanceMonitor {
     history: Arc<std::sync::Mutex<HashMap<String, HistoryData>>>,
     processes: HashMap<String, usize>,
     cpu_count: usize,
-    /// 持久的 System 实例用于正确计算 CPU 使用率
     system: std::sync::Mutex<System>,
-    /// 上次刷新时间，用于确保两次刷新之间有足够间隔
     last_refresh: std::sync::Mutex<Instant>,
+    webkit_cache: std::sync::Mutex<HashMap<String, usize>>,
+    last_values: std::sync::Mutex<HashMap<String, (f32, f32)>>,
 }
 
 impl PerformanceMonitor {
@@ -260,10 +283,11 @@ impl PerformanceMonitor {
             processes: HashMap::new(),
             cpu_count,
             system: std::sync::Mutex::new(system),
-            // 设为足够久远，确保第一次 sample 时间差足够
             last_refresh: std::sync::Mutex::new(
                 Instant::now() - MIN_CPU_INTERVAL - Duration::from_millis(100),
             ),
+            webkit_cache: std::sync::Mutex::new(HashMap::new()),
+            last_values: std::sync::Mutex::new(HashMap::new()),
         };
 
         let pid = std::process::id() as usize;
@@ -287,6 +311,37 @@ impl PerformanceMonitor {
         if let Ok(mut history) = self.history.lock() {
             history.remove(category);
         }
+    }
+
+    fn find_child_processes_by_name(
+        &self,
+        parent_pid: usize,
+        name_pattern: &str,
+    ) -> Vec<(usize, String)> {
+        let sys = match self.system.lock() {
+            Ok(s) => s,
+            Err(_) => return Vec::new(),
+        };
+
+        let mut result = Vec::new();
+
+        for (pid, process) in sys.processes() {
+            let parent = match process.parent() {
+                Some(p) => p,
+                None => continue,
+            };
+
+            if parent.as_u32() as usize != parent_pid {
+                continue;
+            }
+
+            let name = process.name().to_string();
+            if name.contains(name_pattern) {
+                result.push((pid.as_u32() as usize, name));
+            }
+        }
+
+        result
     }
 
     pub fn get_stats(&self) -> SystemStatsPayload {
@@ -329,7 +384,6 @@ impl PerformanceMonitor {
         };
 
         for (category, &pid) in &self.processes {
-            // 从持久的 System 实例获取进程信息
             let process_info = self.system.lock().ok().and_then(|sys| {
                 sys.process(Pid::from(pid)).map(|p| {
                     (
@@ -343,8 +397,20 @@ impl PerformanceMonitor {
             });
 
             if let Some((cpu, memory, name, status, cmd)) = process_info {
-                let cpu_normalized = cpu / cpu_cores as f32;
+                let mut cpu_normalized = cpu / cpu_cores as f32;
                 let memory_mb = (memory / 1024 / 1024) as f32;
+
+                {
+                    if let Ok(mut last_vals) = self.last_values.lock() {
+                        if let Some((last_cpu, _)) = last_vals.get(category) {
+                            if cpu_normalized < 0.1 && *last_cpu > 1.0 {
+                                cpu_normalized = *last_cpu * 0.9;
+                            }
+                        }
+                        last_vals.insert(category.clone(), (cpu_normalized, memory_mb));
+                    }
+                }
+
                 let thread_names = get_thread_names(pid as i32);
                 let threads = thread_names.len() as i32;
                 let status_str = format!("{:?}", status);
@@ -390,6 +456,107 @@ impl PerformanceMonitor {
                 total_cpu += cpu_normalized;
                 total_memory_mb += memory_mb;
                 total_threads += threads;
+            }
+        }
+
+        // Track WebKitGTK child processes (Linux-specific memory tracking)
+        if let Some(&frontend_pid) = self.processes.get("frontend") {
+            let webkit_children = self.find_child_processes_by_name(frontend_pid, "WebKit");
+
+            {
+                if let Ok(mut cache) = self.webkit_cache.lock() {
+                    for (child_pid, child_name) in &webkit_children {
+                        if let Some(category) = classify_webkit_category(child_name) {
+                            cache.insert(category.to_string(), *child_pid);
+                        }
+                    }
+                }
+            }
+
+            let mut webkit_to_track: Vec<(usize, String)> = webkit_children.clone();
+
+            if let Ok(cache) = self.webkit_cache.lock() {
+                for (category, &cached_pid) in cache.iter() {
+                    let already_found = webkit_to_track.iter().any(|(pid, _)| *pid == cached_pid);
+                    if !already_found {
+                        let name = if category == "webkit_web" {
+                            "WebKitWebProcess".to_string()
+                        } else {
+                            "WebKitNetworkProcess".to_string()
+                        };
+                        webkit_to_track.push((cached_pid, name));
+                    }
+                }
+            }
+
+            for (child_pid, child_name) in webkit_to_track {
+                let process_info = self.system.lock().ok().and_then(|sys| {
+                    sys.process(Pid::from(child_pid))
+                        .map(|p| (p.cpu_usage(), p.memory(), p.status(), p.cmd().to_vec()))
+                });
+
+                let Some(category) = classify_webkit_category(&child_name) else {
+                    continue;
+                };
+
+                if let Some((cpu, memory, status, cmd)) = process_info {
+                    let mut cpu_normalized = cpu / cpu_cores as f32;
+                    let memory_mb = (memory / 1024 / 1024) as f32;
+
+                    {
+                        if let Ok(mut last_vals) = self.last_values.lock() {
+                            if let Some((last_cpu, _)) = last_vals.get(category) {
+                                if cpu_normalized < 0.1 && *last_cpu > 1.0 {
+                                    cpu_normalized = *last_cpu * 0.9;
+                                }
+                            }
+                            last_vals.insert(category.to_string(), (cpu_normalized, memory_mb));
+                        }
+                    }
+
+                    let thread_names = get_thread_names(child_pid as i32);
+                    let threads = thread_names.len() as i32;
+                    let cmd_str = cmd.iter().cloned().collect::<Vec<_>>().join(" ");
+
+                    let (cpu_history, mem_history) = {
+                        if let Ok(mut history) = self.history.lock() {
+                            let hist = history
+                                .entry(category.to_string())
+                                .or_insert_with(HistoryData::new);
+                            hist.add(cpu_normalized, memory_mb);
+                            (
+                                hist.cpu.iter().cloned().collect(),
+                                hist.memory_mb.iter().cloned().collect(),
+                            )
+                        } else {
+                            (Vec::new(), Vec::new())
+                        }
+                    };
+
+                    processes.insert(
+                        category.to_string(),
+                        ProcessStats {
+                            pid: child_pid as i32,
+                            name: child_name,
+                            cmd: cmd_str,
+                            status: format!("{:?}", status),
+                            cpu: cpu_normalized,
+                            memory_mb,
+                            threads,
+                            cpu_history,
+                            mem_history,
+                            thread_names,
+                            gpu_usage: None,
+                        },
+                    );
+                    total_cpu += cpu_normalized;
+                    total_memory_mb += memory_mb;
+                    total_threads += threads;
+                } else {
+                    if let Ok(mut cache) = self.webkit_cache.lock() {
+                        cache.remove(category);
+                    }
+                }
             }
         }
 

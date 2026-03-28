@@ -1,5 +1,5 @@
 // src/hooks/useSystemStats.ts
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauriEnv } from "@/lib/utils";
@@ -133,7 +133,15 @@ function mapEventToStats(raw: RawPerformanceEvent): SystemStats {
     processes: {
       backend: mapProcess(raw.processes?.backend, "Backend"),
       frontend: mapProcess(raw.processes?.frontend, "Frontend"),
-      tray: mapProcess(raw.processes?.tray, "Tray"),
+      webkit_web: raw.processes?.webkit_web
+        ? mapProcess(raw.processes.webkit_web, "WebKit Web")
+        : undefined,
+      webkit_net: raw.processes?.webkit_net
+        ? mapProcess(raw.processes.webkit_net, "WebKit Network")
+        : undefined,
+      webkit_gpu: raw.processes?.webkit_gpu
+        ? mapProcess(raw.processes.webkit_gpu, "WebKit GPU")
+        : undefined,
     },
     cpuCores: raw.cpu_cores ?? 1,
     totalMemoryGb: raw.total_memory_gb ?? 16,
@@ -145,6 +153,10 @@ export function useSystemStats() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [history, setHistory] = useState<ScreenshotRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const lastWebkitWeb = useRef<ProcessStats | undefined>(undefined);
+  const lastWebkitNet = useRef<ProcessStats | undefined>(undefined);
+  const lastWebkitGpu = useRef<ProcessStats | undefined>(undefined);
 
   useEffect(() => {
     const isTauri = isTauriEnv();
@@ -163,7 +175,28 @@ export function useSystemStats() {
             "performance-update",
             (event) => {
               const mappedStats = mapEventToStats(event.payload);
-              setStats(mappedStats);
+
+              if ((mappedStats.processes.webkit_web?.pid ?? 0) > 0) {
+                lastWebkitWeb.current = mappedStats.processes.webkit_web;
+              }
+              if ((mappedStats.processes.webkit_net?.pid ?? 0) > 0) {
+                lastWebkitNet.current = mappedStats.processes.webkit_net;
+              }
+              if ((mappedStats.processes.webkit_gpu?.pid ?? 0) > 0) {
+                lastWebkitGpu.current = mappedStats.processes.webkit_gpu;
+              }
+
+              const statsWithPersistentWebkit: SystemStats = {
+                ...mappedStats,
+                processes: {
+                  ...mappedStats.processes,
+                  webkit_web: mappedStats.processes.webkit_web || lastWebkitWeb.current,
+                  webkit_net: mappedStats.processes.webkit_net || lastWebkitNet.current,
+                  webkit_gpu: mappedStats.processes.webkit_gpu || lastWebkitGpu.current,
+                },
+              };
+
+              setStats(statsWithPersistentWebkit);
               setIsLoading(false);
             },
           );
@@ -251,7 +284,7 @@ export function useSystemStats() {
           total_threads: 145,
           cpu_cores: 16,
           total_memory_gb: 32,
-          process_count: 3,
+          process_count: 4,
           timestamp: Date.now(),
           processes: {
             backend: {
@@ -278,8 +311,24 @@ export function useSystemStats() {
               mem_history: mockMemHistoryFrontend,
               thread_names: ["ui_thread", "ipc_worker"],
             },
+            webkit_gpu: {
+              pid: 10428,
+              name: "WebKit GPU",
+              cmd: "/usr/lib/webkit2gtk-4.1/WebKitGPUProcess",
+              status: "Sleeping",
+              cpu: 0.3,
+              memory_mb: 82.4,
+              threads: 8,
+              cpu_history: Array(60).fill(0).map((_, i) => (i % 10 === 0 ? 0.8 : 0.3)),
+              mem_history: Array(60).fill(82.4),
+              thread_names: ["gpu_main", "compositor", "render"],
+            },
           },
         };
+
+        if (fakeEvent.processes) {
+          delete fakeEvent.processes.tray;
+        }
 
         // 经过你原来的 map 函数转换并更新状态
         setStats(mapEventToStats(fakeEvent));

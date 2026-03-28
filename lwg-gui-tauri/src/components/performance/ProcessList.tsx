@@ -8,6 +8,8 @@ import {
   Server,
   MonitorIcon,
   BrickWall,
+  Globe,
+  Wifi,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -254,8 +256,6 @@ export default function ProcessList({
 }: {
   processes: SystemStats["processes"];
 }) {
-  // const { activeWallpapers } = useActiveWallpapers();
-
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -274,11 +274,29 @@ export default function ProcessList({
         icon={<MonitorIcon className="text-pink-500" />}
       />
 
-      {/* <ProcessRow
-        type="tray"
-        data={processes.tray}
-        icon={<ArrowDownToLine className="text-purple-500" />}
-      /> */}
+      {processes.webkit_web && (
+        <ProcessRow
+          type="webkit_web"
+          data={processes.webkit_web}
+          icon={<Globe className="text-blue-500" />}
+        />
+      )}
+
+      {processes.webkit_net && (
+        <ProcessRow
+          type="webkit_net"
+          data={processes.webkit_net}
+          icon={<Wifi className="text-green-500" />}
+        />
+      )}
+
+      {processes.webkit_gpu && (
+        <ProcessRow
+          type="webkit_gpu"
+          data={processes.webkit_gpu}
+          icon={<Activity className="text-purple-500" />}
+        />
+      )}
     </div>
   );
 }
