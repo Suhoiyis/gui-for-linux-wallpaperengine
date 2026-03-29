@@ -90,7 +90,11 @@ class WallpapersPage(Gtk.Box):
         GLib.idle_add(lambda: self.on_playlists_changed(reason))
 
     def on_playlists_changed(self, reason: str):
-        self.refresh_playlist_sidebar()
+        panel = getattr(self, "playlist_panel", None)
+        if panel is not None and hasattr(panel, "refresh"):
+            panel.refresh()
+        else:
+            self.refresh_playlist_sidebar()
         self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
         return False
@@ -231,10 +235,10 @@ class WallpapersPage(Gtk.Box):
         return True
 
     def _get_selected_playlist_id(self) -> str | None:
-        row = self.playlist_list.get_selected_row()
-        if row is None:
-            return None
-        return getattr(row, "_playlist_id", None)
+        panel = getattr(self, "playlist_panel", None)
+        if panel is not None and hasattr(panel, "_selected_playlist_id"):
+            return getattr(panel, "_selected_playlist_id", None)
+        return None
 
     def on_playlist_rename_clicked(self, btn):
         playlist_id = self._get_selected_playlist_id()
