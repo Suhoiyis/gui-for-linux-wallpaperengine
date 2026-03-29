@@ -234,7 +234,6 @@ def on_create_desktop_entry(settings_page, _btn):
 
 
 def on_refresh_screens(settings_page, _btn):
-    settings_page.screen_manager.detect_screens()
     screens = settings_page.screen_manager.get_screens()
 
     selected = settings_page.screen_dd.get_selected_item()
