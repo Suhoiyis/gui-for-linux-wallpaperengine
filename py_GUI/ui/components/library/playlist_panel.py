@@ -5,7 +5,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, Gdk, GLib
 
-from py_GUI.const import FAVORITES_PLAYLIST_ID
+from py_GUI.core.playlists import FAVORITES_PLAYLIST_ID
 
 
 class PlaylistPanel(Gtk.Box):
