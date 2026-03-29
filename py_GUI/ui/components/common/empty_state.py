@@ -30,8 +30,8 @@ class EmptyState(Gtk.Box):
 
         self.set_halign(Gtk.Align.CENTER)
         self.set_valign(Gtk.Align.CENTER)
-        self.set_margin_top(48)
-        self.set_margin_bottom(48)
+        self.set_margin_top(24)
+        self.set_margin_bottom(24)
         self.set_margin_start(32)
         self.set_margin_end(32)
 

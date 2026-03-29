@@ -129,9 +129,7 @@ class SkeletonView(Gtk.Box):
 
         self.append(header)
 
-        # Grid placeholder
-        self.grid = SkeletonGrid(count=12)
-        self.grid.set_vexpand(True)
+        self.grid = SkeletonGrid(count=8)
         self.append(self.grid)
 
     def stop_animations(self):
