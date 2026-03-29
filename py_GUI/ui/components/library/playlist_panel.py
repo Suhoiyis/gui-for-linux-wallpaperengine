@@ -337,7 +337,7 @@ class PlaylistPanel(Gtk.Box):
         self._selected_playlist_id = playlist_id
         self.on_playlist_selected(playlist_id)
 
-    def _on_icon_column_enter(self, controller):
+    def _on_icon_column_enter(self, controller, x, y):
         if self._state == "minimized":
             self._hover_timer_id = GLib.timeout_add(300, self._on_hover_timeout)
 
@@ -346,13 +346,7 @@ class PlaylistPanel(Gtk.Box):
             GLib.source_remove(self._hover_timer_id)
             self._hover_timer_id = None
 
-    def _on_hover_timeout(self):
-        self._hover_timer_id = None
-        if self._state == "minimized":
-            self.set_state("floating")
-        return False
-
-    def _on_floating_enter(self, controller):
+    def _on_floating_enter(self, controller, x, y):
         if self._close_timer_id:
             GLib.source_remove(self._close_timer_id)
             self._close_timer_id = None
