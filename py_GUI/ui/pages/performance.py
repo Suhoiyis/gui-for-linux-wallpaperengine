@@ -1,7 +1,8 @@
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, Gdk, GLib, Pango
+gi.require_version("Adw", "1")
+from gi.repository import Gtk, Gdk, GLib, Pango, Adw
 
 import time
 from typing import Dict, List
@@ -42,6 +43,11 @@ class PerformancePage(Gtk.Box):
         self.build_ui()
 
         self.controller.perf_monitor.add_callback(self.on_perf_update)
+
+        if hasattr(self.controller, "signal_bus") and self.controller.signal_bus:
+            self.controller.signal_bus.connect(
+                "screenshot-history-changed", self._on_screenshot_history_changed
+            )
 
     def build_ui(self):
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -131,6 +137,9 @@ class PerformancePage(Gtk.Box):
         self.overview_grid.attach(card, col, row, 1, 1)
         self.total_labels[key] = (lbl_val, unit)
 
+    def _on_screenshot_history_changed(self, bus, reason):
+        GLib.idle_add(self._refresh_screenshot_history)
+
     def on_perf_update(self, stats: Dict):
         GLib.idle_add(lambda: self._update_ui(stats))
 
@@ -180,8 +189,6 @@ class PerformancePage(Gtk.Box):
 
         # Update Process List
         details = stats.get("details", {})
-
-        # Remove stale
         current_pids = set(d["pid"] for d in details.values())
         tracked_pids = set(self.process_widgets.keys())
 
@@ -203,12 +210,6 @@ class PerformancePage(Gtk.Box):
                 data,
                 thread_names.get(category, []),
             )
-
-        history = self.controller.perf_monitor.get_screenshot_history()
-        latest_ts = history[-1].get("timestamp", 0) if history else 0
-        if latest_ts != self._last_screenshot_ts:
-            self._last_screenshot_ts = latest_ts
-            self._refresh_screenshot_history()
 
     def _clean_thread_name(self, name: str) -> str:
         name = name.strip()
@@ -594,9 +595,26 @@ class PerformancePage(Gtk.Box):
             self._refresh_screenshot_history()
 
     def _on_clear_history_clicked(self, btn):
-        self.controller.perf_monitor.clear_screenshot_history()
-        self._last_screenshot_ts = 0
-        self._refresh_screenshot_history()
+        dialog = Adw.MessageDialog(
+            transient_for=self.get_root(),
+            heading="Clear Screenshot History",
+            body="Clear all screenshot history records? This will not delete the actual image files.",
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("clear", "Clear")
+        dialog.set_response_appearance("clear", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+
+        def on_response(dialog, response):
+            if response == "clear":
+                self.controller.perf_monitor.clear_screenshot_history()
+                self._last_screenshot_ts = 0
+                self._refresh_screenshot_history()
+            dialog.close()
+
+        dialog.connect("response", on_response)
+        dialog.present()
 
     def _create_screenshot_history_row(self, record: Dict) -> Gtk.Box:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)

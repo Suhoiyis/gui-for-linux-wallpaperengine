@@ -26,6 +26,7 @@ from py_GUI.utils import markdown_to_pango
 from py_GUI.ui.components.navbar import NavBar
 from py_GUI.ui.components.history_dialog import HistoryDialog
 from py_GUI.ui.components.welcome_dialog import WelcomeDialog
+from py_GUI.ui.components.dialogs import show_update_dialog
 from py_GUI.ui.pages.wallpapers import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
 from py_GUI.ui.pages.performance import PerformancePage
@@ -1007,33 +1008,7 @@ class WallpaperApp(Adw.Application):
             self.show_toast(f"Error checking for updates: {str(e)}")
 
     def _handle_update_result(self, latest_version, release_url, has_update):
-        if has_update and latest_version:
-            dialog = Adw.MessageDialog(
-                transient_for=self.win,
-                heading="Update Available",
-                body=f"A new version ({latest_version}) is available on GitHub.",
-            )
-            dialog.add_response("cancel", "Cancel")
-            dialog.add_response("download", "Download")
-            dialog.set_response_appearance("download", Adw.ResponseAppearance.SUGGESTED)
-
-            def on_response(d, response):
-                if response == "download":
-                    import webbrowser
-
-                    webbrowser.open(release_url)
-                d.close()
-
-            dialog.connect("response", on_response)
-            dialog.present()
-        elif latest_version == "ERROR:RATE_LIMIT":
-            self.show_toast("GitHub API rate limit exceeded. Please try again later.")
-        elif latest_version is None:
-            self.show_toast(
-                "Failed to check for updates. Please check your connection."
-            )
-        else:
-            self.show_toast(f"You are up to date (v{VERSION})")
+        show_update_dialog(self.win, VERSION, latest_version, release_url, has_update)
 
     def show_welcome_wizard(self):
         self.on_action_welcome(None, None)

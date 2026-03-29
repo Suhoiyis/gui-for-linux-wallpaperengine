@@ -42,6 +42,8 @@ class SettingsPage(Gtk.Box):
         self.show_toast = show_toast or (lambda msg: None)
 
         self.current_filter = "All"
+        self.current_level_filter = "All"
+        self.visible_entries_count = 0
 
         self.add_css_class("settings-container")
         self.build_ui()
@@ -679,12 +681,21 @@ class SettingsPage(Gtk.Box):
         t.set_hexpand(True)
         header_box.append(t)
 
-        # Filter Dropdown
-        filter_opts = ["All", "Controller", "Engine", "GUI"]
-        self.filter_dd = Gtk.DropDown.new_from_strings(filter_opts)
-        self.filter_dd.set_valign(Gtk.Align.CENTER)
-        self.filter_dd.connect("notify::selected", self.on_filter_changed)
-        header_box.append(self.filter_dd)
+        filter_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        filter_box.set_valign(Gtk.Align.CENTER)
+        header_box.append(filter_box)
+
+        source_opts = ["All", "Controller", "Engine", "GUI"]
+        self.source_filter_dd = Gtk.DropDown.new_from_strings(source_opts)
+        self.source_filter_dd.set_valign(Gtk.Align.CENTER)
+        self.source_filter_dd.connect("notify::selected", self.on_filter_changed)
+        filter_box.append(self.source_filter_dd)
+
+        level_opts = ["All Levels", "Debug", "Info", "Warning", "Error"]
+        self.level_filter_dd = Gtk.DropDown.new_from_strings(level_opts)
+        self.level_filter_dd.set_valign(Gtk.Align.CENTER)
+        self.level_filter_dd.connect("notify::selected", self.on_level_filter_changed)
+        filter_box.append(self.level_filter_dd)
 
         # Log View
         scroll = Gtk.ScrolledWindow()
@@ -703,10 +714,20 @@ class SettingsPage(Gtk.Box):
         self.log_buffer = self.log_view.get_buffer()
         self.setup_log_tags()
 
-        # Buttons
+        entry_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        entry_box.set_margin_top(8)
+        box.append(entry_box)
+
+        self.entry_count_lbl = Gtk.Label(label="0 entries")
+        self.entry_count_lbl.set_halign(Gtk.Align.START)
+        self.entry_count_lbl.add_css_class("dim-label")
+        self.entry_count_lbl.add_css_class("caption")
+        entry_box.append(self.entry_count_lbl)
+
         btns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         btns.set_halign(Gtk.Align.END)
-        box.append(btns)
+        btns.set_hexpand(True)
+        entry_box.append(btns)
 
         clr_btn = Gtk.Button(label="Clear Logs")
         clr_btn.add_css_class("action-btn")
@@ -719,6 +740,12 @@ class SettingsPage(Gtk.Box):
         copy_btn.add_css_class("secondary")
         copy_btn.connect("clicked", self.copy_logs)
         btns.append(copy_btn)
+
+        engine_btn = Gtk.Button(label="Open Engine Log")
+        engine_btn.add_css_class("action-btn")
+        engine_btn.add_css_class("secondary")
+        engine_btn.connect("clicked", self.open_engine_log)
+        btns.append(engine_btn)
 
         ref_btn = Gtk.Button(label="Refresh")
         ref_btn.add_css_class("action-btn")
@@ -733,6 +760,12 @@ class SettingsPage(Gtk.Box):
         selected = dd.get_selected_item()
         if selected:
             self.current_filter = selected.get_string()
+            self.refresh_logs()
+
+    def on_level_filter_changed(self, dd, pspec):
+        selected = dd.get_selected_item()
+        if selected:
+            self.current_level_filter = selected.get_string()
             self.refresh_logs()
 
     def setup_log_tags(self):
@@ -776,6 +809,14 @@ class SettingsPage(Gtk.Box):
             elif src != self.current_filter:
                 return
 
+        if self.current_level_filter != "All Levels":
+            filter_lvl = self.current_level_filter.upper()
+            if lvl != filter_lvl:
+                return
+
+        self.visible_entries_count += 1
+        self.entry_count_lbl.set_label(f"{self.visible_entries_count} entries")
+
         end = self.log_buffer.get_end_iter()
 
         self.log_buffer.insert_with_tags_by_name(end, f"[{ts}] ", "timestamp")
@@ -801,9 +842,11 @@ class SettingsPage(Gtk.Box):
         )
 
     def refresh_logs(self):
+        self.visible_entries_count = 0
         self.log_buffer.set_text("")
         for entry in self.log_manager.get_logs():
             self.append_log(entry)
+        self.entry_count_lbl.set_label(f"{self.visible_entries_count} entries")
 
     def clear_logs(self):
         self.log_manager.clear()
@@ -819,6 +862,21 @@ class SettingsPage(Gtk.Box):
         orig = btn.get_label()
         btn.set_label("Copied!")
         GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
+
+    def open_engine_log(self, btn):
+        import subprocess
+        import os
+        from py_GUI.const import CONFIG_DIR
+
+        log_path = os.path.join(CONFIG_DIR, "engine_last.log")
+        if not os.path.exists(log_path):
+            self.show_toast("engine_last.log not found")
+            return
+
+        try:
+            subprocess.Popen(["xdg-open", log_path])
+        except Exception as e:
+            self.show_toast(f"Failed to open log: {e}")
 
     def on_manage_nicknames(self, btn):
         try:
