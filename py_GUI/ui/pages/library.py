@@ -11,6 +11,7 @@ gi.require_version("Gio", "2.0")
 from gi.repository import Gtk, Gdk, Gio, Pango, GLib
 
 from py_GUI.ui.components.library.sidebar import Sidebar
+from py_GUI.ui.components.library.playlist_panel import PlaylistPanel
 from py_GUI.ui.components.common.empty_state import LibraryEmptyState
 from py_GUI.ui.components.common.skeleton import SkeletonView
 from py_GUI.ui.components.dialogs import (
@@ -349,56 +350,18 @@ class WallpapersPage(Gtk.Box):
         self.content_box.set_hexpand(True)
         self.append(self.content_box)
 
-        self.playlist_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.playlist_panel.add_css_class("card")
-        self.playlist_panel.set_size_request(220, -1)
-        self.playlist_panel.set_margin_start(20)
-        self.playlist_panel.set_margin_end(10)
+        # Playlist Panel (Three-state: minimized, floating, locked)
+        self.playlist_panel = PlaylistPanel(
+            playlists=self.playlists,
+            on_playlist_selected=self._on_playlist_panel_selected,
+            on_create_playlist=self._on_playlist_panel_create,
+            on_rename_playlist=self._on_playlist_panel_rename,
+            on_delete_playlist=self._on_playlist_panel_delete,
+        )
+        self.playlist_panel.set_margin_start(10)
         self.playlist_panel.set_margin_top(10)
         self.playlist_panel.set_margin_bottom(10)
         self.content_box.append(self.playlist_panel)
-
-        playlist_title = Gtk.Label(label="Playlists")
-        playlist_title.add_css_class("heading")
-        playlist_title.set_halign(Gtk.Align.START)
-        playlist_title.set_margin_top(8)
-        playlist_title.set_margin_start(8)
-        self.playlist_panel.append(playlist_title)
-
-        self.playlist_list = Gtk.ListBox()
-        self.playlist_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        self.playlist_list.connect("row-selected", self.on_playlist_row_selected)
-        playlist_scroll = Gtk.ScrolledWindow()
-        playlist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        playlist_scroll.set_vexpand(True)
-        playlist_scroll.set_child(self.playlist_list)
-        self.playlist_panel.append(playlist_scroll)
-
-        playlist_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        playlist_actions.set_margin_start(8)
-        playlist_actions.set_margin_end(8)
-        playlist_actions.set_margin_bottom(8)
-        self.playlist_panel.append(playlist_actions)
-
-        self.btn_playlist_new = Gtk.Button(label="New")
-        self.btn_playlist_new.add_css_class("action-btn")
-        self.btn_playlist_new.add_css_class("secondary")
-        self.btn_playlist_new.connect(
-            "clicked", lambda *_: self._show_create_playlist_dialog(None)
-        )
-        playlist_actions.append(self.btn_playlist_new)
-
-        self.btn_playlist_rename = Gtk.Button(label="Rename")
-        self.btn_playlist_rename.add_css_class("action-btn")
-        self.btn_playlist_rename.add_css_class("secondary")
-        self.btn_playlist_rename.connect("clicked", self.on_playlist_rename_clicked)
-        playlist_actions.append(self.btn_playlist_rename)
-
-        self.btn_playlist_delete = Gtk.Button(label="Delete")
-        self.btn_playlist_delete.add_css_class("action-btn")
-        self.btn_playlist_delete.add_css_class("danger")
-        self.btn_playlist_delete.connect("clicked", self.on_playlist_delete_clicked)
-        playlist_actions.append(self.btn_playlist_delete)
 
         # Left Area
         self.left_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -480,7 +443,85 @@ class WallpapersPage(Gtk.Box):
         )
 
         self.content_box.append(self.sidebar)
-        self.refresh_playlist_sidebar()
+        self.playlist_panel.refresh()
+
+    def _on_playlist_panel_selected(self, playlist_id: Optional[str]):
+        self.selected_playlist_filter = playlist_id
+        self.config.set("playlistSidebarOpen", True)
+        self._invalidate_filter_cache()
+        self.refresh_wallpaper_grid()
+
+    def _on_playlist_panel_create(self):
+        self._show_create_playlist_dialog(None)
+
+    def _on_playlist_panel_rename(self, playlist_id: str):
+        playlist = self.playlists.get_playlist(playlist_id)
+        if not playlist:
+            return
+        dialog = Gtk.Dialog(
+            transient_for=self.window, modal=True, title="Rename Playlist"
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Save", Gtk.ResponseType.OK)
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        entry = Gtk.Entry()
+        entry.set_text(str(playlist.get("name", "")))
+        content.append(entry)
+
+        def on_response(d, response):
+            if response == Gtk.ResponseType.OK:
+                name = entry.get_text().strip()
+                if name:
+                    try:
+                        self.playlists.rename_playlist(playlist_id, name)
+                        self.show_toast("Playlist renamed")
+                        self.playlist_panel.refresh()
+                    except Exception as e:
+                        self.show_toast(f"Failed to rename playlist: {e}")
+            d.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
+    def _on_playlist_panel_delete(self, playlist_id: str):
+        if playlist_id == FAVORITES_PLAYLIST_ID:
+            self.show_toast("Cannot delete Favorites")
+            return
+        dialog = Gtk.Dialog(
+            transient_for=self.window, modal=True, title="Delete Playlist"
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        del_btn = dialog.add_button("Delete", Gtk.ResponseType.OK)
+        del_btn.add_css_class("destructive-action")
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        content.append(Gtk.Label(label="Delete selected playlist?"))
+
+        def on_response(d, response):
+            if response == Gtk.ResponseType.OK:
+                try:
+                    self.playlists.delete_playlist(playlist_id)
+                    self.show_toast("Playlist deleted")
+                    if self.selected_playlist_filter == playlist_id:
+                        self.selected_playlist_filter = None
+                        self._invalidate_filter_cache()
+                        self.refresh_wallpaper_grid()
+                    self.playlist_panel.refresh()
+                except Exception as e:
+                    self.show_toast(f"Failed to delete playlist: {e}")
+            d.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
 
     def build_toolbar(self):
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)

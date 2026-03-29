@@ -693,4 +693,46 @@ dropdown button {
     background: alpha(@theme_fg_color, 0.15);
     border-radius: 8px;
 }
+
+/* Playlist Panel - Three State Styles */
+.playlist-icon-column {
+    background: alpha(@window_bg_color, 0.6);
+    border-right: 1px solid alpha(@theme_fg_color, 0.1);
+}
+
+.playlist-icon-btn {
+    min-width: 36px;
+    min-height: 36px;
+    margin: 2px 6px;
+    border-radius: 8px;
+    transition: all 200ms ease;
+}
+
+.playlist-icon-btn:hover {
+    background: alpha(@theme_fg_color, 0.1);
+    transform: scale(1.05);
+}
+
+.playlist-floating-panel {
+    background: @window_bg_color;
+    border-right: 1px solid alpha(@theme_fg_color, 0.15);
+    box-shadow: 2px 0 8px alpha(@theme_fg_color, 0.1);
+    animation: playlist-slide-in 300ms ease-out;
+}
+
+.playlist-locked-panel {
+    background: alpha(@window_bg_color, 0.6);
+    border-right: 1px solid alpha(@theme_fg_color, 0.1);
+}
+
+@keyframes playlist-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
 """
