@@ -60,6 +60,7 @@ class PlaylistPanel(Gtk.Box):
         self.icon_all.set_tooltip_text("All Wallpapers")
         self.icon_all.add_css_class("flat")
         self.icon_all.add_css_class("playlist-icon-btn")
+        self.icon_all.set_size_request(36, 36)
         self.icon_all.connect("clicked", self._on_icon_clicked, None)
         self.icon_column.append(self.icon_all)
 
@@ -68,6 +69,7 @@ class PlaylistPanel(Gtk.Box):
         self.icon_favorites.set_tooltip_text("Favorites")
         self.icon_favorites.add_css_class("flat")
         self.icon_favorites.add_css_class("playlist-icon-btn")
+        self.icon_favorites.set_size_request(36, 36)
         self.icon_favorites.connect(
             "clicked", self._on_icon_clicked, FAVORITES_PLAYLIST_ID
         )
@@ -87,6 +89,7 @@ class PlaylistPanel(Gtk.Box):
         btn_new.set_tooltip_text("New Playlist")
         btn_new.add_css_class("flat")
         btn_new.add_css_class("playlist-icon-btn")
+        btn_new.set_size_request(36, 36)
         btn_new.connect("clicked", lambda _: self.on_create_playlist())
         self.icon_column.append(btn_new)
 
@@ -163,8 +166,11 @@ class PlaylistPanel(Gtk.Box):
         hover_controller.connect("leave", self._on_floating_leave)
         self.floating_panel.add_controller(hover_controller)
 
-        self.floating_panel.set_visible(False)
-        self.append(self.floating_panel)
+        self.floating_panel_popover = Gtk.Popover()
+        self.floating_panel_popover.set_has_arrow(False)
+        self.floating_panel_popover.set_autohide(False)
+        self.floating_panel_popover.set_child(self.floating_panel)
+        self.floating_panel_popover.set_parent(self.icon_column)
 
     def _build_locked_panel(self):
         self.locked_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -234,15 +240,18 @@ class PlaylistPanel(Gtk.Box):
 
         if state == "minimized":
             self.icon_column.set_visible(True)
-            self.floating_panel.set_visible(False)
+            if hasattr(self, "floating_panel_popover"):
+                self.floating_panel_popover.popdown()
             self.locked_panel.set_visible(False)
         elif state == "floating":
             self.icon_column.set_visible(True)
-            self.floating_panel.set_visible(True)
+            if hasattr(self, "floating_panel_popover"):
+                self.floating_panel_popover.popup()
             self.locked_panel.set_visible(False)
         elif state == "locked":
             self.icon_column.set_visible(False)
-            self.floating_panel.set_visible(False)
+            if hasattr(self, "floating_panel_popover"):
+                self.floating_panel_popover.popdown()
             self.locked_panel.set_visible(True)
 
     def get_state(self) -> str:
@@ -270,6 +279,7 @@ class PlaylistPanel(Gtk.Box):
             btn.set_tooltip_text(playlist.get("name", "Unnamed"))
             btn.add_css_class("flat")
             btn.add_css_class("playlist-icon-btn")
+            btn.set_size_request(36, 36)
             btn.connect("clicked", self._on_icon_clicked, pid)
             self.icon_playlists_container.append(btn)
 
@@ -281,7 +291,13 @@ class PlaylistPanel(Gtk.Box):
             listbox.remove(child)
 
         row_all = Gtk.ListBoxRow()
-        row_all.set_child(Gtk.Label(label="All Wallpapers", xalign=0))
+        row_all_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        row_all_box.set_margin_top(6)
+        row_all_box.set_margin_bottom(6)
+        row_all_box.set_margin_start(8)
+        row_all_box.set_margin_end(8)
+        row_all_box.append(Gtk.Label(label="All Wallpapers", xalign=0))
+        row_all.set_child(row_all_box)
         row_all._playlist_id = None
         listbox.append(row_all)
 
@@ -347,6 +363,10 @@ class PlaylistPanel(Gtk.Box):
         if self._hover_timer_id:
             GLib.source_remove(self._hover_timer_id)
             self._hover_timer_id = None
+        if self._state == "floating":
+            if self._close_timer_id is not None:
+                GLib.source_remove(self._close_timer_id)
+            self._close_timer_id = GLib.timeout_add(500, self._on_close_timeout)
 
     def _on_hover_timeout(self):
         self._hover_timer_id = None
