@@ -35,16 +35,23 @@ class PlaylistPanel(Gtk.Box):
         self.on_rename_playlist = on_rename_playlist
         self.on_delete_playlist = on_delete_playlist
 
-        self._state = "locked"
+        self._state = "minimized"
         self._selected_playlist_id: Optional[str] = None
         self._hover_timer_id: Optional[int] = None
         self._close_timer_id: Optional[int] = None
+
+        self._state_stack = Gtk.Stack()
+        self._state_stack.set_transition_type(Gtk.StackTransitionType.NONE)
+        self.append(self._state_stack)
 
         self._build_icon_column()
         self._build_floating_panel()
         self._build_locked_panel()
 
-        self.set_state("locked")
+        self._state_stack.add_named(self.icon_column, "icon")
+        self._state_stack.add_named(self.locked_panel, "locked")
+
+        self.set_state("minimized")
 
     def _build_icon_column(self):
         self.icon_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -52,7 +59,7 @@ class PlaylistPanel(Gtk.Box):
         self.icon_column.add_css_class("playlist-icon-column")
 
         header_spacer = Gtk.Box()
-        header_spacer.set_size_request(-1, 52)
+        header_spacer.set_size_request(-1, 44)
         self.icon_column.append(header_spacer)
 
         self.icon_all = Gtk.Button()
@@ -94,11 +101,11 @@ class PlaylistPanel(Gtk.Box):
         self.icon_column.append(btn_new)
 
         hover_controller = Gtk.EventControllerMotion.new()
+        hover_controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         hover_controller.connect("enter", self._on_icon_column_enter)
+        hover_controller.connect("motion", self._on_icon_column_motion)
         hover_controller.connect("leave", self._on_icon_column_leave)
         self.icon_column.add_controller(hover_controller)
-
-        self.append(self.icon_column)
 
     def _build_floating_panel(self):
         self.floating_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -233,26 +240,23 @@ class PlaylistPanel(Gtk.Box):
 
         self.locked_panel.append(footer)
 
-        self.append(self.locked_panel)
+        self.locked_panel.set_visible(True)
 
     def set_state(self, state: str):
         self._state = state
 
         if state == "minimized":
-            self.icon_column.set_visible(True)
+            self._state_stack.set_visible_child_name("icon")
             if hasattr(self, "floating_panel_popover"):
                 self.floating_panel_popover.popdown()
-            self.locked_panel.set_visible(False)
         elif state == "floating":
-            self.icon_column.set_visible(True)
+            self._state_stack.set_visible_child_name("icon")
             if hasattr(self, "floating_panel_popover"):
                 self.floating_panel_popover.popup()
-            self.locked_panel.set_visible(False)
         elif state == "locked":
-            self.icon_column.set_visible(False)
+            self._state_stack.set_visible_child_name("locked")
             if hasattr(self, "floating_panel_popover"):
                 self.floating_panel_popover.popdown()
-            self.locked_panel.set_visible(True)
 
     def get_state(self) -> str:
         return self._state
@@ -292,6 +296,7 @@ class PlaylistPanel(Gtk.Box):
 
         row_all = Gtk.ListBoxRow()
         row_all_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        row_all_box.set_size_request(-1, 36)
         row_all_box.set_margin_top(6)
         row_all_box.set_margin_bottom(6)
         row_all_box.set_margin_start(8)
@@ -307,6 +312,7 @@ class PlaylistPanel(Gtk.Box):
 
             row = Gtk.ListBoxRow()
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            box.set_size_request(-1, 36)
             box.set_margin_top(6)
             box.set_margin_bottom(6)
             box.set_margin_start(8)
@@ -357,6 +363,10 @@ class PlaylistPanel(Gtk.Box):
         if self._state == "minimized":
             if self._hover_timer_id is not None:
                 GLib.source_remove(self._hover_timer_id)
+            self._hover_timer_id = GLib.timeout_add(300, self._on_hover_timeout)
+
+    def _on_icon_column_motion(self, controller, x, y):
+        if self._state == "minimized" and self._hover_timer_id is None:
             self._hover_timer_id = GLib.timeout_add(300, self._on_hover_timeout)
 
     def _on_icon_column_leave(self, controller):
