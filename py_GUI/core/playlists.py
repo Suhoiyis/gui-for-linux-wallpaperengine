@@ -189,3 +189,34 @@ class PlaylistService:
                 changed = True
         if changed:
             self.save_playlists(playlists, "playlist-item-cleanup")
+
+    def reorder_playlists(self, ordered_ids: list[str]) -> None:
+        """Reorder playlists based on the provided ordered IDs list.
+
+        Args:
+            ordered_ids: List of playlist IDs in the desired order.
+                        Favorites will always be forced to the first position.
+        """
+        playlists = self.get_playlists()
+        playlist_map = {p["id"]: p for p in playlists}
+        new_order: list[dict[str, Any]] = []
+
+        if FAVORITES_PLAYLIST_ID in playlist_map:
+            new_order.append(playlist_map[FAVORITES_PLAYLIST_ID])
+
+        for pid in ordered_ids:
+            if pid == FAVORITES_PLAYLIST_ID:
+                continue
+            if pid in playlist_map:
+                new_order.append(playlist_map[pid])
+
+        existing_ids = {p["id"] for p in new_order}
+        for p in playlists:
+            if p["id"] not in existing_ids:
+                new_order.append(p)
+
+        now = int(time.time())
+        for p in new_order:
+            p["updated_at"] = now
+
+        self.save_playlists(new_order, "playlist-reordered")

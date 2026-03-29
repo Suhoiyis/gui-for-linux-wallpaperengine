@@ -11,6 +11,8 @@ gi.require_version("Gio", "2.0")
 from gi.repository import Gtk, Gdk, Gio, Pango, GLib
 
 from py_GUI.ui.components.library.sidebar import Sidebar
+from py_GUI.ui.components.common.empty_state import LibraryEmptyState
+from py_GUI.ui.components.common.skeleton import SkeletonView
 from py_GUI.ui.components.dialogs import (
     show_delete_dialog,
     show_error_dialog,
@@ -106,7 +108,7 @@ class WallpapersPage(Gtk.Box):
             if pid and name:
                 rows.append((str(pid), str(name)))
 
-        for pid, name in rows:
+        for idx, (pid, name) in enumerate(rows):
             row = Gtk.ListBoxRow()
             row.set_selectable(True)
             row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -114,12 +116,36 @@ class WallpapersPage(Gtk.Box):
             row_box.set_margin_bottom(6)
             row_box.set_margin_start(8)
             row_box.set_margin_end(8)
+
+            # Drag handle icon for playlists (except All Wallpapers and Favorites)
+            if pid is not None and pid != FAVORITES_PLAYLIST_ID:
+                drag_icon = Gtk.Image.new_from_icon_name("view-list-symbolic")
+                drag_icon.set_tooltip_text("Drag to reorder")
+                drag_icon.add_css_class("dim-label")
+                row_box.append(drag_icon)
+
             lbl = Gtk.Label(label=name)
             lbl.set_halign(Gtk.Align.START)
             lbl.set_hexpand(True)
             row_box.append(lbl)
             row.set_child(row_box)
             row._playlist_id = pid
+            row._playlist_index = idx
+
+            if pid is not None and pid != FAVORITES_PLAYLIST_ID:
+                drag_source = Gtk.DragSource.new()
+                drag_source.set_actions(Gdk.DragAction.MOVE)
+                drag_source.connect("prepare", self._on_playlist_drag_prepare, row)
+                drag_source.connect("drag-begin", self._on_playlist_drag_begin)
+                drag_source.connect("drag-end", self._on_playlist_drag_end)
+                row.add_controller(drag_source)
+
+                drop_target = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+                drop_target.connect("enter", self._on_playlist_drag_enter, row)
+                drop_target.connect("leave", self._on_playlist_drag_leave, row)
+                drop_target.connect("drop", self._on_playlist_drop, row)
+                row.add_controller(drop_target)
+
             self.playlist_list.append(row)
 
         row = self.playlist_list.get_row_at_index(0)
@@ -143,6 +169,65 @@ class WallpapersPage(Gtk.Box):
         self.config.set("playlistSidebarOpen", True)
         self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
+
+    def _on_playlist_drag_prepare(self, drag_source, x, y, row):
+        playlist_id = getattr(row, "_playlist_id", None)
+        if playlist_id is None:
+            return None
+        return Gdk.ContentProvider.new_for_value(playlist_id)
+
+    def _on_playlist_drag_begin(self, drag_source):
+        row = drag_source.get_widget()
+        if row:
+            row.add_css_class("playlist-row-dragging")
+
+    def _on_playlist_drag_end(self, drag_source, delete_data):
+        row = drag_source.get_widget()
+        if row:
+            row.remove_css_class("playlist-row-dragging")
+
+    def _on_playlist_drag_enter(self, drop_target, x, y, row):
+        row.add_css_class("playlist-row-drag-over")
+        return Gdk.DragAction.MOVE
+
+    def _on_playlist_drag_leave(self, drop_target, row):
+        row.remove_css_class("playlist-row-drag-over")
+
+    def _on_playlist_drop(self, drop_target, playlist_id, x, y, target_row):
+        source_id = (
+            playlist_id.get_string()
+            if hasattr(playlist_id, "get_string")
+            else str(playlist_id)
+        )
+        target_id = getattr(target_row, "_playlist_id", None)
+
+        if not source_id or not target_id or source_id == target_id:
+            return False
+
+        if source_id == FAVORITES_PLAYLIST_ID or target_id == FAVORITES_PLAYLIST_ID:
+            return False
+
+        target_row.remove_css_class("playlist-row-drag-over")
+
+        playlists = self.playlists.get_playlists()
+        playlist_ids = [p["id"] for p in playlists]
+
+        if source_id in playlist_ids:
+            playlist_ids.remove(source_id)
+            target_idx = (
+                playlist_ids.index(target_id)
+                if target_id in playlist_ids
+                else len(playlist_ids)
+            )
+            playlist_ids.insert(target_idx, source_id)
+
+            try:
+                self.playlists.reorder_playlists(playlist_ids)
+                self.show_toast("Playlist order updated")
+            except Exception as e:
+                self.show_toast(f"Failed to reorder: {e}")
+
+        return True
 
     def _get_selected_playlist_id(self) -> str | None:
         row = self.playlist_list.get_selected_row()
@@ -357,6 +442,13 @@ class WallpapersPage(Gtk.Box):
         self.view_stack = Gtk.Stack()
         self.view_stack.add_named(self.grid_scroll, "grid")
         self.view_stack.add_named(self.list_scroll, "list")
+
+        self.empty_state = LibraryEmptyState(scenario="default")
+        self.view_stack.add_named(self.empty_state, "empty")
+
+        self.skeleton_view = SkeletonView()
+        self.view_stack.add_named(self.skeleton_view, "skeleton")
+
         self.left_area.append(self.view_stack)
 
         # Sidebar
@@ -789,6 +881,8 @@ class WallpapersPage(Gtk.Box):
             self.update_active_wallpaper_label()
 
     def on_reload_wallpapers(self, btn):
+        self.view_stack.set_visible_child_name("skeleton")
+
         self.wp_manager.clear_cache()
         self.wp_manager.workshop_path = self.config.get(
             "workshopPath", self.wp_manager.workshop_path
@@ -804,6 +898,8 @@ class WallpapersPage(Gtk.Box):
 
         self._invalidate_filter_cache()
         self.refresh_wallpaper_grid()
+
+        self.skeleton_view.stop_animations()
 
     def on_feeling_lucky(self, btn):
         if not self.wp_manager._wallpapers:
@@ -1031,6 +1127,53 @@ class WallpapersPage(Gtk.Box):
         ids_changed = prev_ids != self._current_wp_ids
 
         self.sidebar.set_wallpaper_ids(self._current_wp_ids)
+
+        # Check if empty state should be shown
+        if not filtered:
+            if self.search_query:
+                self.empty_state.scenario = "search"
+                self.empty_state.set_title("No Results Found")
+                self.empty_state.set_description(
+                    f'No wallpapers match "{self.search_query}"'
+                )
+                if hasattr(self.empty_state, "action_btn"):
+                    self.empty_state.action_btn.set_label("Clear Search")
+                    for handler_id in self.empty_state.action_btn.list_handlers():
+                        self.empty_state.action_btn.disconnect(handler_id)
+                    self.empty_state.action_btn.connect(
+                        "clicked", lambda btn: self.search_entry.set_text("")
+                    )
+            elif self.selected_playlist_filter:
+                if self.selected_playlist_filter == FAVORITES_PLAYLIST_ID:
+                    self.empty_state.scenario = "favorites"
+                    self.empty_state.set_title("No Favorites Yet")
+                    self.empty_state.set_description(
+                        "Click the star icon on wallpapers to add them to favorites."
+                    )
+                else:
+                    self.empty_state.scenario = "playlist"
+                    playlist = self.playlists.get_playlist(
+                        str(self.selected_playlist_filter)
+                    )
+                    playlist_name = (
+                        playlist.get("name", "this playlist")
+                        if playlist
+                        else "this playlist"
+                    )
+                    self.empty_state.set_title("Playlist is Empty")
+                    self.empty_state.set_description(
+                        f"{playlist_name} doesn't have any wallpapers yet."
+                    )
+            else:
+                self.empty_state.scenario = "default"
+                self.empty_state.set_title("No Wallpapers Found")
+                self.empty_state.set_description(
+                    "Your library is empty. Configure the workshop path to get started."
+                )
+
+            self.view_stack.set_visible_child_name("empty")
+            self.update_counter_label()
+            return
 
         if self.view_mode == "grid":
             self.view_stack.set_visible_child_name("grid")

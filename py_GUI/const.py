@@ -676,4 +676,21 @@ dropdown button {
 .popover-btn label {
     margin: 0;
 }
+
+/* Playlist drag and drop styles */
+.playlist-row-dragging {
+    opacity: 0.5;
+    background: alpha(@theme_fg_color, 0.1);
+}
+
+.playlist-row-drag-over {
+    border-top: 2px solid @accent_bg_color;
+    background: alpha(@accent_bg_color, 0.1);
+}
+
+/* Skeleton loading styles */
+.skeleton-block {
+    background: alpha(@theme_fg_color, 0.15);
+    border-radius: 8px;
+}
 """
