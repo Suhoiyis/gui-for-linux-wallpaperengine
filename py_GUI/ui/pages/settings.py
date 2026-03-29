@@ -13,6 +13,7 @@ from py_GUI.core.logger import LogManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.integrations import AppIntegrator
+from py_GUI.core.playlists import PlaylistService
 
 
 class SettingsPage(Gtk.Box):
@@ -25,6 +26,7 @@ class SettingsPage(Gtk.Box):
         controller: WallpaperController,
         wp_manager: WallpaperManager,
         nickname_manager,
+        playlists: PlaylistService,
         on_cycle_changed=None,
         show_toast: Callable[[str], None] = None,
     ):
@@ -37,6 +39,7 @@ class SettingsPage(Gtk.Box):
         self.controller = controller
         self.wp_manager = wp_manager
         self.nickname_manager = nickname_manager
+        self.playlists = playlists
         self.integrator = AppIntegrator()
         self.on_cycle_settings_changed = on_cycle_changed
         self.show_toast = show_toast or (lambda msg: None)
@@ -319,6 +322,26 @@ class SettingsPage(Gtk.Box):
                 break
         self.cycle_order_dd.set_selected(idx)
         r.append(self.cycle_order_dd)
+
+        r = self.create_row("Cycle Playlist", "Limit cycling to a selected playlist.")
+        box.append(r)
+        self._cycle_playlist_values = [None]
+        playlist_options = ["All Wallpapers"]
+        for p in self.playlists.get_playlists():
+            pid = p.get("id")
+            name = p.get("name")
+            if pid and name:
+                self._cycle_playlist_values.append(str(pid))
+                playlist_options.append(str(name))
+        self.cycle_playlist_dd = Gtk.DropDown.new_from_strings(playlist_options)
+        curr_playlist = self.config.get("cyclePlaylistId")
+        selected_idx = 0
+        for i, pid in enumerate(self._cycle_playlist_values):
+            if pid == curr_playlist:
+                selected_idx = i
+                break
+        self.cycle_playlist_dd.set_selected(selected_idx)
+        r.append(self.cycle_playlist_dd)
 
         # Wayland Tweaks
         t = Gtk.Label(label="Wayland Tweaks")
@@ -944,6 +967,12 @@ class SettingsPage(Gtk.Box):
             sel_idx = self.cycle_order_dd.get_selected()
             if 0 <= sel_idx < len(cycle_opts):
                 self.config.set("cycleOrder", cycle_opts[sel_idx])
+
+            playlist_sel_idx = self.cycle_playlist_dd.get_selected()
+            if 0 <= playlist_sel_idx < len(self._cycle_playlist_values):
+                self.config.set(
+                    "cyclePlaylistId", self._cycle_playlist_values[playlist_sel_idx]
+                )
 
             self.config.set("wayland_only_active", self.wl_active_sw.get_active())
             self.config.set("wayland_ignore_appids", self.wl_ignore_entry.get_text())

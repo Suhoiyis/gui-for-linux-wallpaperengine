@@ -22,6 +22,7 @@ from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.logger import LogManager
+from py_GUI.core.playlists import PlaylistService, FAVORITES_PLAYLIST_ID
 from py_GUI.utils import markdown_to_pango, format_size
 
 from py_GUI.core.screen import ScreenManager
@@ -38,6 +39,7 @@ class WallpapersPage(Gtk.Box):
         log_manager: LogManager,
         screen_manager: ScreenManager,
         nickname_manager,
+        playlists: PlaylistService,
         show_toast: Callable[[str], None] = None,
     ):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
@@ -49,6 +51,7 @@ class WallpapersPage(Gtk.Box):
         self.controller = controller
         self.log_manager = log_manager
         self.nickname_manager = nickname_manager
+        self.playlists = playlists
         self.screen_manager = screen_manager
         self.show_toast = show_toast or (lambda msg: None)
 
@@ -64,6 +67,9 @@ class WallpapersPage(Gtk.Box):
         self.apply_mode = self.config.get("apply_mode") or "diff"
 
         self._current_wp_ids = []
+        self.selected_playlist_filter: Optional[str] = None
+        self.selection_mode = False
+        self.batch_selected_ids: set[str] = set()
 
         # Cache for filtered wallpapers
         self._filtered_wallpapers: Optional[Dict] = None
@@ -71,6 +77,181 @@ class WallpapersPage(Gtk.Box):
 
         self.build_ui()
         self._setup_key_controller()
+
+        if hasattr(self.controller, "signal_bus") and self.controller.signal_bus:
+            self.controller.signal_bus.connect(
+                "playlists-changed", self._on_playlists_changed
+            )
+
+    def _on_playlists_changed(self, bus, reason):
+        GLib.idle_add(lambda: self.on_playlists_changed(reason))
+
+    def on_playlists_changed(self, reason: str):
+        self.refresh_playlist_sidebar()
+        self._invalidate_filter_cache()
+        self.refresh_wallpaper_grid()
+        return False
+
+    def refresh_playlist_sidebar(self):
+        while True:
+            child = self.playlist_list.get_first_child()
+            if child is None:
+                break
+            self.playlist_list.remove(child)
+
+        rows: list[tuple[str | None, str]] = [(None, "All Wallpapers")]
+        for p in self.playlists.get_playlists():
+            pid = p.get("id")
+            name = p.get("name")
+            if pid and name:
+                rows.append((str(pid), str(name)))
+
+        for pid, name in rows:
+            row = Gtk.ListBoxRow()
+            row.set_selectable(True)
+            row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            row_box.set_margin_top(6)
+            row_box.set_margin_bottom(6)
+            row_box.set_margin_start(8)
+            row_box.set_margin_end(8)
+            lbl = Gtk.Label(label=name)
+            lbl.set_halign(Gtk.Align.START)
+            lbl.set_hexpand(True)
+            row_box.append(lbl)
+            row.set_child(row_box)
+            row._playlist_id = pid
+            self.playlist_list.append(row)
+
+        row = self.playlist_list.get_row_at_index(0)
+        if self.selected_playlist_filter is not None:
+            idx = 0
+            while True:
+                r = self.playlist_list.get_row_at_index(idx)
+                if r is None:
+                    break
+                if getattr(r, "_playlist_id", None) == self.selected_playlist_filter:
+                    row = r
+                    break
+                idx += 1
+        if row is not None:
+            self.playlist_list.select_row(row)
+
+    def on_playlist_row_selected(self, listbox, row):
+        if row is None:
+            return
+        self.selected_playlist_filter = getattr(row, "_playlist_id", None)
+        self.config.set("playlistSidebarOpen", True)
+        self._invalidate_filter_cache()
+        self.refresh_wallpaper_grid()
+
+    def _get_selected_playlist_id(self) -> str | None:
+        row = self.playlist_list.get_selected_row()
+        if row is None:
+            return None
+        return getattr(row, "_playlist_id", None)
+
+    def on_playlist_rename_clicked(self, btn):
+        playlist_id = self._get_selected_playlist_id()
+        if not playlist_id or playlist_id == FAVORITES_PLAYLIST_ID:
+            self.show_toast("Select a playlist to rename")
+            return
+
+        playlist = self.playlists.get_playlist(playlist_id)
+        if not playlist:
+            return
+
+        dialog = Gtk.Dialog(
+            transient_for=self.window, modal=True, title="Rename Playlist"
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Save", Gtk.ResponseType.OK)
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        entry = Gtk.Entry()
+        entry.set_text(str(playlist.get("name", "")))
+        content.append(entry)
+
+        def on_response(d, response):
+            if response == Gtk.ResponseType.OK:
+                name = entry.get_text().strip()
+                if name:
+                    try:
+                        self.playlists.rename_playlist(playlist_id, name)
+                        self.show_toast("Playlist renamed")
+                        self.on_playlists_changed("playlist-renamed")
+                    except Exception as e:
+                        self.show_toast(f"Failed to rename playlist: {e}")
+            d.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
+    def on_playlist_delete_clicked(self, btn):
+        playlist_id = self._get_selected_playlist_id()
+        if not playlist_id or playlist_id == FAVORITES_PLAYLIST_ID:
+            self.show_toast("Select a playlist to delete")
+            return
+        dialog = Gtk.Dialog(
+            transient_for=self.window, modal=True, title="Delete Playlist"
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        del_btn = dialog.add_button("Delete", Gtk.ResponseType.OK)
+        del_btn.add_css_class("destructive-action")
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        content.append(Gtk.Label(label="Delete selected playlist?"))
+
+        def on_response(d, response):
+            if response == Gtk.ResponseType.OK:
+                try:
+                    self.playlists.delete_playlist(playlist_id)
+                    self.show_toast("Playlist deleted")
+                    if self.selected_playlist_filter == playlist_id:
+                        self.selected_playlist_filter = None
+                    self.on_playlists_changed("playlist-deleted")
+                except Exception as e:
+                    self.show_toast(f"Failed to delete playlist: {e}")
+            d.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
+    def on_selection_mode_toggled(self, btn):
+        self.selection_mode = btn.get_active()
+        if not self.selection_mode:
+            self.batch_selected_ids.clear()
+        self.btn_batch_add.set_sensitive(
+            self.selection_mode and bool(self.batch_selected_ids)
+        )
+        self.refresh_wallpaper_grid()
+
+    def on_batch_add_clicked(self, btn):
+        if not self.batch_selected_ids:
+            self.show_toast("No wallpapers selected")
+            return
+        playlist_id = self._get_selected_playlist_id()
+        if not playlist_id:
+            self.show_toast("Select a playlist first")
+            return
+        for wid in list(self.batch_selected_ids):
+            try:
+                self.playlists.add_wallpaper(playlist_id, wid)
+            except Exception:
+                pass
+        self.selection_mode = False
+        self.batch_selected_ids.clear()
+        self.btn_selection_mode.set_active(False)
+        self.btn_batch_add.set_sensitive(False)
+        self.show_toast("Added selected wallpapers")
+        self.on_playlists_changed("playlist-batch-add")
 
     def build_ui(self):
         # Toolbar
@@ -82,6 +263,57 @@ class WallpapersPage(Gtk.Box):
         self.content_box.set_vexpand(True)
         self.content_box.set_hexpand(True)
         self.append(self.content_box)
+
+        self.playlist_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.playlist_panel.add_css_class("card")
+        self.playlist_panel.set_size_request(220, -1)
+        self.playlist_panel.set_margin_start(20)
+        self.playlist_panel.set_margin_end(10)
+        self.playlist_panel.set_margin_top(10)
+        self.playlist_panel.set_margin_bottom(10)
+        self.content_box.append(self.playlist_panel)
+
+        playlist_title = Gtk.Label(label="Playlists")
+        playlist_title.add_css_class("heading")
+        playlist_title.set_halign(Gtk.Align.START)
+        playlist_title.set_margin_top(8)
+        playlist_title.set_margin_start(8)
+        self.playlist_panel.append(playlist_title)
+
+        self.playlist_list = Gtk.ListBox()
+        self.playlist_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.playlist_list.connect("row-selected", self.on_playlist_row_selected)
+        playlist_scroll = Gtk.ScrolledWindow()
+        playlist_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        playlist_scroll.set_vexpand(True)
+        playlist_scroll.set_child(self.playlist_list)
+        self.playlist_panel.append(playlist_scroll)
+
+        playlist_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        playlist_actions.set_margin_start(8)
+        playlist_actions.set_margin_end(8)
+        playlist_actions.set_margin_bottom(8)
+        self.playlist_panel.append(playlist_actions)
+
+        self.btn_playlist_new = Gtk.Button(label="New")
+        self.btn_playlist_new.add_css_class("action-btn")
+        self.btn_playlist_new.add_css_class("secondary")
+        self.btn_playlist_new.connect(
+            "clicked", lambda *_: self._show_create_playlist_dialog(None)
+        )
+        playlist_actions.append(self.btn_playlist_new)
+
+        self.btn_playlist_rename = Gtk.Button(label="Rename")
+        self.btn_playlist_rename.add_css_class("action-btn")
+        self.btn_playlist_rename.add_css_class("secondary")
+        self.btn_playlist_rename.connect("clicked", self.on_playlist_rename_clicked)
+        playlist_actions.append(self.btn_playlist_rename)
+
+        self.btn_playlist_delete = Gtk.Button(label="Delete")
+        self.btn_playlist_delete.add_css_class("action-btn")
+        self.btn_playlist_delete.add_css_class("danger")
+        self.btn_playlist_delete.connect("clicked", self.on_playlist_delete_clicked)
+        playlist_actions.append(self.btn_playlist_delete)
 
         # Left Area
         self.left_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -156,6 +388,7 @@ class WallpapersPage(Gtk.Box):
         )
 
         self.content_box.append(self.sidebar)
+        self.refresh_playlist_sidebar()
 
     def build_toolbar(self):
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
@@ -224,6 +457,21 @@ class WallpapersPage(Gtk.Box):
         lucky_btn.set_tooltip_text("I'm feeling lucky")
         lucky_btn.connect("clicked", self.on_feeling_lucky)
         actions_box.append(lucky_btn)
+
+        self.btn_selection_mode = Gtk.ToggleButton(label="Select")
+        self.btn_selection_mode.add_css_class("flat")
+        self.btn_selection_mode.add_css_class("mode-btn")
+        self.btn_selection_mode.set_tooltip_text("Selection mode")
+        self.btn_selection_mode.connect("toggled", self.on_selection_mode_toggled)
+        actions_box.append(self.btn_selection_mode)
+
+        self.btn_batch_add = Gtk.Button(label="Add Selected")
+        self.btn_batch_add.add_css_class("flat")
+        self.btn_batch_add.add_css_class("mode-btn")
+        self.btn_batch_add.set_tooltip_text("Add selected wallpapers to playlist")
+        self.btn_batch_add.connect("clicked", self.on_batch_add_clicked)
+        self.btn_batch_add.set_sensitive(False)
+        actions_box.append(self.btn_batch_add)
 
         self.btn_screenshot = Gtk.Button()
         self.btn_screenshot.add_css_class("flat")
@@ -815,7 +1063,12 @@ class WallpapersPage(Gtk.Box):
         self._filter_cache_key = None
 
     def get_filtered_wallpapers(self) -> Dict[str, Dict]:
-        cache_key = (self.search_query, self.sort_mode, self.sort_reverse)
+        cache_key = (
+            self.search_query,
+            self.sort_mode,
+            self.sort_reverse,
+            self.selected_playlist_filter,
+        )
         if self._filter_cache_key != cache_key or self._filtered_wallpapers is None:
             self._filtered_wallpapers = self.filter_wallpapers()
             self._filter_cache_key = cache_key
@@ -874,7 +1127,17 @@ class WallpapersPage(Gtk.Box):
                 result.items(), key=lambda x: x[0], reverse=self.sort_reverse
             )
 
-        return dict(sorted_items)
+        sorted_result = dict(sorted_items)
+
+        if self.selected_playlist_filter:
+            playlist = self.playlists.get_playlist(str(self.selected_playlist_filter))
+            if playlist:
+                allowed = set(playlist.get("wallpaper_ids", []))
+                sorted_result = {
+                    wid: wp for wid, wp in sorted_result.items() if wid in allowed
+                }
+
+        return sorted_result
 
     def populate_grid(self):
         while True:
@@ -928,6 +1191,9 @@ class WallpapersPage(Gtk.Box):
 
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
+        if self.selection_mode:
+            btn.connect("clicked", lambda _: self.toggle_batch_selection(folder_id))
+
         gesture = Gtk.GestureClick.new()
         gesture.set_button(Gdk.BUTTON_PRIMARY)
         gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -977,6 +1243,7 @@ class WallpapersPage(Gtk.Box):
         lbl.set_max_width_chars(15)
         name_box.append(lbl)
         overlay.add_overlay(name_box)
+        self._add_selection_badge(overlay, folder_id)
 
         wp["_grid_btn"] = btn
         if folder_id == self.selected_wp:
@@ -1001,6 +1268,9 @@ class WallpapersPage(Gtk.Box):
 
         btn.connect("clicked", lambda _: self.select_wallpaper(folder_id))
 
+        if self.selection_mode:
+            btn.connect("clicked", lambda _: self.toggle_batch_selection(folder_id))
+
         gesture = Gtk.GestureClick.new()
         gesture.set_button(Gdk.BUTTON_PRIMARY)
         gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -1019,6 +1289,13 @@ class WallpapersPage(Gtk.Box):
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         btn.set_child(hbox)
+
+        if self.selection_mode:
+            badge = Gtk.Label(
+                label="✓" if folder_id in self.batch_selected_ids else "○"
+            )
+            badge.add_css_class("tag-chip")
+            hbox.append(badge)
 
         texture = self.wp_manager.get_texture(wp["preview"], 100)
         if texture:
@@ -1180,6 +1457,76 @@ class WallpapersPage(Gtk.Box):
         # Separator
         box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
 
+        is_favorite = self.playlists.is_favorite(folder_id)
+        fav_label = "Unfavorite" if is_favorite else "Add to Favorites"
+        box.append(create_menu_item(fav_label, "win.toggle_favorite", folder_id))
+
+        playlists = [
+            p
+            for p in self.playlists.get_playlists()
+            if p.get("id") != FAVORITES_PLAYLIST_ID
+        ]
+        if playlists:
+            for p in playlists:
+                pid = str(p.get("id", ""))
+                name = str(p.get("name", ""))
+                if not pid or not name:
+                    continue
+                in_playlist = folder_id in p.get("wallpaper_ids", [])
+                if in_playlist:
+                    btn = Gtk.Button()
+                    btn.set_has_frame(False)
+                    lbl = Gtk.Label(label=f"Remove from {name}")
+                    lbl.set_halign(Gtk.Align.START)
+                    btn.set_child(lbl)
+                    btn.set_halign(Gtk.Align.FILL)
+                    btn.connect(
+                        "clicked",
+                        lambda *_args, _pid=pid, _wid=folder_id: (
+                            self.window.activate_action(
+                                "win.remove_from_playlist",
+                                GLib.Variant("(ss)", (_pid, _wid)),
+                            ),
+                            popover.popdown(),
+                        ),
+                    )
+                    box.append(btn)
+                else:
+                    btn = Gtk.Button()
+                    btn.set_has_frame(False)
+                    lbl = Gtk.Label(label=f"Add to {name}")
+                    lbl.set_halign(Gtk.Align.START)
+                    btn.set_child(lbl)
+                    btn.set_halign(Gtk.Align.FILL)
+                    btn.connect(
+                        "clicked",
+                        lambda *_args, _pid=pid, _wid=folder_id: (
+                            self.window.activate_action(
+                                "win.add_to_playlist",
+                                GLib.Variant("(ss)", (_pid, _wid)),
+                            ),
+                            popover.popdown(),
+                        ),
+                    )
+                    box.append(btn)
+
+        btn_new_playlist = Gtk.Button()
+        btn_new_playlist.set_has_frame(False)
+        lbl_new_playlist = Gtk.Label(label="Create Playlist")
+        lbl_new_playlist.set_halign(Gtk.Align.START)
+        btn_new_playlist.set_child(lbl_new_playlist)
+        btn_new_playlist.set_halign(Gtk.Align.FILL)
+        btn_new_playlist.connect(
+            "clicked",
+            lambda *_: (
+                self._show_create_playlist_dialog(folder_id),
+                popover.popdown(),
+            ),
+        )
+        box.append(btn_new_playlist)
+
+        box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+
         btn_edit = Gtk.Button()
         btn_edit.set_has_frame(False)
         lbl_edit = Gtk.Label(label="Set Nickname")
@@ -1200,11 +1547,46 @@ class WallpapersPage(Gtk.Box):
 
         popover.popup()
 
+    def _show_create_playlist_dialog(self, wallpaper_id: str | None):
+        dialog = Gtk.Dialog(
+            transient_for=self.window, modal=True, title="Create Playlist"
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Create", Gtk.ResponseType.OK)
+        content = dialog.get_content_area()
+        content.set_spacing(10)
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        entry = Gtk.Entry()
+        entry.set_placeholder_text("Playlist name")
+        content.append(entry)
+
+        def on_response(d, response):
+            if response == Gtk.ResponseType.OK:
+                name = entry.get_text().strip()
+                if name:
+                    try:
+                        p = self.playlists.create_playlist(name)
+                        pid = str(p.get("id"))
+                        if pid and wallpaper_id:
+                            self.playlists.add_wallpaper(pid, wallpaper_id)
+                        self.show_toast("Playlist created")
+                        self.on_playlists_changed("playlist-created")
+                    except Exception as e:
+                        self.show_toast(f"Failed to create playlist: {e}")
+            d.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
     def delete_wallpaper(self, wp_id: str):
         show_delete_dialog(self.window, wp_id, lambda: self._perform_delete(wp_id))
 
     def _perform_delete(self, wp_id: str):
         if self.wp_manager.delete_wallpaper(wp_id):
+            self.playlists.remove_wallpaper_from_all(wp_id)
             if self.active_wp == wp_id:
                 self.on_stop_clicked()
             self._invalidate_filter_cache()
@@ -1305,3 +1687,23 @@ class WallpapersPage(Gtk.Box):
                 self.select_wallpaper(new_wp_id)
         except ValueError:
             pass
+
+    def toggle_batch_selection(self, wallpaper_id: str):
+        if wallpaper_id in self.batch_selected_ids:
+            self.batch_selected_ids.remove(wallpaper_id)
+        else:
+            self.batch_selected_ids.add(wallpaper_id)
+        self.btn_batch_add.set_sensitive(
+            self.selection_mode and bool(self.batch_selected_ids)
+        )
+
+    def _add_selection_badge(self, overlay: Gtk.Overlay, wallpaper_id: str):
+        if not self.selection_mode:
+            return
+        badge = Gtk.Label(label="✓" if wallpaper_id in self.batch_selected_ids else "○")
+        badge.add_css_class("tag-chip")
+        badge.set_halign(Gtk.Align.START)
+        badge.set_valign(Gtk.Align.START)
+        badge.set_margin_top(6)
+        badge.set_margin_start(6)
+        overlay.add_overlay(badge)

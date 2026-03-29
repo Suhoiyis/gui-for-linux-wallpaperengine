@@ -36,6 +36,7 @@ from py_GUI.core.updater import UpdateChecker
 from py_GUI.core.integrations import AppIntegrator
 from py_GUI.core.state import AppStateBus, StateManager
 from py_GUI.core.migration import StorageMigrationManager
+from py_GUI.core.playlists import PlaylistService, FAVORITES_PLAYLIST_ID
 
 
 def get_debug_info():
@@ -200,6 +201,7 @@ class WallpaperApp(Adw.Application):
         self.controller.wp_manager = self.wp_manager
         self.controller.nickname_manager = self.nickname_manager
         self.controller.history_manager = self.history_manager
+        self.playlists = PlaylistService(self.config, self.state_bus)
 
         self.start_hidden = False
         self.cli_actions = []
@@ -344,6 +346,7 @@ class WallpaperApp(Adw.Application):
             self.log_manager,
             self.screen_manager,
             self.nickname_manager,
+            self.playlists,
             self.show_toast,
         )
         self.stack.add_named(self.wallpapers_page, "wallpapers")
@@ -360,6 +363,7 @@ class WallpaperApp(Adw.Application):
             self.controller,
             self.wp_manager,
             self.nickname_manager,
+            self.playlists,
             on_cycle_changed=self.setup_cycle_timer,
             show_toast=self.show_toast,
         )
@@ -741,6 +745,19 @@ class WallpaperApp(Adw.Application):
         if not all_wps:
             return
 
+        cycle_playlist_id = self.config.get("cyclePlaylistId")
+        candidate_wps = list(all_wps)
+        if cycle_playlist_id:
+            playlist = self.playlists.get_playlist(str(cycle_playlist_id))
+            if playlist:
+                selected_ids = [
+                    wid
+                    for wid in playlist.get("wallpaper_ids", [])
+                    if wid in set(all_wps)
+                ]
+                if selected_ids:
+                    candidate_wps = selected_ids
+
         import random
 
         new_monitors = {}
@@ -749,15 +766,17 @@ class WallpaperApp(Adw.Application):
         sorted_ids = []
         if cycle_order != "random":
             sorted_ids = self.wp_manager.get_sorted_wallpapers(cycle_order)
+            allowed = set(candidate_wps)
+            sorted_ids = [wid for wid in sorted_ids if wid in allowed]
             # Fallback to random if sort fails or empty
             if not sorted_ids:
-                sorted_ids = all_wps
+                sorted_ids = candidate_wps
                 cycle_order = "random"
 
         for scr in active_monitors.keys():
             if scr in screens:
                 if cycle_order == "random":
-                    wp_id = random.choice(all_wps)
+                    wp_id = random.choice(candidate_wps)
                 else:
                     # Sequential logic
                     current_wp = active_monitors.get(scr)
@@ -924,6 +943,26 @@ class WallpaperApp(Adw.Application):
         action_check_update.connect("activate", self.on_action_check_update)
         self.win.add_action(action_check_update)
 
+        action_toggle_favorite = Gio.SimpleAction.new(
+            "toggle_favorite", GLib.VariantType.new("s")
+        )
+        action_toggle_favorite.connect("activate", self.on_action_toggle_favorite)
+        self.win.add_action(action_toggle_favorite)
+
+        action_add_to_playlist = Gio.SimpleAction.new(
+            "add_to_playlist", GLib.VariantType.new("(ss)")
+        )
+        action_add_to_playlist.connect("activate", self.on_action_add_to_playlist)
+        self.win.add_action(action_add_to_playlist)
+
+        action_remove_from_playlist = Gio.SimpleAction.new(
+            "remove_from_playlist", GLib.VariantType.new("(ss)")
+        )
+        action_remove_from_playlist.connect(
+            "activate", self.on_action_remove_from_playlist
+        )
+        self.win.add_action(action_remove_from_playlist)
+
     def on_action_apply(self, action, param):
         wp_id = param.get_string()
         if wp_id:
@@ -1009,6 +1048,39 @@ class WallpaperApp(Adw.Application):
 
     def _handle_update_result(self, latest_version, release_url, has_update):
         show_update_dialog(self.win, VERSION, latest_version, release_url, has_update)
+
+    def on_action_toggle_favorite(self, action, param):
+        wp_id = param.get_string()
+        if not wp_id:
+            return
+        now_fav = self.playlists.toggle_favorite(wp_id)
+        if hasattr(self, "wallpapers_page"):
+            self.wallpapers_page.on_playlists_changed("favorite-toggle")
+        self.show_toast("Added to favorites" if now_fav else "Removed from favorites")
+
+    def on_action_add_to_playlist(self, action, param):
+        playlist_id, wp_id = param.unpack()
+        if not playlist_id or not wp_id:
+            return
+        try:
+            self.playlists.add_wallpaper(str(playlist_id), str(wp_id))
+            if hasattr(self, "wallpapers_page"):
+                self.wallpapers_page.on_playlists_changed("playlist-item-added")
+            self.show_toast("Added to playlist")
+        except Exception as e:
+            self.show_toast(f"Failed to add to playlist: {e}")
+
+    def on_action_remove_from_playlist(self, action, param):
+        playlist_id, wp_id = param.unpack()
+        if not playlist_id or not wp_id:
+            return
+        try:
+            self.playlists.remove_wallpaper(str(playlist_id), str(wp_id))
+            if hasattr(self, "wallpapers_page"):
+                self.wallpapers_page.on_playlists_changed("playlist-item-removed")
+            self.show_toast("Removed from playlist")
+        except Exception as e:
+            self.show_toast(f"Failed to remove from playlist: {e}")
 
     def show_welcome_wizard(self):
         self.on_action_welcome(None, None)
