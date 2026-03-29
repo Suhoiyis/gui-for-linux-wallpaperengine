@@ -1,35 +1,37 @@
 import os
 import gi
-gi.require_version('Gtk', '4.0')
+
+gi.require_version("Gtk", "4.0")
 try:
-    gi.require_version('Adw', '1')
+    gi.require_version("Adw", "1")
 except ValueError:
     pass
 from gi.repository import Gtk, Adw, Gdk, Gio
+
 
 class WelcomeDialog(Gtk.Window):
     def __init__(self, parent, config, integrator):
         super().__init__(transient_for=parent, modal=True)
         self.config = config
         self.integrator = integrator
-        
+
         self.set_title("Welcome")
         self.set_default_size(500, 450)
         self.set_resizable(False)
-        
+
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=32)
         main_box.set_margin_top(40)
         main_box.set_margin_bottom(40)
         main_box.set_margin_start(40)
         main_box.set_margin_end(40)
         self.set_child(main_box)
-        
+
         header_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         main_box.append(header_box)
-        
+
         # 尝试获取自定义 Logo
         logo_path = self._resolve_logo_path()
-        
+
         if logo_path:
             # 如果找到了图片文件，就加载文件
             icon = Gtk.Image.new_from_file(logo_path)
@@ -37,86 +39,92 @@ class WelcomeDialog(Gtk.Window):
             # 找不到就回退到系统图标，防止界面空白
             icon = Gtk.Image.new_from_icon_name("preferences-desktop-wallpaper")
             icon.add_css_class("accent")
-            
+
         icon.set_pixel_size(100)
         header_box.append(icon)
-        
+
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         header_box.append(title_box)
-        
+
         title = Gtk.Label(label="Welcome to Linux Wallpaper Engine")
         title.add_css_class("title-1")
         title_box.append(title)
-        
+
         subtitle = Gtk.Label(label="Let's get you set up in just a few steps.")
         subtitle.add_css_class("body")
         subtitle.add_css_class("dim-label")
         title_box.append(subtitle)
-        
+
         content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
         main_box.append(content_box)
-        
+
         step1_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         content_box.append(step1_box)
-        
+
         lbl_path = Gtk.Label(label="Steam Workshop Path")
         lbl_path.set_halign(Gtk.Align.START)
         lbl_path.add_css_class("heading")
         step1_box.append(lbl_path)
-        
+
         path_input_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         step1_box.append(path_input_box)
-        
-        current_path = self.config.get('workshopPath', '')
+
+        current_path = self.config.get("workshopPath", "")
         self.path_entry = Gtk.Entry()
-        self.path_entry.set_placeholder_text("/path/to/steamapps/workshop/content/431960")
+        self.path_entry.set_placeholder_text(
+            "/path/to/steamapps/workshop/content/431960"
+        )
         if current_path:
             self.path_entry.set_text(current_path)
         self.path_entry.set_hexpand(True)
         path_input_box.append(self.path_entry)
-        
+
         btn_browse = Gtk.Button(icon_name="folder-open-symbolic")
         btn_browse.set_tooltip_text("Browse Folder")
         btn_browse.connect("clicked", self.on_browse_clicked)
         path_input_box.append(btn_browse)
-        
-        path_desc = Gtk.Label(label="Select the folder where Wallpaper Engine wallpapers are installed (ID: 431960).")
+
+        path_desc = Gtk.Label(
+            label="Select the folder where Wallpaper Engine wallpapers are installed (ID: 431960)."
+        )
         path_desc.set_halign(Gtk.Align.START)
         path_desc.add_css_class("caption")
         path_desc.add_css_class("dim-label")
         path_desc.set_wrap(True)
         path_desc.set_max_width_chars(50)
         step1_box.append(path_desc)
-        
+
         step2_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         content_box.append(step2_box)
-        
+
         vbox_auto = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         vbox_auto.set_hexpand(True)
         step2_box.append(vbox_auto)
-        
+
         lbl_auto = Gtk.Label(label="Start with System")
         lbl_auto.set_halign(Gtk.Align.START)
         lbl_auto.add_css_class("heading")
         vbox_auto.append(lbl_auto)
-        
-        desc_auto = Gtk.Label(label="Automatically start in background when you log in.")
+
+        desc_auto = Gtk.Label(
+            label="Automatically start in background when you log in."
+        )
         desc_auto.set_halign(Gtk.Align.START)
         desc_auto.add_css_class("caption")
         desc_auto.add_css_class("dim-label")
         vbox_auto.append(desc_auto)
-        
+
         self.switch_auto = Gtk.Switch()
         self.switch_auto.set_valign(Gtk.Align.CENTER)
         if self.integrator.is_autostart_enabled():
             self.switch_auto.set_active(True)
         step2_box.append(self.switch_auto)
-        
+
         footer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         footer_box.set_valign(Gtk.Align.END)
         footer_box.set_vexpand(True)
         main_box.append(footer_box)
-        
+
         self.btn_start = Gtk.Button(label="Start Using App")
         self.btn_start.add_css_class("suggested-action")
         self.btn_start.add_css_class("pill")
@@ -133,19 +141,25 @@ class WelcomeDialog(Gtk.Window):
         filename = "pic/icons/GUI_rounded.png"
 
         # 1. AppImage 环境优先 (检测 APPDIR 环境变量)
-        appdir = os.getenv('APPDIR')
+        appdir = os.getenv("APPDIR")
         if appdir:
             # 对应 build 脚本中的安装路径
-            candidates.append(os.path.join(appdir, "usr/share/linux-wallpaperengine-gui", filename))
+            candidates.append(
+                os.path.join(appdir, "usr/share/linux-wallpaperengine-gui", filename)
+            )
 
         # 2. 系统/Arch 包安装路径
-        candidates.append(os.path.join("/usr/share/linux-wallpaperengine-gui", filename))
+        candidates.append(
+            os.path.join("/usr/share/linux-wallpaperengine-gui", filename)
+        )
 
         # 3. 源码开发环境 (相对于当前文件的位置)
         # 当前文件在 py_GUI/ui/welcome_dialog.py
         # 项目根目录是往上推 3 级
         try:
-            base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            base_path = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
             candidates.append(os.path.join(base_path, filename))
         except Exception:
             pass
@@ -160,11 +174,11 @@ class WelcomeDialog(Gtk.Window):
         dialog = Gtk.FileChooserNative(
             title="Select Workshop Folder",
             parent=self,
-            action=Gtk.FileChooserAction.SELECT_FOLDER
+            action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
-        
+
         dialog.set_modal(True)
-        
+
         def on_response(d, response):
             if response == Gtk.ResponseType.ACCEPT:
                 file = d.get_file()
@@ -172,21 +186,21 @@ class WelcomeDialog(Gtk.Window):
                 if path:
                     self.path_entry.set_text(path)
             d.destroy()
-            
+
         dialog.connect("response", on_response)
         dialog.show()
 
     def on_start_clicked(self, button):
         path = self.path_entry.get_text().strip()
         if path:
-            self.config.set('workshopPath', path)
-            
+            self.config.set("workshopPath", path)
+
         enable_autostart = self.switch_auto.get_active()
         try:
             self.integrator.set_autostart(enable_autostart)
         except Exception as e:
             print(f"Failed to set autostart: {e}")
-            
-        self.config.set('onboarding_completed', True)
-        
+
+        self.config.set("onboardingCompleted", True)
+
         self.destroy()

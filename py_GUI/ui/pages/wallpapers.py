@@ -60,7 +60,7 @@ class WallpapersPage(Gtk.Box):
         self.active_wp: Optional[str] = None  # Tracks running wallpaper
 
         # We need to track current screen selection
-        self.selected_screen = self.config.get("lastScreen") or "eDP-1"
+        self.selected_screen = self.controller.state.get_last_screen() or "eDP-1"
         self.apply_mode = self.config.get("apply_mode") or "diff"
 
         self._current_wp_ids = []
@@ -337,7 +337,7 @@ class WallpapersPage(Gtk.Box):
         parent.append(status_box)
 
     def update_active_wallpaper_label(self):
-        active_monitors = self.config.get("active_monitors") or {}
+        active_monitors = self.controller.state.get_active_monitors()
         current_wp_id = active_monitors.get(self.selected_screen)
 
         if current_wp_id:
@@ -373,7 +373,7 @@ class WallpapersPage(Gtk.Box):
             self.lbl_jump_total.set_label("/0")
             return
 
-        active_monitors = self.config.get("active_monitors") or {}
+        active_monitors = self.controller.state.get_active_monitors()
         current_wp_id = active_monitors.get(self.selected_screen)
 
         self.lbl_jump_total.set_label(f"/{total}")
@@ -413,7 +413,7 @@ class WallpapersPage(Gtk.Box):
         # Only auto-select if user hasn't selected another wallpaper, unless forced
         if not force and self.selected_wp is not None:
             return False
-        active_monitors = self.config.get("active_monitors") or {}
+        active_monitors = self.controller.state.get_active_monitors()
         current_wp_id = active_monitors.get(self.selected_screen)
         if current_wp_id:
             # Highlight and show details
@@ -424,7 +424,7 @@ class WallpapersPage(Gtk.Box):
 
     def on_currently_using_clicked(self):
         if not self.show_current_wallpaper_in_sidebar(force=True):
-            last_wp = self.config.get("lastWallpaper")
+            last_wp = self.controller.state.get_last_wallpaper()
             if last_wp:
                 self.select_wallpaper(last_wp)
 
@@ -565,7 +565,7 @@ class WallpapersPage(Gtk.Box):
         self.apply_wallpaper(wp_id)
 
     def on_screenshot_clicked(self):
-        active_monitors = self.config.get("active_monitors") or {}
+        active_monitors = self.controller.state.get_active_monitors()
         target_id = active_monitors.get(self.selected_screen)
 
         if not target_id:

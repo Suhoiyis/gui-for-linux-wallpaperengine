@@ -1,4 +1,5 @@
 import os
+from py_GUI.core.schema import DEFAULT_CONFIG
 
 # Application constants
 APP_ID = "com.wallpaperengine.gui"
@@ -8,6 +9,9 @@ VERSION = "1.0.0-pre"
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_DIR = os.path.expanduser("~/.config/linux-wallpaperengine-gui")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+STATE_FILE = os.path.join(CONFIG_DIR, "state.json")
+HISTORY_FILE = os.path.join(CONFIG_DIR, "history.json")
+SCREENSHOT_HISTORY_FILE = os.path.join(CONFIG_DIR, "screenshot_history.json")
 WORKSHOP_PATH = os.path.expanduser(
     "~/.local/share/Steam/steamapps/workshop/content/431960"
 )
@@ -15,34 +19,6 @@ ASSETS_PATH = os.path.expanduser(
     "~/.local/share/Steam/steamapps/common/wallpaper_engine/assets"
 )
 ICON_PATH = os.path.join(PROJECT_ROOT, "pic/icons/gui_tray_rounded.png")
-
-DEFAULT_CONFIG = {
-    "fps": 30,
-    "volume": 0,
-    "scaling": "default",
-    "silence": True,
-    "noFullscreenPause": False,
-    "disableMouse": False,
-    "noautomute": False,
-    "noAudioProcessing": False,
-    "disableParallax": False,
-    "disableParticles": False,
-    "clamping": "clamp",
-    "lastWallpaper": None,
-    "lastScreen": None,
-    "wallpaperProperties": {},
-    "screenshotDelay": 20,
-    "screenshotRes": "3840x2160",
-    "preferXvfb": True,
-    "active_monitors": {},
-    "cycleEnabled": False,
-    "cycleInterval": 15,
-    "cycleOrder": "random",  # random, title, size, type, id
-    "assetsPath": None,  # Custom assets directory (None = auto-detect)
-    "wayland_only_active": False,
-    "wayland_ignore_appids": "",
-    "compact_mode": False,  # Compact preview mode for tiling WMs
-}
 
 # CSS Styling
 CSS_STYLE = """

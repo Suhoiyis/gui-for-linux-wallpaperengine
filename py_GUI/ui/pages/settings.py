@@ -1,8 +1,9 @@
 from typing import Dict, Callable
 import os
 import gi
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
 from gi.repository import Gtk, GLib, Gdk, Adw, Gio
 
 from py_GUI.const import WORKSHOP_PATH, ASSETS_PATH
@@ -13,13 +14,22 @@ from py_GUI.core.controller import WallpaperController
 from py_GUI.core.wallpaper import WallpaperManager
 from py_GUI.core.integrations import AppIntegrator
 
+
 class SettingsPage(Gtk.Box):
-    def __init__(self, window, config: ConfigManager, screen_manager: ScreenManager, 
-                 log_manager: LogManager, controller: WallpaperController,
-                 wp_manager: WallpaperManager, nickname_manager, on_cycle_changed=None,
-                 show_toast: Callable[[str], None] = None):
+    def __init__(
+        self,
+        window,
+        config: ConfigManager,
+        screen_manager: ScreenManager,
+        log_manager: LogManager,
+        controller: WallpaperController,
+        wp_manager: WallpaperManager,
+        nickname_manager,
+        on_cycle_changed=None,
+        show_toast: Callable[[str], None] = None,
+    ):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
-        
+
         self.window = window
         self.config = config
         self.screen_manager = screen_manager
@@ -30,9 +40,9 @@ class SettingsPage(Gtk.Box):
         self.integrator = AppIntegrator()
         self.on_cycle_settings_changed = on_cycle_changed
         self.show_toast = show_toast or (lambda msg: None)
-        
+
         self.current_filter = "All"
-        
+
         self.add_css_class("settings-container")
         self.build_ui()
 
@@ -76,7 +86,7 @@ class SettingsPage(Gtk.Box):
             content.set_icon_name(icon)
             content.set_label(label)
             btn.set_child(content)
-            
+
             btn.add_css_class("settings-nav-item")
             nav_box.append(btn)
             self.nav_btns[section_id] = btn
@@ -145,7 +155,7 @@ class SettingsPage(Gtk.Box):
     def create_row(self, label, desc):
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         row.add_css_class("setting-row")
-        
+
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         info.set_hexpand(True)
         row.append(info)
@@ -161,7 +171,7 @@ class SettingsPage(Gtk.Box):
         d.set_wrap(True)
         d.set_max_width_chars(50)
         info.append(d)
-        
+
         return row
 
     def build_general(self):
@@ -182,16 +192,18 @@ class SettingsPage(Gtk.Box):
         t.add_css_class("settings-section-title")
         t.set_halign(Gtk.Align.START)
         box.append(t)
-        
+
         # Nicknames
-        r = self.create_row("Wallpaper Nicknames", "Manage custom names for wallpapers.")
+        r = self.create_row(
+            "Wallpaper Nicknames", "Manage custom names for wallpapers."
+        )
         box.append(r)
-        
+
         btn_manage_nicks = Gtk.Button(label="Manage")
         btn_manage_nicks.set_valign(Gtk.Align.CENTER)
         btn_manage_nicks.connect("clicked", self.on_manage_nicknames)
         r.append(btn_manage_nicks)
-        
+
         # FPS
         r = self.create_row("FPS Limit", "Target frames per second.")
         box.append(r)
@@ -200,7 +212,6 @@ class SettingsPage(Gtk.Box):
         self.fps_spin.set_increments(1, 10)
         self.fps_spin.set_value(self.config.get("fps", 30))
         r.append(self.fps_spin)
-
 
         # Scaling
         r = self.create_row("Scaling Mode", "How the wallpaper fits.")
@@ -229,7 +240,9 @@ class SettingsPage(Gtk.Box):
         r.append(self.mouse_sw)
 
         # Parallax
-        r = self.create_row("Disable Parallax", "Disable background movement with mouse.")
+        r = self.create_row(
+            "Disable Parallax", "Disable background movement with mouse."
+        )
         box.append(r)
         self.parallax_sw = Gtk.Switch()
         self.parallax_sw.set_active(self.config.get("disableParallax", False))
@@ -237,7 +250,9 @@ class SettingsPage(Gtk.Box):
         r.append(self.parallax_sw)
 
         # Particles
-        r = self.create_row("Disable Particles", "Turn off fire, rain, and other particles.")
+        r = self.create_row(
+            "Disable Particles", "Turn off fire, rain, and other particles."
+        )
         box.append(r)
         self.particles_sw = Gtk.Switch()
         self.particles_sw.set_active(self.config.get("disableParticles", False))
@@ -262,7 +277,9 @@ class SettingsPage(Gtk.Box):
         box.append(t)
 
         # Wallpaper Cycling
-        r = self.create_row("Enable Wallpaper Cycling", "Automatically change wallpapers periodically.")
+        r = self.create_row(
+            "Enable Wallpaper Cycling", "Automatically change wallpapers periodically."
+        )
         box.append(r)
         self.cycle_sw = Gtk.Switch()
         self.cycle_sw.set_active(self.config.get("cycleEnabled", False))
@@ -270,10 +287,12 @@ class SettingsPage(Gtk.Box):
         r.append(self.cycle_sw)
 
         # Interval
-        r = self.create_row("Cycle Interval (Minutes)", "Time between wallpaper changes.")
+        r = self.create_row(
+            "Cycle Interval (Minutes)", "Time between wallpaper changes."
+        )
         box.append(r)
         self.cycle_spin = Gtk.SpinButton()
-        self.cycle_spin.set_range(1, 1440) # 1 min to 24 hours
+        self.cycle_spin.set_range(1, 1440)  # 1 min to 24 hours
         self.cycle_spin.set_increments(5, 30)
         self.cycle_spin.set_value(self.config.get("cycleInterval", 15))
         r.append(self.cycle_spin)
@@ -283,14 +302,14 @@ class SettingsPage(Gtk.Box):
         box.append(r)
         order_opts = ["Random", "Title", "Size ↑", "Size ↓", "Type", "ID"]
         self.cycle_order_dd = Gtk.DropDown.new_from_strings(order_opts)
-        
+
         curr_order = (self.config.get("cycleOrder") or "random").lower()
         # Find index
         idx = 0
-        if curr_order == "size": 
-             curr_order = "size ↑"
+        if curr_order == "size":
+            curr_order = "size ↑"
         elif curr_order == "size_desc":
-             curr_order = "size ↓"
+            curr_order = "size ↓"
 
         for i, opt in enumerate(order_opts):
             if opt.lower() == curr_order:
@@ -307,37 +326,44 @@ class SettingsPage(Gtk.Box):
         box.append(t)
 
         is_wayland = os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland"
-        
+
         status_label = "✅ Wayland Session Detected" if is_wayland else "⚠️ X11 Session"
         desc = "Wayland-specific pause strategies."
         if not is_wayland:
             desc += " (Options disabled in X11)"
-            
+
         r = self.create_row("Session Check", desc)
         box.append(r)
-        
+
         lbl_status = Gtk.Label(label=status_label)
         lbl_status.add_css_class("status-value")
         if not is_wayland:
             lbl_status.add_css_class("text-muted")
         r.append(lbl_status)
 
-        r = self.create_row("Pause Only When Active", "Only pause when fullscreen window is focused.")
+        r = self.create_row(
+            "Pause Only When Active", "Only pause when fullscreen window is focused."
+        )
         box.append(r)
         self.wl_active_sw = Gtk.Switch()
         self.wl_active_sw.set_active(self.config.get("wayland_only_active", False))
         self.wl_active_sw.set_valign(Gtk.Align.CENTER)
-        if not is_wayland: self.wl_active_sw.set_sensitive(False)
+        if not is_wayland:
+            self.wl_active_sw.set_sensitive(False)
         r.append(self.wl_active_sw)
 
-        r = self.create_row("Ignore App IDs", "Comma-separated list of App IDs to ignore (e.g. dock,bar).")
+        r = self.create_row(
+            "Ignore App IDs",
+            "Comma-separated list of App IDs to ignore (e.g. dock,bar).",
+        )
         r.set_orientation(Gtk.Orientation.VERTICAL)
         box.append(r)
-        
+
         self.wl_ignore_entry = Gtk.Entry()
         self.wl_ignore_entry.set_text(self.config.get("wayland_ignore_appids", ""))
         self.wl_ignore_entry.set_placeholder_text("app_id1, app_id2")
-        if not is_wayland: self.wl_ignore_entry.set_sensitive(False)
+        if not is_wayland:
+            self.wl_ignore_entry.set_sensitive(False)
         r.append(self.wl_ignore_entry)
 
     def build_audio(self):
@@ -376,7 +402,9 @@ class SettingsPage(Gtk.Box):
         r.append(self.vol_spin)
 
         # No Auto Mute
-        r = self.create_row("Disable Auto Mute", "Prevent automatic muting when other apps play sound.")
+        r = self.create_row(
+            "Disable Auto Mute", "Prevent automatic muting when other apps play sound."
+        )
         box.append(r)
         self.noautomute_sw = Gtk.Switch()
         self.noautomute_sw.set_active(self.config.get("noautomute", False))
@@ -384,7 +412,9 @@ class SettingsPage(Gtk.Box):
         r.append(self.noautomute_sw)
 
         # No Audio Processing
-        r = self.create_row("Disable Audio Processing", "Disable sound spectrum analysis (saves CPU).")
+        r = self.create_row(
+            "Disable Audio Processing", "Disable sound spectrum analysis (saves CPU)."
+        )
         box.append(r)
         self.noaudioproc_sw = Gtk.Switch()
         self.noaudioproc_sw.set_active(self.config.get("noAudioProcessing", False))
@@ -410,16 +440,18 @@ class SettingsPage(Gtk.Box):
         box.append(t)
 
         # Path
-        r = self.create_row("Workshop Directory", "Path to Steam Workshop content (431960).")
+        r = self.create_row(
+            "Workshop Directory", "Path to Steam Workshop content (431960)."
+        )
         r.set_orientation(Gtk.Orientation.VERTICAL)
         box.append(r)
-        
+
         workshop_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.path_entry = Gtk.Entry()
         self.path_entry.set_text(self.config.get("workshopPath") or WORKSHOP_PATH)
         self.path_entry.set_hexpand(True)
         workshop_box.append(self.path_entry)
-        
+
         browse_workshop_btn = Gtk.Button(label="Browse")
         browse_workshop_btn.add_css_class("action-btn")
         browse_workshop_btn.add_css_class("secondary")
@@ -428,10 +460,13 @@ class SettingsPage(Gtk.Box):
         r.append(workshop_box)
 
         # Assets Directory
-        r = self.create_row("Assets Directory", "Wallpaper Engine assets folder (leave empty for auto-detect).")
+        r = self.create_row(
+            "Assets Directory",
+            "Wallpaper Engine assets folder (leave empty for auto-detect).",
+        )
         r.set_orientation(Gtk.Orientation.VERTICAL)
         box.append(r)
-        
+
         assets_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.assets_entry = Gtk.Entry()
         assets_path = self.config.get("assetsPath", None)
@@ -439,7 +474,7 @@ class SettingsPage(Gtk.Box):
         self.assets_entry.set_placeholder_text("Auto-detect from Steam installation")
         self.assets_entry.set_hexpand(True)
         assets_box.append(self.assets_entry)
-        
+
         browse_assets_btn = Gtk.Button(label="Browse")
         browse_assets_btn.add_css_class("action-btn")
         browse_assets_btn.add_css_class("secondary")
@@ -450,12 +485,17 @@ class SettingsPage(Gtk.Box):
         # Screen
         r = self.create_row("Screen Root", "Select a monitor.")
         box.append(r)
-        
+
         screens = self.screen_manager.get_screens()
-        curr_screen = self.config.get("lastScreen") or self.screen_manager.get_primary_screen() or self.screen_manager.get_first_screen() or "eDP-1"
+        curr_screen = (
+            self.controller.state.get_last_screen()
+            or self.screen_manager.get_primary_screen()
+            or self.screen_manager.get_first_screen()
+            or "eDP-1"
+        )
         if curr_screen not in screens:
             screens = screens + [curr_screen]
-        
+
         self.screen_dd = Gtk.DropDown.new_from_strings(screens)
         self.screen_dd.set_hexpand(True)
         if curr_screen and curr_screen in screens:
@@ -467,7 +507,7 @@ class SettingsPage(Gtk.Box):
         content.set_icon_name("view-refresh-symbolic")
         content.set_label("Refresh Screens")
         btn.set_child(content)
-        
+
         btn.add_css_class("action-btn")
         btn.add_css_class("secondary")
         btn.connect("clicked", self.on_refresh_screens)
@@ -511,7 +551,10 @@ class SettingsPage(Gtk.Box):
         box.append(t_ss)
 
         # Screenshot Delay
-        r = self.create_row("Screenshot Delay", "Frames to wait before capture (use higher for web wallpapers).")
+        r = self.create_row(
+            "Screenshot Delay",
+            "Frames to wait before capture (use higher for web wallpapers).",
+        )
         box.append(r)
         self.screenshot_delay_spin = Gtk.SpinButton()
         self.screenshot_delay_spin.set_range(1, 600)
@@ -520,33 +563,44 @@ class SettingsPage(Gtk.Box):
         r.append(self.screenshot_delay_spin)
 
         # Screenshot Resolution
-        r = self.create_row("Screenshot Resolution", "Target resolution (e.g. 1920x1080, 3840x2160).")
+        r = self.create_row(
+            "Screenshot Resolution", "Target resolution (e.g. 1920x1080, 3840x2160)."
+        )
         box.append(r)
         self.screenshot_res_entry = Gtk.Entry()
-        self.screenshot_res_entry.set_text(self.config.get("screenshotRes") or "3840x2160")
+        self.screenshot_res_entry.set_text(
+            self.config.get("screenshotRes") or "3840x2160"
+        )
         self.screenshot_res_entry.set_hexpand(False)
         self.screenshot_res_entry.set_width_chars(15)
         r.append(self.screenshot_res_entry)
 
         # Xvfb Status Check
         import shutil
+
         has_xvfb = shutil.which("xvfb-run") is not None
-        
-        status_label = "✅ Xvfb Installed (Silent Mode)" if has_xvfb else "⚠️ Xvfb Not Found (Window Mode)"
+
+        status_label = (
+            "✅ Xvfb Installed (Silent Mode)"
+            if has_xvfb
+            else "⚠️ Xvfb Not Found (Window Mode)"
+        )
         status_desc = "Silent capture using virtual framebuffer."
-        
+
         r = self.create_row("Capture Backend", status_desc)
         box.append(r)
-        
+
         status_val = Gtk.Label(label=status_label)
         status_val.add_css_class("status-value")
         if not has_xvfb:
-            status_val.add_css_class("text-muted") 
-        
+            status_val.add_css_class("text-muted")
+
         r.append(status_val)
 
         # Prefer Xvfb Switch
-        r = self.create_row("Prefer Silent Capture", "Use Xvfb if installed to avoid popup windows.")
+        r = self.create_row(
+            "Prefer Silent Capture", "Use Xvfb if installed to avoid popup windows."
+        )
         box.append(r)
         self.xvfb_sw = Gtk.Switch()
         self.xvfb_sw.set_active(self.config.get("preferXvfb", True))
@@ -593,18 +647,18 @@ class SettingsPage(Gtk.Box):
     def on_refresh_screens(self, btn):
         self.screen_manager.detect_screens()
         screens = self.screen_manager.get_screens()
-        
+
         # Preserve selection if possible
         selected = self.screen_dd.get_selected_item()
         selected_str = selected.get_string() if selected else None
-        
+
         self.screen_dd.set_model(Gtk.StringList.new(screens))
-        
+
         if selected_str and selected_str in screens:
             self.screen_dd.set_selected(screens.index(selected_str))
         elif screens:
             self.screen_dd.set_selected(0)
-            
+
         self.show_toast(f"Screens refreshed: {', '.join(screens)}")
 
     def build_logs(self):
@@ -683,7 +737,7 @@ class SettingsPage(Gtk.Box):
 
     def setup_log_tags(self):
         tbl = self.log_buffer.get_tag_table()
-        
+
         def add_tag(name, color):
             tag = Gtk.TextTag(name=name)
             tag.set_property("foreground", color)
@@ -696,12 +750,12 @@ class SettingsPage(Gtk.Box):
         add_tag("warning", "#f59e0b")
         add_tag("error", "#ef4444")
         add_tag("source", "#a855f7")
-        
+
         msg_tag = Gtk.TextTag(name="message")
         msg_tag.set_property("foreground", "#e5e7eb")
         msg_tag.set_property("size-points", 12)
         tbl.add(msg_tag)
-        
+
         line_tag = Gtk.TextTag(name="line")
         line_tag.set_property("pixels-above-lines", 8)
         tbl.add(line_tag)
@@ -723,21 +777,27 @@ class SettingsPage(Gtk.Box):
                 return
 
         end = self.log_buffer.get_end_iter()
-        
+
         self.log_buffer.insert_with_tags_by_name(end, f"[{ts}] ", "timestamp")
-        
+
         lvl_tag = "debug"
-        if lvl == "INFO": lvl_tag = "info"
-        elif lvl == "WARNING": lvl_tag = "warning"
-        elif lvl == "ERROR": lvl_tag = "error"
-        
+        if lvl == "INFO":
+            lvl_tag = "info"
+        elif lvl == "WARNING":
+            lvl_tag = "warning"
+        elif lvl == "ERROR":
+            lvl_tag = "error"
+
         self.log_buffer.insert_with_tags_by_name(end, f"[{lvl}] ", lvl_tag)
         self.log_buffer.insert_with_tags_by_name(end, f"[{src}] ", "source")
         self.log_buffer.insert_with_tags_by_name(end, f"{msg}\n", "message", "line")
 
         self.log_view.scroll_to_mark(
             self.log_buffer.create_mark("end", self.log_buffer.get_end_iter(), False),
-            0.0, False, 0.0, 0.0
+            0.0,
+            False,
+            0.0,
+            0.0,
         )
 
     def refresh_logs(self):
@@ -755,20 +815,24 @@ class SettingsPage(Gtk.Box):
         text = self.log_buffer.get_text(start, end, False)
         clipboard = Gdk.Display.get_default().get_clipboard()
         clipboard.set(text)
-        
+
         orig = btn.get_label()
         btn.set_label("Copied!")
         GLib.timeout_add(2000, lambda: btn.set_label(orig) and False)
 
     def on_manage_nicknames(self, btn):
         try:
-            from py_GUI.ui.components.nickname_manager_dialog import NicknameManagerDialog
+            from py_GUI.ui.components.nickname_manager_dialog import (
+                NicknameManagerDialog,
+            )
+
             root = self.window
-            
+
             if root:
+
                 def on_nicknames_saved(needs_refresh=False):
                     app = Gio.Application.get_default()
-                    if app and hasattr(app, 'wallpapers_page'):
+                    if app and hasattr(app, "wallpapers_page"):
                         if needs_refresh:
                             # 如果执行了删除并保存，调用全局刷新（相当于点击菜单栏的 Refresh Library）
                             app.refresh_from_cli()
@@ -776,30 +840,37 @@ class SettingsPage(Gtk.Box):
                             # 如果只是普通修改，仅更新 UI 即可，避免不必要的性能消耗
                             app.wallpapers_page.refresh_wallpaper_grid()
                             app.wallpapers_page.update_active_wallpaper_label()
-                dialog = NicknameManagerDialog(root, self.nickname_manager, self.wp_manager, on_saved=on_nicknames_saved)
+
+                dialog = NicknameManagerDialog(
+                    root,
+                    self.nickname_manager,
+                    self.wp_manager,
+                    on_saved=on_nicknames_saved,
+                )
                 dialog.present()
             else:
                 print("[ERROR] Nickname Manager: Could not find parent window.")
         except Exception as e:
             print(f"[ERROR] Nickname Manager Error: {e}")
             import traceback
+
             traceback.print_exc()
 
     def on_save(self, btn):
         try:
             # General
             self.config.set("fps", int(self.fps_spin.get_value()))
-            
+
             scaling_opts = ["default", "stretch", "fit", "fill"]
             idx = self.scaling_dd.get_selected()
             if 0 <= idx < len(scaling_opts):
                 self.config.set("scaling", scaling_opts[idx])
-                
+
             self.config.set("noFullscreenPause", self.pause_sw.get_active())
             self.config.set("disableMouse", self.mouse_sw.get_active())
             self.config.set("disableParallax", self.parallax_sw.get_active())
             self.config.set("disableParticles", self.particles_sw.get_active())
-            
+
             clamp_opts = ["clamp", "border", "repeat"]
             idx = self.clamp_dd.get_selected()
             if 0 <= idx < len(clamp_opts):
@@ -808,14 +879,14 @@ class SettingsPage(Gtk.Box):
             # Automation
             self.config.set("cycleEnabled", self.cycle_sw.get_active())
             self.config.set("cycleInterval", int(self.cycle_spin.get_value()))
-            
+
             cycle_opts = ["random", "title", "size", "size_desc", "type", "id"]
             # Map UI index to config value
             # UI: ["Random", "Title", "Size ↑", "Size ↓", "Type", "ID"]
             sel_idx = self.cycle_order_dd.get_selected()
             if 0 <= sel_idx < len(cycle_opts):
                 self.config.set("cycleOrder", cycle_opts[sel_idx])
-            
+
             self.config.set("wayland_only_active", self.wl_active_sw.get_active())
             self.config.set("wayland_ignore_appids", self.wl_ignore_entry.get_text())
 
@@ -827,10 +898,10 @@ class SettingsPage(Gtk.Box):
 
             # Advanced
             self.config.set("workshopPath", self.path_entry.get_text())
-            
+
             assets_path = self.assets_entry.get_text().strip()
             self.config.set("assetsPath", assets_path if assets_path else None)
-            
+
             # Screen Root
             screens = self.screen_manager.get_screens()
             sel_idx = self.screen_dd.get_selected()
@@ -839,16 +910,17 @@ class SettingsPage(Gtk.Box):
             model = self.screen_dd.get_model()
             if model and 0 <= sel_idx < model.get_n_items():
                 selected_screen = model.get_item(sel_idx).get_string()
-                self.config.set("lastScreen", selected_screen)
+                self.controller.state.set_last_screen(selected_screen)
 
             # Autostart
             self.integrator.set_autostart(
-                self.autostart_sw.get_active(),
-                hidden=self.start_hidden_sw.get_active()
+                self.autostart_sw.get_active(), hidden=self.start_hidden_sw.get_active()
             )
 
             # Screenshot
-            self.config.set("screenshotDelay", int(self.screenshot_delay_spin.get_value()))
+            self.config.set(
+                "screenshotDelay", int(self.screenshot_delay_spin.get_value())
+            )
             self.config.set("screenshotRes", self.screenshot_res_entry.get_text())
             self.config.set("preferXvfb", self.xvfb_sw.get_active())
 
@@ -857,17 +929,17 @@ class SettingsPage(Gtk.Box):
                 self.wp_manager.workshop_path = new_path
                 self.wp_manager.manifest_path = self.wp_manager._find_manifest_path()
                 self.wp_manager.scan()
-            
+
             # Trigger cycle timer update if needed
             if self.on_cycle_settings_changed:
                 self.on_cycle_settings_changed()
 
             self.show_toast("Settings saved successfully")
-            
+
             # Restart if active to apply immediate changes (like FPS/Scaling)
             # Optional: Ask user? Or just do it.
-            # self.controller.restart_wallpapers() 
-            
+            # self.controller.restart_wallpapers()
+
         except Exception as e:
             self.show_toast(f"Error saving settings: {e}")
             print(f"Save error: {e}")

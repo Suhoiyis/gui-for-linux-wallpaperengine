@@ -4,14 +4,18 @@ import threading
 import os
 from collections import deque
 from typing import Callable, Protocol, TypedDict, cast
+from py_GUI.core.storage import read_screenshot_history, write_screenshot_history
 
 HISTORY_SIZE = 60
+
 
 def _format_cpu(val: float) -> str:
     return f"{int(val)}%" if val == int(val) else f"{val:.1f}%"
 
+
 def _format_mem(val: float) -> str:
     return f"{int(val)} MB" if val == int(val) else f"{val:.1f} MB"
+
 
 def _get_thread_names(pid: int) -> list[str]:
     names: list[str] = []
@@ -27,15 +31,12 @@ def _get_thread_names(pid: int) -> list[str]:
         pass
     return names
 
+
 SCREENSHOT_HISTORY_LIMIT = 10
 
 
-class _Config(Protocol):
-    def get(self, key: str, default: object = ...) -> object:
-        ...
-
-    def set(self, key: str, value: object) -> None:
-        ...
+class _SignalBus(Protocol):
+    def emit(self, signal_name: str, reason: str) -> None: ...
 
 
 class TaskTracker(TypedDict):
@@ -78,25 +79,27 @@ class _StatsPayload(TypedDict):
 
 
 class PerformanceMonitor:
-    def __init__(self, config: _Config | None = None):
+    def __init__(self, signal_bus: _SignalBus | None = None):
         self._stop_event: threading.Event = threading.Event()
         self._thread: threading.Thread | None = None
         self._callbacks: list[Callable[[_StatsPayload], None]] = []
         self._interval: float = 1.0
-        
+
         self._processes: dict[str, psutil.Process] = {}
         self._history: dict[str, dict[str, deque[float]]] = {}
         self._cpu_count: int = psutil.cpu_count() or 1
-        self._config: _Config | None = config
+        self._signal_bus: _SignalBus | None = signal_bus
         _ = self._add_process("frontend", psutil.Process().pid)
 
     def _init_history(self, category: str) -> None:
         self._history[category] = {
             "cpu": deque(maxlen=HISTORY_SIZE),
-            "memory_mb": deque(maxlen=HISTORY_SIZE)
+            "memory_mb": deque(maxlen=HISTORY_SIZE),
         }
 
-    def _find_real_process(self, pid: int, timeout: float = 0.0) -> psutil.Process | None:
+    def _find_real_process(
+        self, pid: int, timeout: float = 0.0
+    ) -> psutil.Process | None:
 
         def _try_find_child(proc: psutil.Process) -> psutil.Process | None:
             try:
@@ -157,7 +160,9 @@ class PerformanceMonitor:
         # For backend and screenshot, find the real linux-wallpaperengine process
         proc = None
         if category in ("backend", "screenshot"):
-            poll_timeout = 0.2 if threading.current_thread() is threading.main_thread() else 1.0
+            poll_timeout = (
+                0.2 if threading.current_thread() is threading.main_thread() else 1.0
+            )
             proc = self._find_real_process(pid, timeout=poll_timeout)
         if proc is None:
             try:
@@ -169,7 +174,7 @@ class PerformanceMonitor:
             _ = proc.cpu_percent(interval=None)
         except Exception:
             pass
-            
+
         self._processes[category] = proc
         self._init_history(category)
         return True
@@ -191,7 +196,7 @@ class PerformanceMonitor:
     def start_task(self, category: str, pid: int) -> TaskTracker:
         """Start tracking a specific task. Returns a tracker object (dict)."""
         self.start_monitoring(category, pid)
-        
+
         initial_cpu_time = 0.0
         if category in self._processes:
             try:
@@ -205,7 +210,7 @@ class PerformanceMonitor:
             "category": category,
             "start_time": time.time(),
             "pid": pid,
-            "initial_cpu_time": initial_cpu_time
+            "initial_cpu_time": initial_cpu_time,
         }
 
     def stop_task(self, tracker: TaskTracker) -> dict[str, float]:
@@ -214,19 +219,24 @@ class PerformanceMonitor:
         start_time = tracker["start_time"]
         initial_cpu_time = tracker["initial_cpu_time"]
         duration = time.time() - start_time
-        
+
         if category in self._processes:
             try:
                 proc = self._processes[category]
                 with proc.oneshot():
                     cpu = proc.cpu_percent(interval=None) / self._cpu_count
-                    
+
                     if initial_cpu_time > 0:
                         try:
                             curr_times = proc.cpu_times()
-                            delta_cpu = (curr_times.user + curr_times.system) - initial_cpu_time
+                            delta_cpu = (
+                                curr_times.user + curr_times.system
+                            ) - initial_cpu_time
                             if delta_cpu > 0 and duration > 0:
-                                avg_cpu = min((delta_cpu / duration) * 100 / self._cpu_count, 100.0)
+                                avg_cpu = min(
+                                    (delta_cpu / duration) * 100 / self._cpu_count,
+                                    100.0,
+                                )
                                 if cpu == 0:
                                     cpu = avg_cpu
                         except Exception:
@@ -234,7 +244,7 @@ class PerformanceMonitor:
 
                     rss = cast(int, proc.memory_info().rss)
                     mem_mb = rss / (1024 * 1024)
-                    
+
                 if category in self._history:
                     self._history[category]["cpu"].append(cpu)
                     self._history[category]["memory_mb"].append(mem_mb)
@@ -246,36 +256,32 @@ class PerformanceMonitor:
             "max_cpu": 0.0,
             "max_mem": 0.0,
             "avg_cpu": 0.0,
-            "avg_mem": 0.0
+            "avg_mem": 0.0,
         }
-        
+
         if category in self._history:
             cpu_hist = list(self._history[category]["cpu"])
             mem_hist = list(self._history[category]["memory_mb"])
-            
+
             if cpu_hist:
                 stats["max_cpu"] = min(max(cpu_hist), 100.0)
                 stats["avg_cpu"] = min(sum(cpu_hist) / len(cpu_hist), 100.0)
-            
+
             if mem_hist:
                 stats["max_mem"] = max(mem_hist)
                 stats["avg_mem"] = sum(mem_hist) / len(mem_hist)
-                
+
         self.stop_monitoring(category)
         return stats
 
-
-    def add_screenshot_history(self, wp_id: str, output_path: str, stats: dict[str, float]) -> None:
-        if not self._config:
-            return
-        raw_existing = self._config.get("screenshot_history", [])
-        if isinstance(raw_existing, list):
-            history: list[dict[str, object]] = []
-            for item in cast(list[object], raw_existing):
-                if isinstance(item, dict):
-                    history.append(cast(dict[str, object], item))
-        else:
-            history = []
+    def add_screenshot_history(
+        self, wp_id: str, output_path: str, stats: dict[str, float]
+    ) -> None:
+        raw_existing = read_screenshot_history()
+        history: list[dict[str, object]] = []
+        for item in cast(list[object], raw_existing):
+            if isinstance(item, dict):
+                history.append(cast(dict[str, object], item))
         record: dict[str, object] = {
             "timestamp": time.time(),
             "wp_id": str(wp_id),
@@ -289,29 +295,29 @@ class PerformanceMonitor:
         history.append(record)
         if len(history) > SCREENSHOT_HISTORY_LIMIT:
             history = history[-SCREENSHOT_HISTORY_LIMIT:]
-        self._config.set("screenshot_history", history)
+        write_screenshot_history(history)
+        if self._signal_bus:
+            self._signal_bus.emit("screenshot-history-changed", "add")
 
     def get_screenshot_history(self) -> list[dict[str, object]]:
-        if not self._config:
-            return []
-        # Return a copy to prevent modification during iteration
-        raw_history = self._config.get("screenshot_history", [])
-        if not isinstance(raw_history, list):
-            return []
+        raw_history = read_screenshot_history()
         out: list[dict[str, object]] = []
-        for item in cast(list[object], raw_history):
+        for item in raw_history:
             if isinstance(item, dict):
                 out.append(dict(cast(dict[str, object], item)))
         return out
 
     def clear_screenshot_history(self):
-        if self._config:
-            self._config.set("screenshot_history", [])
+        write_screenshot_history([])
+        if self._signal_bus:
+            self._signal_bus.emit("screenshot-history-changed", "clear")
 
     def _ensure_thread_running(self):
         if not self._thread or not self._thread.is_alive():
             self._stop_event.clear()
-            self._thread = threading.Thread(target=self._monitor_loop, name="PerfMonitor", daemon=True)
+            self._thread = threading.Thread(
+                target=self._monitor_loop, name="PerfMonitor", daemon=True
+            )
             self._thread.start()
 
     def add_callback(self, callback: Callable[[_StatsPayload], None]) -> None:
@@ -332,20 +338,23 @@ class PerformanceMonitor:
                 },
                 "details": {},
             }
-            
+
             if "total" not in self._history:
                 self._init_history("total")
 
             for category, proc in list(self._processes.items()):
                 try:
                     # Upgrade wrapper process to real engine if available
-                    if category in ("backend", "screenshot") and proc.name() != "linux-wallpaperengine":
+                    if (
+                        category in ("backend", "screenshot")
+                        and proc.name() != "linux-wallpaperengine"
+                    ):
                         real = self._find_real_process(proc.pid)
                         if real and real.name() == "linux-wallpaperengine":
                             _ = real.cpu_percent(interval=None)
                             self._processes[category] = real
                             proc = real
-                    
+
                     with proc.oneshot():
                         cpu = proc.cpu_percent(interval=None) / self._cpu_count
                         rss = cast(int, proc.memory_info().rss)
@@ -356,7 +365,7 @@ class PerformanceMonitor:
 
                     if category not in self._history:
                         self._init_history(category)
-                    
+
                     self._history[category]["cpu"].append(cpu)
                     self._history[category]["memory_mb"].append(mem_mb)
 
@@ -371,10 +380,10 @@ class PerformanceMonitor:
                         "status": status,
                         "history": {
                             "cpu": list(self._history[category]["cpu"]),
-                            "memory_mb": list(self._history[category]["memory_mb"])
-                        }
+                            "memory_mb": list(self._history[category]["memory_mb"]),
+                        },
                     }
-                    
+
                     stats["total"]["cpu"] += cpu
                     stats["total"]["memory_mb"] += mem_mb
                     stats["total"]["threads"] += threads
@@ -382,22 +391,22 @@ class PerformanceMonitor:
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     if category != "frontend":
                         _ = self._processes.pop(category, None)
-            
+
             total_cpu = round(float(stats["total"]["cpu"]), 1)
             total_mem = round(float(stats["total"]["memory_mb"]), 1)
-            
+
             self._history["total"]["cpu"].append(total_cpu)
             self._history["total"]["memory_mb"].append(total_mem)
-            
+
             stats["total"]["cpu"] = total_cpu
             stats["total"]["cpu_fmt"] = _format_cpu(total_cpu)
             stats["total"]["memory_mb"] = total_mem
             stats["total"]["memory_fmt"] = _format_mem(total_mem)
             stats["total"]["history"] = {
                 "cpu": list(self._history["total"]["cpu"]),
-                "memory_mb": list(self._history["total"]["memory_mb"])
+                "memory_mb": list(self._history["total"]["memory_mb"]),
             }
-            
+
             all_thread_names = {}
             for category, proc in list(self._processes.items()):
                 try:
@@ -408,7 +417,7 @@ class PerformanceMonitor:
             stats["total"]["thread_names"] = all_thread_names
 
             self._notify(stats)
-            
+
             interval = self._interval
             if "screenshot" in self._processes:
                 interval = 0.1
