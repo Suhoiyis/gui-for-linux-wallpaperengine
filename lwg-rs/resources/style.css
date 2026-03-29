@@ -1,0 +1,111 @@
+/* Linux Wallpaper Engine GUI - GTK4 CSS Styles */
+
+/* Window base */
+window {
+    background-color: @window_bg_color;
+}
+
+/* HeaderBar styling */
+headerbar {
+    background: alpha(@window_bg_color, 0.95);
+    border-bottom: 1px solid alpha(@borders, 0.5);
+}
+
+/* Navigation buttons - ToggleButton group */
+.toggle-button.flat {
+    border-radius: 9999px;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+.toggle-button.flat:hover {
+    background: alpha(@theme_fg_color, 0.1);
+}
+
+.toggle-button.flat:checked {
+    background: @accent_bg_color;
+    color: @accent_fg_color;
+}
+
+.toggle-button.flat:checked:hover {
+    background: alpha(@accent_bg_color, 0.8);
+}
+
+/* Stack transition */
+stack {
+    transition: all 0.3s ease;
+}
+
+/* Sidebar styling */
+.sidebar-box {
+    background: alpha(@window_bg_color, 0.8);
+    border-right: 1px solid alpha(@borders, 0.3);
+}
+
+/* Title styling */
+.title-1 {
+    font-size: 1.5em;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.title-2 {
+    font-size: 1.2em;
+    font-weight: 700;
+}
+
+/* Dim label for secondary text */
+.dim-label {
+    color: alpha(@theme_fg_color, 0.6);
+    font-size: 0.9em;
+}
+
+/* Search entry styling */
+entry.search {
+    border-radius: 12px;
+    background: alpha(@theme_fg_color, 0.05);
+    padding: 8px 12px;
+}
+
+entry.search:focus {
+    box-shadow: 0 0 0 2px alpha(@accent_bg_color, 0.3);
+}
+
+/* Button styling */
+button.flat {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+button.flat:hover {
+    background: alpha(@theme_fg_color, 0.1);
+}
+
+/* Separator styling */
+separator {
+    background: alpha(@borders, 0.5);
+}
+
+/* Card-like containers */
+.card {
+    background: alpha(@window_bg_color, 0.6);
+    border-radius: 12px;
+    border: 1px solid alpha(@borders, 0.2);
+    padding: 16px;
+}
+
+/* Scrollbar styling */
+scrollbar {
+    background: transparent;
+}
+
+scrollbar slider {
+    background: alpha(@theme_fg_color, 0.2);
+    border-radius: 9999px;
+    min-width: 6px;
+    min-height: 6px;
+}
+
+scrollbar slider:hover {
+    background: alpha(@theme_fg_color, 0.4);
+}

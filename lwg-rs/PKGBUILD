@@ -1,0 +1,34 @@
+# Maintainer: Your Name <your.email@example.com>
+pkgname=linux-wallpaperengine-gui-rust
+pkgver=2.0.0
+pkgrel=1
+pkgdesc="Linux Wallpaper Engine GUI - Rust rewrite"
+arch=('x86_64')
+url="https://github.com/your-repo/linux-wallpaperengine-gui-rust"
+license=('GPL3')
+depends=('gtk4' 'libadwaita' 'linux-wallpaperengine')
+makedepends=('rust' 'cargo')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/your-repo/$pkgname/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver/lwg-rs"
+    
+    # 优化编译
+    export RUSTFLAGS="-C lto=yes -C codegen-units=1"
+    cargo build --release
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver/lwg-rs"
+    
+    # 安装二进制
+    install -Dm755 target/release/lwg-gui "$pkgdir/usr/bin/lwg-gui"
+    install -Dm755 target/release/lwg-tray "$pkgdir/usr/bin/lwg-tray"
+    
+    # 安装图标
+    install -Dm644 resources/icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/com.wallpaperengine.gui.png"
+    
+    # 安装桌面文件
+    install -Dm644 resources/com.wallpaperengine.gui.desktop "$pkgdir/usr/share/applications/com.wallpaperengine.gui.desktop"
+}

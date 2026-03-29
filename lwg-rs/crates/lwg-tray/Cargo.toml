@@ -1,0 +1,17 @@
+[package]
+name = "lwg-tray"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "System tray for Linux Wallpaper Engine GUI"
+
+[[bin]]
+name = "lwg-tray"
+path = "src/main.rs"
+
+[dependencies]
+lwg-ipc = { path = "../lwg-ipc" }
+tokio = { workspace = true }
+libc = "0.2"

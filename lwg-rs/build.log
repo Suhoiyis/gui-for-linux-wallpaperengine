@@ -1,0 +1,283 @@
+   Compiling lwg-core v2.0.0-pre.1 (/home/yua/suw/lwg-rs/crates/lwg-core)
+warning: unused import: `warn`
+  --> crates/lwg-core/src/controller.rs:11:35
+   |
+11 | use tracing::{debug, error, info, warn};
+   |                                   ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> crates/lwg-core/src/nickname.rs:2:13
+  |
+2 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `debug` and `error`
+ --> crates/lwg-core/src/screen.rs:3:15
+  |
+3 | use tracing::{debug, error, info, warn};
+  |               ^^^^^  ^^^^^
+
+warning: unused import: `LwgError`
+ --> crates/lwg-core/src/wallpaper.rs:1:20
+  |
+1 | use crate::error::{LwgError, LwgResult};
+  |                    ^^^^^^^^
+
+warning: unused imports: `error` and `warn`
+ --> crates/lwg-core/src/wallpaper.rs:5:22
+  |
+5 | use tracing::{debug, error, info, warn};
+  |                      ^^^^^        ^^^^
+
+warning: variable does not need to be mutable
+   --> crates/lwg-core/src/controller.rs:240:16
+    |
+240 |             Ok(mut child) => {
+    |                ----^^^^^
+    |                |
+    |                help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> crates/lwg-core/src/performance.rs:79:13
+   |
+79 |         let mut monitor = Self {
+   |             ----^^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: unused variable: `pid`
+  --> crates/lwg-core/src/performance.rs:87:43
+   |
+87 |     pub fn add_process(&self, name: &str, pid: usize) {
+   |                                           ^^^ help: if this is intentional, prefix it with an underscore: `_pid`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `manifest_path` is never read
+  --> crates/lwg-core/src/wallpaper.rs:27:5
+   |
+24 | pub struct WallpaperManager {
+   |            ---------------- field in this struct
+...
+27 |     manifest_path: Option<PathBuf>,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling lwg-ipc v2.0.0-pre.1 (/home/yua/suw/lwg-rs/crates/lwg-ipc)
+   Compiling lwg-ui v2.0.0-pre.1 (/home/yua/suw/lwg-rs/crates/lwg-ui)
+warning: `lwg-core` (lib) generated 9 warnings (run `cargo fix --lib -p lwg-core` to apply 8 suggestions)
+   Compiling lwg-tray v2.0.0-pre.1 (/home/yua/suw/lwg-rs/crates/lwg-tray)
+warning: unused import: `std::io::Write`
+ --> crates/lwg-ui/src/tray_manager.rs:7:5
+  |
+7 | use std::io::Write;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `gtk4::prelude::*`
+ --> crates/lwg-ui/src/welcome_dialog.rs:1:5
+  |
+1 | use gtk4::prelude::*;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `libadwaita as adw`
+ --> crates/lwg-ui/src/history_dialog.rs:2:5
+  |
+2 | use libadwaita as adw;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SidebarInput`
+  --> crates/lwg-ui/src/app.rs:10:31
+   |
+10 | use crate::sidebar::{Sidebar, SidebarInput, SidebarOutput};
+   |                               ^^^^^^^^^^^^
+
+warning: unused import: `gtk4::prelude`
+ --> crates/lwg-ui/src/context_menu.rs:1:5
+  |
+1 | use gtk4::prelude::*;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `prelude`
+ --> crates/lwg-ui/src/navbar.rs:2:24
+  |
+2 | use libadwaita::{self, prelude::*};
+  |                        ^^^^^^^
+
+warning: variable does not need to be mutable
+  --> crates/lwg-ui/src/tray_manager.rs:67:25
+   |
+67 |                     let mut pids = sender.input_sender().clone();
+   |                         ----^^^^
+   |                         |
+   |                         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `btn`
+   --> crates/lwg-ui/src/navbar.rs:104:50
+    |
+104 |                 connect_toggled[sender] => move |btn| {
+    |                                                  ^^^ help: if this is intentional, prefix it with an underscore: `_btn`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `screen_selector` is never read
+  --> crates/lwg-ui/src/navbar.rs:77:26
+   |
+77 |                 #[name = "screen_selector"]
+   |                          ^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `flow_box` is never read
+   --> crates/lwg-ui/src/wallpaper_list.rs:151:13
+    |
+151 |             flow_box -> gtk4::FlowBox {
+    |             ^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: value assigned to `value_label` is never read
+  --> crates/lwg-ui/src/sparkline.rs:31:22
+   |
+31 |             #[name = "value_label"]
+   |                      ^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: unused variable: `ids`
+  --> crates/lwg-ui/src/nickname_manager_dialog.rs:96:56
+   |
+96 |             NicknameManagerDialogInput::DeleteSelected(ids) => {}
+   |                                                        ^^^ help: if this is intentional, prefix it with an underscore: `_ids`
+
+warning: unused variable: `id`
+  --> crates/lwg-ui/src/nickname_manager_dialog.rs:97:54
+   |
+97 |             NicknameManagerDialogInput::EditNickname(id, nickname) => {}
+   |                                                      ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `nickname`
+  --> crates/lwg-ui/src/nickname_manager_dialog.rs:97:58
+   |
+97 |             NicknameManagerDialogInput::EditNickname(id, nickname) => {}
+   |                                                          ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_nickname`
+
+warning: value assigned to `nav_container` is never read
+   --> crates/lwg-ui/src/app.rs:133:26
+    |
+133 |                 #[name = "nav_container"]
+    |                          ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: value assigned to `main_stack` is never read
+   --> crates/lwg-ui/src/app.rs:160:26
+    |
+160 |                 #[name = "main_stack"]
+    |                          ^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: value assigned to `content_stack` is never read
+   --> crates/lwg-ui/src/settings_page.rs:103:22
+    |
+103 |             #[name = "content_stack"]
+    |                      ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: field `tooltip_text` is never read
+  --> crates/lwg-ui/src/tray_manager.rs:24:5
+   |
+21 | pub struct TrayManager {
+   |            ----------- field in this struct
+...
+24 |     tooltip_text: String,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `screens` is never read
+ --> crates/lwg-ui/src/navbar.rs:9:5
+  |
+7 | pub struct NavBar {
+  |            ------ field in this struct
+8 |     compact_mode: bool,
+9 |     screens: Vec<String>,
+  |     ^^^^^^^
+
+warning: field `thumbnail_cache` is never read
+  --> crates/lwg-ui/src/wallpaper_list.rs:12:5
+   |
+ 9 | pub struct WallpaperCard {
+   |            ------------- field in this struct
+...
+12 |     thumbnail_cache: Arc<ThumbnailCache>,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `WallpaperCard` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `color_type` is never read
+  --> crates/lwg-ui/src/sparkline.rs:16:5
+   |
+14 | pub struct Sparkline {
+   |            --------- field in this struct
+15 |     data: VecDeque<f32>,
+16 |     color_type: String,
+   |     ^^^^^^^^^^
+
+warning: field `nickname_count` is never read
+ --> crates/lwg-ui/src/nickname_manager_dialog.rs:6:5
+  |
+5 | pub struct NicknameManagerDialog {
+  |            --------------------- field in this struct
+6 |     nickname_count: usize,
+  |     ^^^^^^^^^^^^^^
+
+warning: method `name` is never used
+  --> crates/lwg-ui/src/app.rs:72:8
+   |
+71 | impl AppPage {
+   | ------------ method in this implementation
+72 |     fn name(&self) -> &'static str {
+   |        ^^^^
+
+warning: fields `thumbnail_cache` and `history_manager` are never read
+  --> crates/lwg-ui/src/app.rs:91:5
+   |
+81 | pub struct App {
+   |            --- fields in this struct
+...
+91 |     thumbnail_cache: Arc<ThumbnailCache>,
+   |     ^^^^^^^^^^^^^^^
+92 |     nickname_manager: Arc<Mutex<NicknameManager>>,
+93 |     history_manager: Arc<Mutex<HistoryManager>>,
+   |     ^^^^^^^^^^^^^^^
+
+warning: method `name` is never used
+  --> crates/lwg-ui/src/settings_page.rs:15:8
+   |
+14 | impl SettingsSection {
+   | -------------------- method in this implementation
+15 |     fn name(&self) -> &'static str {
+   |        ^^^^
+
+warning: field `current_section` is never read
+  --> crates/lwg-ui/src/settings_page.rs:36:5
+   |
+35 | pub struct SettingsPage {
+   |            ------------ field in this struct
+36 |     current_section: SettingsSection,
+   |     ^^^^^^^^^^^^^^^
+
+warning: `lwg-ui` (lib) generated 26 warnings (run `cargo fix --lib -p lwg-ui` to apply 9 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.14s

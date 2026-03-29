@@ -1,0 +1,31 @@
+name: Rust Build
+
+on:
+  push:
+    branches: [ main-rs ]
+  pull_request:
+    branches: [ main-rs ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
+    
+    - name: Build
+      run: cargo build --verbose --release --manifest-path lwg-rs/Cargo.toml
+    
+    - name: Run tests
+      run: cargo test --verbose --manifest-path lwg-rs/Cargo.toml
+    
+    - name: Run clippy
+      run: cargo clippy --manifest-path lwg-rs/Cargo.toml -- -D warnings
