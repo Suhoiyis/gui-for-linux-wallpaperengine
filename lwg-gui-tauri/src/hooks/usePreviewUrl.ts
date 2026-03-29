@@ -16,9 +16,12 @@ export function usePreviewUrl(preview: string | undefined): string | null {
     }
 
     let cancelled = false;
+    
     invoke<string>("read_preview_image", { path: preview })
       .then((dataUrl) => {
-        if (!cancelled) setUrl(dataUrl);
+        if (!cancelled) {
+          setUrl(dataUrl);
+        }
       })
       .catch(() => {
         if (!cancelled) setUrl(null);

@@ -1293,7 +1293,7 @@ async fn start_performance_monitor(
                 }
             }
 
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            std::thread::sleep(std::time::Duration::from_secs(2));
         }
     });
 
@@ -1534,12 +1534,30 @@ async fn open_image(path: String) -> Result<(), String> {
     }
 }
 
+/// Preview image cache to avoid repeated file reads + base64 encoding
+fn preview_image_cache() -> &'static std::sync::Mutex<HashMap<String, String>> {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<std::sync::Mutex<HashMap<String, String>>> = OnceLock::new();
+    CACHE.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+}
+
+const PREVIEW_CACHE_MAX_SIZE: usize = 100;
+
 #[tauri::command]
 async fn read_preview_image(path: String) -> Result<String, String> {
     use base64::{engine::general_purpose, Engine as _};
 
     let canonical = std::fs::canonicalize(&path)
         .map_err(|e| format!("Path resolve failed: {}", e))?;
+
+    let cache_key = canonical.to_string_lossy().to_string();
+
+    // Check cache first
+    if let Ok(cache) = preview_image_cache().lock() {
+        if let Some(cached) = cache.get(&cache_key) {
+            return Ok(cached.clone());
+        }
+    }
 
     let filename = canonical
         .file_name()
@@ -1563,11 +1581,21 @@ async fn read_preview_image(path: String) -> Result<String, String> {
         _ => "image/jpeg",
     };
 
-    Ok(format!(
+    let result = format!(
         "data:{};base64,{}",
         mime,
         general_purpose::STANDARD.encode(&data)
-    ))
+    );
+
+    // Store in cache
+    if let Ok(mut cache) = preview_image_cache().lock() {
+        if cache.len() >= PREVIEW_CACHE_MAX_SIZE {
+            cache.clear(); // Simple eviction: clear all when full
+        }
+        cache.insert(cache_key, result.clone());
+    }
+
+    Ok(result)
 }
 
 
@@ -2324,6 +2352,59 @@ async fn set_cycle_screen(_screen: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct WebKitProcessInfo {
+    pub pid: u32,
+    pub name: String,
+    pub memory_mb: f64,
+    pub cpu_percent: f32,
+}
+
+/// 获取 WebKitWebProcess 内存使用情况
+#[cfg(target_os = "linux")]
+#[tauri::command]
+async fn get_webkit_process_memory() -> Result<Vec<WebKitProcessInfo>, String> {
+    use std::process::Command;
+    use std::str::FromStr;
+    
+    let output = Command::new("ps")
+        .args(["-eo", "pid,comm,rss,pcpu", "--no-headers"])
+        .output()
+        .map_err(|e| format!("Failed to run ps command: {}", e))?;
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut webkit_processes = Vec::new();
+    
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.trim().split_whitespace().collect();
+        if parts.len() >= 4 {
+            if let (Ok(pid), Ok(rss_kb), Ok(cpu)) = (
+                u32::from_str(parts[0]),
+                u64::from_str(parts[2]),
+                f32::from_str(parts[3])
+            ) {
+                let comm = parts[1];
+                if comm.contains("WebKit") {
+                    webkit_processes.push(WebKitProcessInfo {
+                        pid,
+                        name: comm.to_string(),
+                        memory_mb: (rss_kb as f64) / 1024.0,
+                        cpu_percent: cpu,
+                    });
+                }
+            }
+        }
+    }
+    
+    Ok(webkit_processes)
+}
+
+#[cfg(not(target_os = "linux"))]
+#[tauri::command]
+async fn get_webkit_process_memory() -> Result<Vec<serde_json::Value>, String> {
+    Ok(vec![])
+}
+
 // ================= 主入口 =================
 
 pub fn run() {
@@ -2654,6 +2735,8 @@ pub fn run() {
             start_cycle_timer,
             stop_cycle_timer,
             set_cycle_screen,
+            // Memory profiling commands
+            get_webkit_process_memory,
         ])
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {

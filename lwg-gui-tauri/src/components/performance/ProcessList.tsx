@@ -30,7 +30,6 @@ interface ProcessRowProps {
   icon: React.ReactNode;
 }
 
-// Small preview component for wallpaper
 const WallpaperPreview = memo(
   ({ wallpaper }: { wallpaper: Wallpaper | null }) => {
     if (!wallpaper) {
@@ -48,7 +47,6 @@ const WallpaperPreview = memo(
 
     return (
       <div className="relative group rounded-md overflow-hidden">
-        {/* 1. 直接复用通用缩略图组件，并在这里传入外壳的尺寸 w-20 h-20 */}
         <Thumbnail
           wallpaperId={wallpaper?.id || ""}
           className="w-20 h-20 rounded-md"
@@ -71,11 +69,9 @@ const ProcessRow: React.FC<ProcessRowProps> = memo(({ type, data, icon }) => {
   const cpuColor =
     data.cpu < 20 ? "#22c55e" : data.cpu < 40 ? "#f97316" : "#ef4444";
 
-  // Get active wallpaper info for backend
   const activeEntries = Array.from(activeWallpapers.entries());
   const hasActiveWallpaper = activeEntries.length > 0;
 
-  // Find wallpaper details from store
   const firstWallpaperInfo = useMemo(() => {
     if (!hasActiveWallpaper || activeEntries.length === 0) return null;
     const wallpaperId = activeEntries[0][1];
@@ -185,7 +181,6 @@ const ProcessRow: React.FC<ProcessRowProps> = memo(({ type, data, icon }) => {
         <Collapsible open={isOpen} className="space-y-2">
           <CollapsibleContent>
             <div className="pt-2 pl-[64px] pr-4 space-y-4">
-              {/* Backend Specific Info - Now shows real data with wallpaper preview */}
               {type === "backend" &&
                 hasActiveWallpaper &&
                 firstWallpaperInfo && (
@@ -223,7 +218,6 @@ const ProcessRow: React.FC<ProcessRowProps> = memo(({ type, data, icon }) => {
                   </div>
                 )}
 
-              {/* Thread Details */}
               <div className="rounded-lg bg-muted/30 border p-4">
                 <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 flex items-center gap-2">
                   <Activity className="w-3 h-3" /> Active Threads (

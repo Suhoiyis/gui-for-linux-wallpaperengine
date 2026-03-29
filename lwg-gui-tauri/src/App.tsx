@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 
+// Initialize memory profiler in dev mode
+import "@/utils/memoryProfiler";
+
 // Shadcn UI 组件
 import { Tabs } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";

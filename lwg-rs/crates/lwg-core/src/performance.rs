@@ -256,6 +256,14 @@ fn find_real_process(pid: usize, timeout_ms: u64) -> Option<usize> {
     Some(pid)
 }
 
+/// Thread name cache entry with TTL
+struct ThreadNameCache {
+    names: Vec<String>,
+    last_update: Instant,
+}
+
+const THREAD_NAME_CACHE_TTL: Duration = Duration::from_secs(5);
+
 pub struct PerformanceMonitor {
     history: Arc<std::sync::Mutex<HashMap<String, HistoryData>>>,
     processes: HashMap<String, usize>,
@@ -264,6 +272,7 @@ pub struct PerformanceMonitor {
     last_refresh: std::sync::Mutex<Instant>,
     webkit_cache: std::sync::Mutex<HashMap<String, usize>>,
     last_values: std::sync::Mutex<HashMap<String, (f32, f32)>>,
+    thread_name_cache: std::sync::Mutex<HashMap<i32, ThreadNameCache>>,
 }
 
 impl PerformanceMonitor {
@@ -288,6 +297,7 @@ impl PerformanceMonitor {
             ),
             webkit_cache: std::sync::Mutex::new(HashMap::new()),
             last_values: std::sync::Mutex::new(HashMap::new()),
+            thread_name_cache: std::sync::Mutex::new(HashMap::new()),
         };
 
         let pid = std::process::id() as usize;
@@ -411,7 +421,7 @@ impl PerformanceMonitor {
                     }
                 }
 
-                let thread_names = get_thread_names(pid as i32);
+                let thread_names = self.get_cached_thread_names(pid as i32);
                 let threads = thread_names.len() as i32;
                 let status_str = format!("{:?}", status);
                 let cmd_str = cmd.iter().cloned().collect::<Vec<_>>().join(" ");
@@ -514,7 +524,7 @@ impl PerformanceMonitor {
                         }
                     }
 
-                    let thread_names = get_thread_names(child_pid as i32);
+                    let thread_names = self.get_cached_thread_names(child_pid as i32);
                     let threads = thread_names.len() as i32;
                     let cmd_str = cmd.iter().cloned().collect::<Vec<_>>().join(" ");
 
@@ -572,6 +582,23 @@ impl PerformanceMonitor {
             cpu_cores,
             total_memory_gb,
             process_count: processes.len(),
+        }
+    }
+
+    /// Get thread names with caching (5s TTL) to avoid expensive /proc traversal
+    fn get_cached_thread_names(&self, pid: i32) -> Vec<String> {
+        let now = Instant::now();
+        if let Ok(mut cache) = self.thread_name_cache.lock() {
+            if let Some(entry) = cache.get(&pid) {
+                if now - entry.last_update < THREAD_NAME_CACHE_TTL {
+                    return entry.names.clone();
+                }
+            }
+            let names = get_thread_names(pid);
+            cache.insert(pid, ThreadNameCache { names: names.clone(), last_update: now });
+            names
+        } else {
+            get_thread_names(pid)
         }
     }
 

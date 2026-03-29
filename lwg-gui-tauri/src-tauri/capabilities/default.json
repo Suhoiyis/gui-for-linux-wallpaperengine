@@ -15,7 +15,7 @@
     "notification:default",
     {
       "identifier": "fs:scope",
-      "allow": ["$HOME/**"]
+      "allow": ["$HOME/**", "$APPDATA/**"]
     }
   ]
 }

@@ -70,6 +70,10 @@ export const Thumbnail = memo(
           ctx.drawImage(img, 0, 0);
         }
       };
+
+      return () => {
+        img.onload = null;
+      };
     }, [previewUrl, isGif]);
 
     if (!wallpaper || !previewUrl) {

@@ -55,7 +55,6 @@ export const ThreadsCard = memo(
               Active Threads
             </span>
             <div className="p-2 bg-muted/50 rounded-lg">
-              {/* 修改为 emerald-500 */}
               <Activity className="w-4 h-4 text-emerald-500" />
             </div>
           </div>
@@ -69,7 +68,7 @@ export const ThreadsCard = memo(
             {[40, 60, 30, 80, 50, 90, 20, 60].map((h, i) => (
               <div
                 key={i}
-                className="flex-1 bg-emerald-500 rounded-t-sm" // 修改为 emerald-500
+                className="flex-1 bg-emerald-500 rounded-t-sm"
                 style={{ height: `${h}%` }}
               ></div>
             ))}

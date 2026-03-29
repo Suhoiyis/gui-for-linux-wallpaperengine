@@ -1,5 +1,5 @@
 // src/hooks/useSystemStats.ts
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauriEnv } from "@/lib/utils";
@@ -37,8 +37,9 @@ interface RawProcessStats {
 }
 
 const HISTORY_SIZE = 60;
+const UPDATE_INTERVAL_MS = 2000;
+const GC_INTERVAL_MS = 30000;
 
-// ... (mapEventToStats 函数完全保持原样)
 function mapEventToStats(raw: RawPerformanceEvent): SystemStats {
   const createDefaultProcess = (name: string): ProcessStats => ({
     pid: 0,
@@ -157,16 +158,80 @@ export function useSystemStats() {
   const lastWebkitWeb = useRef<ProcessStats | undefined>(undefined);
   const lastWebkitNet = useRef<ProcessStats | undefined>(undefined);
   const lastWebkitGpu = useRef<ProcessStats | undefined>(undefined);
+  const pendingEvent = useRef<RawPerformanceEvent | null>(null);
+  const isPaused = useRef(false);
+  const lastUpdateTime = useRef(0);
+
+  const processEvent = useCallback((event: RawPerformanceEvent) => {
+    const now = Date.now();
+    if (now - lastUpdateTime.current < UPDATE_INTERVAL_MS) {
+      pendingEvent.current = event;
+      return;
+    }
+    lastUpdateTime.current = now;
+    pendingEvent.current = null;
+
+    const mappedStats = mapEventToStats(event);
+
+    if ((mappedStats.processes.webkit_web?.pid ?? 0) > 0) {
+      lastWebkitWeb.current = mappedStats.processes.webkit_web;
+    }
+    if ((mappedStats.processes.webkit_net?.pid ?? 0) > 0) {
+      lastWebkitNet.current = mappedStats.processes.webkit_net;
+    }
+    if ((mappedStats.processes.webkit_gpu?.pid ?? 0) > 0) {
+      lastWebkitGpu.current = mappedStats.processes.webkit_gpu;
+    }
+
+    const statsWithPersistentWebkit: SystemStats = {
+      ...mappedStats,
+      processes: {
+        ...mappedStats.processes,
+        webkit_web: mappedStats.processes.webkit_web || lastWebkitWeb.current,
+        webkit_net: mappedStats.processes.webkit_net || lastWebkitNet.current,
+        webkit_gpu: mappedStats.processes.webkit_gpu || lastWebkitGpu.current,
+      },
+    };
+
+    setStats(statsWithPersistentWebkit);
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     const isTauri = isTauriEnv();
     let unlistenPerformance: (() => void) | null = null;
     let mockInterval: NodeJS.Timeout | null = null;
+    let gcInterval: NodeJS.Timeout | null = null;
+    let flushInterval: NodeJS.Timeout | null = null;
+
+    const handleVisibilityChange = () => {
+      isPaused.current = document.hidden;
+      if (document.hidden) {
+        const gcFn = (window as unknown as { gc?: () => void }).gc;
+        if (typeof gcFn === "function") {
+          gcFn();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const gcFn = (window as unknown as { gc?: () => void }).gc;
+    if (typeof gcFn === "function") {
+      gcInterval = setInterval(() => {
+        if (!isPaused.current) {
+          gcFn();
+        }
+      }, GC_INTERVAL_MS);
+    }
+
+    flushInterval = setInterval(() => {
+      if (pendingEvent.current && !isPaused.current) {
+        processEvent(pendingEvent.current);
+      }
+    }, UPDATE_INTERVAL_MS);
 
     if (isTauri) {
-      // ==========================================
-      // 真实环境：Tauri 后端通信
-      // ==========================================
       const setupMonitoring = async () => {
         try {
           await invoke("start_performance_monitor");
@@ -174,30 +239,9 @@ export function useSystemStats() {
           unlistenPerformance = await listen<RawPerformanceEvent>(
             "performance-update",
             (event) => {
-              const mappedStats = mapEventToStats(event.payload);
-
-              if ((mappedStats.processes.webkit_web?.pid ?? 0) > 0) {
-                lastWebkitWeb.current = mappedStats.processes.webkit_web;
+              if (!isPaused.current) {
+                processEvent(event.payload);
               }
-              if ((mappedStats.processes.webkit_net?.pid ?? 0) > 0) {
-                lastWebkitNet.current = mappedStats.processes.webkit_net;
-              }
-              if ((mappedStats.processes.webkit_gpu?.pid ?? 0) > 0) {
-                lastWebkitGpu.current = mappedStats.processes.webkit_gpu;
-              }
-
-              const statsWithPersistentWebkit: SystemStats = {
-                ...mappedStats,
-                processes: {
-                  ...mappedStats.processes,
-                  webkit_web: mappedStats.processes.webkit_web || lastWebkitWeb.current,
-                  webkit_net: mappedStats.processes.webkit_net || lastWebkitNet.current,
-                  webkit_gpu: mappedStats.processes.webkit_gpu || lastWebkitGpu.current,
-                },
-              };
-
-              setStats(statsWithPersistentWebkit);
-              setIsLoading(false);
             },
           );
 
@@ -213,12 +257,8 @@ export function useSystemStats() {
 
       setupMonitoring();
     } else {
-      // ==========================================
-      // 浏览器环境：生成动态 Mock 数据
-      // ==========================================
       console.warn("[Browser Mode] Starting Mock Performance Monitor...");
 
-      // 初始化一段平缓的历史数据（60个点）
       let mockCpuHistoryBackend = Array(60)
         .fill(0)
         .map(() => Math.random() * 5 + 5);
@@ -232,7 +272,6 @@ export function useSystemStats() {
         .fill(0)
         .map(() => Math.random() * 10 + 100);
 
-      // 模拟截图历史
       setHistory([
         {
           timestamp: Math.floor(Date.now() / 1000) - 3600,
@@ -253,13 +292,13 @@ export function useSystemStats() {
       ]);
 
       mockInterval = setInterval(() => {
-        // 生成这一秒的新数据
+        if (isPaused.current) return;
+
         const newBackendCpu = Math.random() * 15 + 5;
         const newBackendMem = Math.random() * 50 + 400;
         const newFrontendCpu = Math.random() * 5 + 1;
         const newFrontendMem = Math.random() * 20 + 150;
 
-        // 推进数组（去掉最老的，加入最新的）
         mockCpuHistoryBackend = [
           ...mockCpuHistoryBackend.slice(1),
           newBackendCpu,
@@ -277,7 +316,6 @@ export function useSystemStats() {
           newFrontendMem,
         ];
 
-        // 组装符合你定义的 Raw 事件结构
         const fakeEvent: RawPerformanceEvent = {
           total_cpu: newBackendCpu + newFrontendCpu,
           total_memory_mb: newBackendMem + newFrontendMem,
@@ -326,26 +364,22 @@ export function useSystemStats() {
           },
         };
 
-        if (fakeEvent.processes) {
-          delete fakeEvent.processes.tray;
-        }
-
-        // 经过你原来的 map 函数转换并更新状态
         setStats(mapEventToStats(fakeEvent));
         setIsLoading(false);
-      }, 1000); // 1秒更新一次图表
+      }, UPDATE_INTERVAL_MS);
     }
 
     return () => {
-      // 清理逻辑：销毁监听或清除定时器
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (unlistenPerformance) unlistenPerformance();
+      if (mockInterval) clearInterval(mockInterval);
+      if (gcInterval) clearInterval(gcInterval);
+      if (flushInterval) clearInterval(flushInterval);
       if (isTauri) {
-        if (unlistenPerformance) unlistenPerformance();
         invoke("stop_performance_monitor").catch(console.error);
-      } else if (mockInterval) {
-        clearInterval(mockInterval);
       }
     };
-  }, []);
+  }, [processEvent]);
 
   const clearHistory = async () => {
     const isTauri = isTauriEnv();
@@ -358,7 +392,7 @@ export function useSystemStats() {
       }
     } else {
       console.warn("[Browser Mode] Clearing mock history");
-      setHistory([]); // 浏览器端直接清空状态
+      setHistory([]);
     }
   };
 
