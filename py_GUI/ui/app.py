@@ -23,12 +23,12 @@ from py_GUI.core.nickname import NicknameManager
 from py_GUI.core.history import HistoryManager
 from py_GUI.utils import markdown_to_pango
 
-from py_GUI.ui.components.navbar import NavBar
-from py_GUI.ui.components.history_dialog import HistoryDialog
-from py_GUI.ui.components.welcome_dialog import WelcomeDialog
-from py_GUI.ui.components.command_palette import CommandPalette
+from py_GUI.ui.components.layout.navbar import NavBar
+from py_GUI.ui.components.dialogs.history_dialog import HistoryDialog
+from py_GUI.ui.components.dialogs.welcome_dialog import WelcomeDialog
+from py_GUI.ui.components.common.command_palette import CommandPalette
 from py_GUI.ui.components.dialogs import show_update_dialog
-from py_GUI.ui.pages.wallpapers import WallpapersPage
+from py_GUI.ui.pages.library import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
 from py_GUI.ui.pages.performance import PerformancePage
 from py_GUI.ui.tray import TrayIcon

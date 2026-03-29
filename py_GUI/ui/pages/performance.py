@@ -7,7 +7,7 @@ from gi.repository import Gtk, Gdk, GLib, Pango, Adw
 import time
 from typing import Dict, List
 from py_GUI.core.controller import WallpaperController
-from py_GUI.ui.components.sparkline import Sparkline
+from py_GUI.ui.components.performance.sparkline import Sparkline
 
 
 class PerformancePage(Gtk.Box):

@@ -7,7 +7,7 @@ from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 from typing import Callable, Optional, List
 
 from py_GUI.utils import markdown_to_pango, format_size
-from py_GUI.ui.components.animated_preview import AnimatedPreview
+from py_GUI.ui.components.common.animated_preview import AnimatedPreview
 
 
 class CompactWindow(Gtk.ApplicationWindow):
