@@ -84,6 +84,8 @@ class SkeletonGrid(Gtk.Box):
         self.flowbox.set_min_children_per_line(2)
         self.flowbox.set_column_spacing(16)
         self.flowbox.set_row_spacing(16)
+        self.flowbox.set_valign(Gtk.Align.START)
+        self.flowbox.set_halign(Gtk.Align.CENTER)
 
         for _ in range(count):
             skeleton = SkeletonCard()
@@ -130,6 +132,7 @@ class SkeletonView(Gtk.Box):
         self.append(header)
 
         self.grid = SkeletonGrid(count=8)
+        self.grid.set_valign(Gtk.Align.START)
         self.append(self.grid)
 
     def stop_animations(self):
