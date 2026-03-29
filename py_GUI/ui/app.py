@@ -26,6 +26,7 @@ from py_GUI.utils import markdown_to_pango
 from py_GUI.ui.components.navbar import NavBar
 from py_GUI.ui.components.history_dialog import HistoryDialog
 from py_GUI.ui.components.welcome_dialog import WelcomeDialog
+from py_GUI.ui.components.command_palette import CommandPalette
 from py_GUI.ui.components.dialogs import show_update_dialog
 from py_GUI.ui.pages.wallpapers import WallpapersPage
 from py_GUI.ui.pages.settings import SettingsPage
@@ -208,6 +209,7 @@ class WallpaperApp(Adw.Application):
         self.initialized = False
         self._is_first_activation = True
         self.cycle_timer_id = None
+        self.command_palette = None
 
         self.app_integrator = AppIntegrator()
         self.update_checker = UpdateChecker()
@@ -296,6 +298,10 @@ class WallpaperApp(Adw.Application):
         self.win.set_default_size(1200, 800)
         self.win.set_size_request(1000, 700)
         self.win.connect("close-request", self.on_window_close)
+
+        key_ctrl = Gtk.EventControllerKey.new()
+        key_ctrl.connect("key-pressed", self._on_global_key_pressed)
+        self.win.add_controller(key_ctrl)
 
         # Setup Actions
         self.setup_actions()
@@ -592,6 +598,150 @@ class WallpaperApp(Adw.Application):
         except Exception:
             pass
 
+    def _on_global_key_pressed(self, controller, keyval, keycode, state):
+        ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        meta = bool(state & Gdk.ModifierType.META_MASK)
+        if keyval in (Gdk.KEY_k, Gdk.KEY_K) and (ctrl or meta):
+            self.open_command_palette()
+            return True
+        return False
+
+    def _build_palette_items(self):
+        items = []
+
+        items.append(
+            {
+                "label": "Stop All",
+                "group": "Action",
+                "keywords": "stop end",
+                "action": "stop",
+            }
+        )
+        items.append(
+            {
+                "label": "Random Wallpaper",
+                "group": "Action",
+                "keywords": "random lucky",
+                "action": "random",
+            }
+        )
+        items.append(
+            {
+                "label": "Open Settings",
+                "group": "Action",
+                "keywords": "settings preferences",
+                "action": "open_settings",
+            }
+        )
+        items.append(
+            {
+                "label": "Open Performance",
+                "group": "Action",
+                "keywords": "performance monitor",
+                "action": "open_performance",
+            }
+        )
+
+        for pid, wp in self.wp_manager._wallpapers.items():
+            title = str(wp.get("title", pid))
+            nickname = ""
+            if self.nickname_manager:
+                nickname = self.nickname_manager.get(pid) or ""
+            tags = wp.get("tags", [])
+            tags_text = (
+                " ".join([str(t) for t in tags])
+                if isinstance(tags, list)
+                else str(tags or "")
+            )
+            items.append(
+                {
+                    "label": f"Apply: {title}",
+                    "group": "Wallpaper",
+                    "keywords": f"{title} {pid} {nickname} {tags_text}",
+                    "action": "apply_wallpaper",
+                    "wallpaper_id": pid,
+                }
+            )
+
+        for p in self.playlists.get_playlists():
+            pid = str(p.get("id", ""))
+            name = str(p.get("name", ""))
+            if not pid or not name:
+                continue
+            items.append(
+                {
+                    "label": f"Filter Playlist: {name}",
+                    "group": "Playlist",
+                    "keywords": f"playlist {name} {pid}",
+                    "action": "filter_playlist",
+                    "playlist_id": pid,
+                }
+            )
+
+        try:
+            entries = self.history_manager.get_all()[:20]
+            for entry in entries:
+                wid = str(entry.get("id", ""))
+                title = str(entry.get("title", wid))
+                if not wid:
+                    continue
+                items.append(
+                    {
+                        "label": f"History: {title}",
+                        "group": "History",
+                        "keywords": f"history {title} {wid}",
+                        "action": "apply_wallpaper",
+                        "wallpaper_id": wid,
+                    }
+                )
+        except Exception:
+            pass
+
+        return items
+
+    def _execute_palette_item(self, item):
+        action = item.get("action")
+        if action == "stop":
+            self.stop_wallpaper()
+            return
+        if action == "random":
+            self.random_wallpaper()
+            return
+        if action == "open_settings":
+            self.stack.set_visible_child_name("settings")
+            self.navbar.btn_settings.set_active(True)
+            return
+        if action == "open_performance":
+            self.stack.set_visible_child_name("performance")
+            self.navbar.btn_performance.set_active(True)
+            return
+        if action == "filter_playlist":
+            pid = item.get("playlist_id")
+            if hasattr(self, "wallpapers_page") and pid is not None:
+                self.stack.set_visible_child_name("wallpapers")
+                self.navbar.btn_home.set_active(True)
+                self.wallpapers_page.selected_playlist_filter = str(pid)
+                self.wallpapers_page.on_playlists_changed("palette-filter")
+            return
+        if action == "apply_wallpaper":
+            wid = item.get("wallpaper_id")
+            if wid and str(wid) in self.wp_manager._wallpapers:
+                self.wallpapers_page.select_wallpaper(str(wid))
+                self.wallpapers_page.apply_wallpaper(str(wid))
+                self.setup_cycle_timer()
+
+    def open_command_palette(self):
+        if self.command_palette and self.command_palette.get_visible():
+            self.command_palette.present_with_focus()
+            return
+        self.command_palette = CommandPalette(
+            self.win, self._build_palette_items, self._execute_palette_item
+        )
+        self.command_palette.connect(
+            "destroy", lambda *_: setattr(self, "command_palette", None)
+        )
+        self.command_palette.present_with_focus()
+
     def on_navbar_screen_changed(self, screen: str):
         self.state_manager.set_last_screen(screen)
         if hasattr(self, "wallpapers_page"):
@@ -850,10 +1000,7 @@ class WallpaperApp(Adw.Application):
             self.log_manager.add_info(f"Wallpaper cycling {state}", "App")
 
     def check_onboarding(self):
-        needs_onboarding = (
-            not self.config.get("onboardingCompleted", False)
-            and not self.history_manager.has_history()
-        )
+        needs_onboarding = not self.config.get("onboardingCompleted", False)
         if needs_onboarding:
             self.show_welcome_wizard()
 
@@ -1026,7 +1173,10 @@ class WallpaperApp(Adw.Application):
 
     def on_action_welcome(self, action, param):
         try:
-            dialog = WelcomeDialog(self.win, self.config, self.app_integrator)
+            required = not self.config.get("onboardingCompleted", False)
+            dialog = WelcomeDialog(
+                self.win, self.config, self.app_integrator, is_required=required
+            )
             dialog.present()
         except Exception as e:
             self.show_toast(f"Error opening welcome dialog: {str(e)}")
