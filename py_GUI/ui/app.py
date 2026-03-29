@@ -183,7 +183,6 @@ class WallpaperApp(Adw.Application):
             log_error=self.log_manager.add_error,
         )
         self.migration_manager.migrate_if_needed()
-        self.config = ConfigManager()
         self.history_manager = HistoryManager(self.config)
 
         workshop_path = self.config.get("workshopPath", WORKSHOP_PATH)

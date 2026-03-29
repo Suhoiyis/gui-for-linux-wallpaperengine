@@ -61,11 +61,13 @@ class CommandPalette(Gtk.Window):
         if not q:
             self.filtered_items = all_items
         else:
+            tokens = [t for t in q.split() if t]
             out = []
             for item in all_items:
                 label = str(item.get("label", "")).lower()
                 keywords = str(item.get("keywords", "")).lower()
-                if q in label or q in keywords:
+                haystack = f"{label} {keywords}"
+                if all(token in haystack for token in tokens):
                     out.append(item)
             self.filtered_items = out
 

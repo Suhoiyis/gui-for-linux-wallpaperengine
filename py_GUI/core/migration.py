@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Callable
 
 from py_GUI.const import (
+    CONFIG_DIR,
     CONFIG_FILE,
     HISTORY_FILE,
     SCREENSHOT_HISTORY_FILE,
@@ -59,6 +60,45 @@ def _new_layout_ready() -> bool:
     )
 
 
+def _file_exists(path: str) -> bool:
+    return os.path.exists(path)
+
+
+def _any_new_layout_file_exists() -> bool:
+    return any(
+        _file_exists(p)
+        for p in (CONFIG_FILE, STATE_FILE, HISTORY_FILE, SCREENSHOT_HISTORY_FILE)
+    )
+
+
+def _legacy_backup_exists() -> bool:
+    try:
+        for name in os.listdir(CONFIG_DIR):
+            if name.startswith("config.json.bak."):
+                return True
+    except OSError:
+        return False
+    return False
+
+
+def _sanitize_screenshot_record(item: Any) -> dict[str, Any] | None:
+    if not isinstance(item, dict):
+        return None
+    try:
+        return {
+            "timestamp": float(item.get("timestamp", 0)),
+            "wp_id": str(item.get("wp_id", item.get("wpId", ""))),
+            "output_path": str(item.get("output_path", item.get("outputPath", ""))),
+            "duration": float(item.get("duration", 0)),
+            "max_cpu": float(item.get("max_cpu", item.get("maxCpu", 0))),
+            "max_mem": float(item.get("max_mem", item.get("maxMem", 0))),
+            "avg_cpu": float(item.get("avg_cpu", item.get("avgCpu", 0))),
+            "avg_mem": float(item.get("avg_mem", item.get("avgMem", 0))),
+        }
+    except (TypeError, ValueError):
+        return None
+
+
 class StorageMigrationManager:
     def __init__(
         self,
@@ -77,9 +117,25 @@ class StorageMigrationManager:
             _ = self.log_info("New 4-file layout detected, skip migration", "Migration")
             return
 
+        if _any_new_layout_file_exists():
+            _ = self.log_info(
+                "Partial 4-file layout detected; only healing missing/invalid files",
+                "Migration",
+            )
+            self._ensure_missing_files()
+            return
+
         if not os.path.exists(CONFIG_FILE):
             _ = self.log_info(
                 "No legacy config.json found; skip auto-import for non-legacy layouts",
+                "Migration",
+            )
+            self._ensure_missing_files()
+            return
+
+        if _legacy_backup_exists():
+            _ = self.log_info(
+                "Legacy backup exists; treat as migrated and only heal missing files",
                 "Migration",
             )
             self._ensure_missing_files()
@@ -118,11 +174,16 @@ class StorageMigrationManager:
         if not isinstance(legacy, dict):
             legacy = {}
 
+        with open(CONFIG_FILE, "r", encoding="utf-8") as _raw_f:
+            original_legacy_blob = _raw_f.read()
+
         backup_path = _backup(CONFIG_FILE)
         _ = self.log_info(f"Legacy config backup created: {backup_path}", "Migration")
 
         old_config = read_config()
         old_state = read_state()
+        old_history = read_history()
+        old_screenshot_history = read_screenshot_history()
 
         state_payload: dict[str, Any] = dict(DEFAULT_STATE)
         state_payload["active_monitors"] = (
@@ -131,14 +192,20 @@ class StorageMigrationManager:
         state_payload["lastWallpaper"] = legacy.get("lastWallpaper")
         state_payload["lastScreen"] = legacy.get("lastScreen")
 
-        screenshot_payload = legacy.get(SCREENSHOT_HISTORY_KEY, [])
-        if not isinstance(screenshot_payload, list):
-            screenshot_payload = []
-        screenshot_payload = [x for x in screenshot_payload if isinstance(x, dict)]
+        screenshot_payload_raw = legacy.get(SCREENSHOT_HISTORY_KEY, [])
+        if not isinstance(screenshot_payload_raw, list):
+            screenshot_payload_raw = []
+        screenshot_payload: list[dict[str, Any]] = []
+        for x in screenshot_payload_raw:
+            rec = _sanitize_screenshot_record(x)
+            if rec is not None:
+                screenshot_payload.append(rec)
 
         normalized_legacy: dict[str, Any] = {}
         for k, v in legacy.items():
-            normalized_legacy[CONFIG_ALIASES_TO_INTERNAL.get(k, k)] = v
+            nk = CONFIG_ALIASES_TO_INTERNAL.get(k, k)
+            if isinstance(nk, str):
+                normalized_legacy[nk] = v
 
         config_payload = {**DEFAULT_CONFIG, **normalized_legacy}
         for k in list(config_payload.keys()):
@@ -167,6 +234,12 @@ class StorageMigrationManager:
             _ = self.log_info("Legacy config migration completed", "Migration")
         except Exception as e:
             _ = self.log_error(f"Migration failed, rolling back: {e}", "Migration")
-            write_config(old_config)
+            try:
+                with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                    f.write(original_legacy_blob)
+            except OSError:
+                write_config(old_config)
             write_state(old_state)
+            write_history(old_history)
+            write_screenshot_history(old_screenshot_history)
             raise
