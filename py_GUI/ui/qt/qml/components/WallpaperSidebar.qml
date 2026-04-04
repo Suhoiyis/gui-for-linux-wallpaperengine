@@ -183,6 +183,39 @@ Rectangle {
                                 }
                             }
                         }
+
+                        Label {
+                            text: "Description"
+                            color: "#9aa5ce"
+                            font.pixelSize: 12
+                            font.bold: true
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            radius: 8
+                            color: "#161926"
+                            border.width: 1
+                            border.color: "#2f344b"
+                            implicitHeight: Math.max(72, descriptionText.implicitHeight + 16)
+
+                            Label {
+                                id: descriptionText
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                text: root.hasWallpaper
+                                    ? ((root.wallpaper.description || "").trim().length > 0
+                                       ? root.wallpaper.description
+                                       : "No description")
+                                    : "No description"
+                                color: "#8a90b8"
+                                wrapMode: Text.WordWrap
+                                elide: Text.ElideRight
+                                maximumLineCount: 6
+                                verticalAlignment: Text.AlignTop
+                            }
+                        }
                     }
                 }
             }

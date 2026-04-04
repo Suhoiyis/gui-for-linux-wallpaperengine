@@ -88,6 +88,7 @@ def _to_qt_wallpaper_list(
                 "type": str(wp.get("type", "Scene")),
                 "path": str(Path(workshop_path) / str(wp_id)),
                 "size": _format_size_text(wp.get("size", 0)),
+                "description": str(wp.get("description", "")),
             }
         )
     return items
