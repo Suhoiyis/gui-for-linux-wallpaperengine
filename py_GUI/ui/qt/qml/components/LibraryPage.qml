@@ -79,6 +79,12 @@ Item {
                     onCreatePlaylistRequested: function(name) {
                         if (root.backend) root.backend.createPlaylist(name)
                     }
+                    onRenamePlaylistRequested: function(playlistId, playlistName) {
+                        if (root.backend) root.backend.renamePlaylist(playlistId, playlistName)
+                    }
+                    onDeletePlaylistRequested: function(playlistId) {
+                        if (root.backend) root.backend.deletePlaylist(playlistId)
+                    }
 
                     onPanelStateChanged: {
                         root.playlistFloatingStateChanged(panelState === "floating")
@@ -114,12 +120,16 @@ Item {
                     SplitView.maximumWidth: 520
 
                     wallpaper: root.backend ? root.backend.selectedWallpaper : ({})
+                    originalTitle: root.backend ? root.backend.selectedOriginalTitle : ""
 
                     onApplyRequested: function(wallpaperId) {
                         if (root.backend) root.backend.applyWallpaper(wallpaperId)
                     }
                     onFavoriteToggled: function(wallpaperId) {
                         if (root.backend) root.backend.toggleFavorite(wallpaperId)
+                    }
+                    onNicknameEditRequested: function(wallpaperId, nickname) {
+                        if (root.backend) root.backend.setWallpaperNickname(wallpaperId, nickname)
                     }
                 }
             }

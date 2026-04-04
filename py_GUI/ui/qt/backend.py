@@ -104,6 +104,7 @@ class Backend(QObject):
     linkedModeChanged = Signal()
     settingsChanged = Signal()
     performanceChanged = Signal()
+    nicknameChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -197,8 +198,21 @@ class Backend(QObject):
             return {}
         for wp in self._wallpapers:
             if wp.get("id") == self._selected_id:
-                return dict(wp)
+                item = dict(wp)
+                nickname = self.nickname_manager.get(self._selected_id)
+                if nickname:
+                    item["title"] = nickname
+                return item
         return {}
+
+    @Property(str, notify=nicknameChanged)
+    def selectedOriginalTitle(self) -> str:
+        if not self._selected_id:
+            return ""
+        wp = self.wallpaper_manager.get_wallpaper(self._selected_id)
+        if not wp:
+            return ""
+        return str(wp.get("title", ""))
 
     @Property(list, notify=playlistsChanged)
     def playlists(self) -> list[dict[str, object]]:
@@ -257,7 +271,16 @@ class Backend(QObject):
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id
         self.selectedIdChanged.emit()
+        self.nicknameChanged.emit()
         self._set_status(f"Selected wallpaper: {wp_id}")
+
+    @Slot(str, str)
+    def setWallpaperNickname(self, wp_id: str, nickname: str) -> None:
+        self.nickname_manager.set(wp_id, nickname)
+        if self._selected_id == wp_id:
+            self.selectedIdChanged.emit()
+            self.nicknameChanged.emit()
+        self._set_status("Nickname updated")
 
     @Slot(str)
     def setActivePlaylist(self, playlist_id: str) -> None:

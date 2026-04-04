@@ -11,10 +11,17 @@ Item {
 
     property string panelState: "minimized" // minimized | floating | locked
     property bool createDialogOpen: false
+    property bool renameDialogOpen: false
+    property bool deleteDialogOpen: false
+
+    property string pendingPlaylistId: ""
+    property string pendingPlaylistName: ""
 
     signal activePlaylistChanged(string playlistId)
     signal activePlaylistCleared()
     signal createPlaylistRequested(string playlistName)
+    signal renamePlaylistRequested(string playlistId, string playlistName)
+    signal deletePlaylistRequested(string playlistId)
 
     width: panelState === "locked" ? 268 : 48
 
@@ -198,6 +205,34 @@ Item {
                     text: "New Playlist"
                     onClicked: root.createDialogOpen = true
                 }
+                Button {
+                    Layout.preferredWidth: 74
+                    text: "Rename"
+                    enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
+                    onClicked: {
+                        var found = null
+                        for (var i = 0; i < root.playlists.length; i++) {
+                            if (root.playlists[i].id === root.activePlaylistId) {
+                                found = root.playlists[i]
+                                break
+                            }
+                        }
+                        if (found) {
+                            root.pendingPlaylistId = found.id
+                            root.pendingPlaylistName = found.name || ""
+                            root.renameDialogOpen = true
+                        }
+                    }
+                }
+                Button {
+                    Layout.preferredWidth: 66
+                    text: "Delete"
+                    enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
+                    onClicked: {
+                        root.pendingPlaylistId = root.activePlaylistId
+                        root.deleteDialogOpen = true
+                    }
+                }
             }
         }
     }
@@ -273,6 +308,34 @@ Item {
                     text: "New Playlist"
                     onClicked: root.createDialogOpen = true
                 }
+                Button {
+                    Layout.preferredWidth: 74
+                    text: "Rename"
+                    enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
+                    onClicked: {
+                        var found = null
+                        for (var i = 0; i < root.playlists.length; i++) {
+                            if (root.playlists[i].id === root.activePlaylistId) {
+                                found = root.playlists[i]
+                                break
+                            }
+                        }
+                        if (found) {
+                            root.pendingPlaylistId = found.id
+                            root.pendingPlaylistName = found.name || ""
+                            root.renameDialogOpen = true
+                        }
+                    }
+                }
+                Button {
+                    Layout.preferredWidth: 66
+                    text: "Delete"
+                    enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
+                    onClicked: {
+                        root.pendingPlaylistId = root.activePlaylistId
+                        root.deleteDialogOpen = true
+                    }
+                }
             }
         }
     }
@@ -301,6 +364,66 @@ Item {
                 id: nameInput
                 placeholderText: "Playlist name"
                 selectByMouse: true
+                onAccepted: createDialog.accept()
+            }
+        }
+    }
+
+    Dialog {
+        id: renameDialog
+        visible: root.renameDialogOpen
+        modal: true
+        title: "Rename Playlist"
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onOpened: {
+            renameInput.text = root.pendingPlaylistName
+            renameInput.forceActiveFocus()
+            renameInput.selectAll()
+        }
+
+        onAccepted: {
+            if (root.pendingPlaylistId.length > 0 && renameInput.text.trim().length > 0) {
+                root.renamePlaylistRequested(root.pendingPlaylistId, renameInput.text.trim())
+            }
+            root.renameDialogOpen = false
+        }
+        onRejected: {
+            root.renameDialogOpen = false
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 8
+            TextField {
+                id: renameInput
+                placeholderText: "Playlist name"
+                selectByMouse: true
+                onAccepted: renameDialog.accept()
+            }
+        }
+    }
+
+    Dialog {
+        id: deleteDialog
+        visible: root.deleteDialogOpen
+        modal: true
+        title: "Delete Playlist"
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onAccepted: {
+            if (root.pendingPlaylistId.length > 0) {
+                root.deletePlaylistRequested(root.pendingPlaylistId)
+            }
+            root.deleteDialogOpen = false
+        }
+        onRejected: {
+            root.deleteDialogOpen = false
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 8
+            Label {
+                text: "Delete selected playlist?"
             }
         }
     }

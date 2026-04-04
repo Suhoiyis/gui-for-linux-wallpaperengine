@@ -7,9 +7,13 @@ Rectangle {
 
     property var wallpaper: ({})
     property bool hasWallpaper: wallpaper && wallpaper.id
+    property string originalTitle: ""
+
+    property bool nicknameDialogOpen: false
 
     signal applyRequested(string wallpaperId)
     signal favoriteToggled(string wallpaperId)
+    signal nicknameEditRequested(string wallpaperId, string nickname)
 
     color: "#1b1f2f"
     border.width: 1
@@ -81,9 +85,24 @@ Rectangle {
 
                             ToolButton {
                                 enabled: root.hasWallpaper
+                                text: "✎"
+                                onClicked: root.nicknameDialogOpen = true
+                            }
+
+                            ToolButton {
+                                enabled: root.hasWallpaper
                                 text: Backend.isFavorite(root.wallpaper.id) ? "★" : "☆"
                                 onClicked: root.favoriteToggled(root.wallpaper.id)
                             }
+                        }
+
+                        Label {
+                            visible: root.hasWallpaper && root.originalTitle.length > 0 && root.originalTitle !== (root.wallpaper.title || "")
+                            text: root.originalTitle
+                            color: "#8a90b8"
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
 
                         RowLayout {
@@ -163,6 +182,41 @@ Rectangle {
                     text: "Apply Wallpaper"
                     onClicked: root.applyRequested(root.wallpaper.id)
                 }
+            }
+        }
+    }
+
+    Dialog {
+        id: nicknameDialog
+        visible: root.nicknameDialogOpen
+        modal: true
+        title: "Edit Nickname"
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onOpened: {
+            nicknameInput.text = root.hasWallpaper ? (root.wallpaper.title || "") : ""
+            nicknameInput.forceActiveFocus()
+            nicknameInput.selectAll()
+        }
+
+        onAccepted: {
+            if (root.hasWallpaper) {
+                root.nicknameEditRequested(root.wallpaper.id, nicknameInput.text)
+            }
+            root.nicknameDialogOpen = false
+        }
+
+        onRejected: {
+            root.nicknameDialogOpen = false
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 8
+            TextField {
+                id: nicknameInput
+                placeholderText: "Nickname"
+                selectByMouse: true
+                onAccepted: nicknameDialog.accept()
             }
         }
     }
