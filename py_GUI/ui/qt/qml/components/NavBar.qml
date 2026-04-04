@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import ".." as AppTheme
+import "../Theme.js" as Theme
 
 Rectangle {
     id: root
 
     property var screens: []
+    property var backend
     property string selectedScreen: ""
     property bool linkedMode: false
     property string currentPage: "library" // library | performance | settings
@@ -19,9 +20,9 @@ Rectangle {
     signal appMenuUpdateRequested()
     signal appMenuWelcomeRequested()
 
-    color: AppTheme.Theme.panelBg
+    color: Theme.panelBg
     border.width: 1
-    border.color: AppTheme.Theme.panelBorder
+    border.color: Theme.panelBorder
     radius: 12
     implicitHeight: 50
 
@@ -82,7 +83,7 @@ Rectangle {
             spacing: 6
 
             AppMenu {
-                backend: null
+                backend: root.backend
                 onShowHistoryRequested: root.appMenuHistoryRequested()
                 onShowAboutRequested: root.appMenuAboutRequested()
                 onShowUpdateRequested: root.appMenuUpdateRequested()

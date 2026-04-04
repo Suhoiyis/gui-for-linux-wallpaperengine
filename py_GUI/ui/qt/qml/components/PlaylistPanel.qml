@@ -333,6 +333,8 @@ Item {
         visible: root.createDialogOpen
         modal: true
         title: "Create Playlist"
+        width: 420
+        height: 170
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         readonly property var okButton: standardButton(Dialog.Ok)
@@ -377,6 +379,8 @@ Item {
         visible: root.renameDialogOpen
         modal: true
         title: "Rename Playlist"
+        width: 420
+        height: 170
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         readonly property var okButton: standardButton(Dialog.Ok)
@@ -421,6 +425,8 @@ Item {
         visible: root.deleteDialogOpen
         modal: true
         title: "Delete Playlist"
+        width: 360
+        height: 150
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         onAccepted: {

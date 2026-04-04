@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "components" as Comp
-import "." as AppTheme
+import "Theme.js" as Theme
 
 ApplicationWindow {
     id: window
@@ -12,12 +12,13 @@ ApplicationWindow {
     height: 800
     title: "LWG Qt Quick PoC"
     
-    color: AppTheme.Theme.windowBg
+    color: Theme.windowBg
 
     property string sortBy: "name"
     property string searchText: ""
     property bool playlistFloatingOpen: false
     property string currentPage: "library"
+    property var backendRef: Backend
     property bool showAboutDialog: false
     property bool showUpdateDialog: false
     property bool showWelcomeDialog: false
@@ -31,16 +32,17 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.margins: 10
 
-            screens: Backend.screens
-            selectedScreen: Backend.selectedScreen
-            linkedMode: Backend.linkedMode
+            screens: window.backendRef ? window.backendRef.screens : []
+            selectedScreen: window.backendRef ? window.backendRef.selectedScreen : ""
+            linkedMode: window.backendRef ? window.backendRef.linkedMode : false
             currentPage: window.currentPage
+            backend: window.backendRef
 
             onSelectedScreenChangedByUser: function(screen) {
-                Backend.setSelectedScreen(screen)
+                if (window.backendRef) window.backendRef.setSelectedScreen(screen)
             }
             onLinkedModeChangedByUser: function(linked) {
-                Backend.setLinkedMode(linked)
+                if (window.backendRef) window.backendRef.setLinkedMode(linked)
             }
             onPageChanged: function(page) {
                 window.currentPage = page
@@ -62,7 +64,7 @@ ApplicationWindow {
             }
 
             Comp.LibraryPage {
-                backend: Backend
+                backend: window.backendRef
                 sortBy: window.sortBy
                 searchText: window.searchText
                 playlistFloatingOpen: window.playlistFloatingOpen
@@ -74,7 +76,7 @@ ApplicationWindow {
                     window.searchText = value
                 }
                 onRefreshRequested: {
-                    Backend.refresh()
+                    if (window.backendRef) window.backendRef.refresh()
                 }
                 onPlaylistFloatingStateChanged: function(opened) {
                     window.playlistFloatingOpen = opened
@@ -82,15 +84,15 @@ ApplicationWindow {
             }
 
             Comp.PerformancePage {
-                backend: Backend
+                backend: window.backendRef
             }
 
             Comp.SettingsPage {
-                backend: Backend
+                backend: window.backendRef
             }
 
             Comp.CompactPage {
-                backend: Backend
+                backend: window.backendRef
                 onSwitchToNormal: function() {
                     window.currentPage = "library"
                 }
@@ -100,14 +102,14 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             height: 40
-            color: AppTheme.Theme.statusBarBg
+            color: Theme.statusBarBg
             
             Label {
                 anchors.centerIn: parent
-                text: Backend.statusMessage.length > 0
-                    ? Backend.statusMessage
-                    : (Backend.selectedId
-                       ? "Selected: " + Backend.selectedId
+                text: (window.backendRef && window.backendRef.statusMessage.length > 0)
+                    ? window.backendRef.statusMessage
+                    : (window.backendRef && window.backendRef.selectedId
+                       ? "Selected: " + window.backendRef.selectedId
                        : "Click a wallpaper to select")
                 color: "#565f89"
             }
@@ -121,10 +123,10 @@ ApplicationWindow {
     }
 
     Connections {
-        target: Backend
+        target: window.backendRef
         function onStatusMessageChanged() {
-            if (Backend && Backend.statusMessage && Backend.statusMessage.length > 0) {
-                toastManager.show(Backend.statusMessage)
+            if (window.backendRef && window.backendRef.statusMessage && window.backendRef.statusMessage.length > 0) {
+                toastManager.show(window.backendRef.statusMessage)
             }
         }
     }
@@ -135,35 +137,35 @@ ApplicationWindow {
     }
 
     Comp.AboutDialog {
-        backend: Backend
+        backend: window.backendRef
         visible: window.showAboutDialog
         onClosed: window.showAboutDialog = false
     }
 
     Comp.UpdateDialog {
-        backend: Backend
-        currentVersion: Backend.appVersion
-        latestVersion: Backend.appVersion
+        backend: window.backendRef
+        currentVersion: window.backendRef ? window.backendRef.appVersion : "unknown"
+        latestVersion: window.backendRef ? window.backendRef.appVersion : "unknown"
         downloadUrl: "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases"
         visible: window.showUpdateDialog
         onClosed: window.showUpdateDialog = false
     }
 
     Comp.WelcomeDialog {
-        backend: Backend
-        requiredMode: !Backend.onboardingCompleted
-        visible: window.showWelcomeDialog || !Backend.onboardingCompleted
+        backend: window.backendRef
+        requiredMode: window.backendRef ? !window.backendRef.onboardingCompleted : false
+        visible: window.showWelcomeDialog || (window.backendRef ? !window.backendRef.onboardingCompleted : false)
         onClosed: window.showWelcomeDialog = false
     }
 
     Comp.HistoryDialog {
-        backend: Backend
+        backend: window.backendRef
         visible: window.showHistoryDialog
         onClosed: window.showHistoryDialog = false
     }
 
     Comp.CommandPalette {
         id: commandPalette
-        backend: Backend
+        backend: window.backendRef
     }
 }

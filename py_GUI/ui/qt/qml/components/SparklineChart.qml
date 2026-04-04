@@ -9,6 +9,7 @@ Item {
     property real maxValue: 100
 
     Canvas {
+        id: chart
         anchors.fill: parent
         onPaint: {
             var ctx = getContext("2d")
@@ -40,10 +41,10 @@ Item {
 
         Connections {
             target: root
-            function onValuesChanged() { requestPaint() }
-            function onLineColorChanged() { requestPaint() }
-            function onFillColorChanged() { requestPaint() }
-            function onMaxValueChanged() { requestPaint() }
+            function onValuesChanged() { chart.requestPaint() }
+            function onLineColorChanged() { chart.requestPaint() }
+            function onFillColorChanged() { chart.requestPaint() }
+            function onMaxValueChanged() { chart.requestPaint() }
         }
     }
 }

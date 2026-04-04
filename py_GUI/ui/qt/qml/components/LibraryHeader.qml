@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import ".." as AppTheme
+import "../Theme.js" as Theme
 
 Rectangle {
     id: root
@@ -20,9 +20,9 @@ Rectangle {
     signal selectionModeToggled()
 
     radius: 12
-    color: AppTheme.Theme.panelBg
+    color: Theme.panelBg
     border.width: 1
-    border.color: AppTheme.Theme.panelBorder
+    border.color: Theme.panelBorder
     implicitHeight: 66
 
     RowLayout {
@@ -37,14 +37,14 @@ Rectangle {
 
             Label {
                 text: "CURRENTLY USING"
-                color: AppTheme.Theme.accent
+                color: Theme.accent
                 font.pixelSize: 10
                 font.bold: true
             }
 
             Label {
                 text: root.currentTitle && root.currentTitle.length > 0 ? root.currentTitle : "None"
-                color: AppTheme.Theme.textPrimary
+                color: Theme.textPrimary
                 font.pixelSize: 12
                 elide: Text.ElideRight
                 Layout.fillWidth: true
@@ -53,7 +53,7 @@ Rectangle {
 
         Label {
             text: root.totalCount + " wallpapers"
-            color: AppTheme.Theme.textSecondary
+            color: Theme.textSecondary
             font.pixelSize: 11
         }
 

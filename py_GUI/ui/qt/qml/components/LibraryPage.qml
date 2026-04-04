@@ -252,6 +252,7 @@ Item {
                     SplitView.minimumWidth: 300
                     SplitView.maximumWidth: 520
 
+                    backend: root.backend
                     wallpaper: root.backend ? root.backend.selectedWallpaper : ({})
                     originalTitle: root.backend ? root.backend.selectedOriginalTitle : ""
 

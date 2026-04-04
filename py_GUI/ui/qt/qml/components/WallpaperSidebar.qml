@@ -5,8 +5,9 @@ import QtQuick.Layouts
 Rectangle {
     id: root
 
+    property var backend
     property var wallpaper: ({})
-    property bool hasWallpaper: wallpaper && wallpaper.id
+    property bool hasWallpaper: !!(wallpaper && wallpaper.id && String(wallpaper.id).length > 0)
     property string originalTitle: ""
 
     property bool nicknameDialogOpen: false
@@ -91,8 +92,8 @@ Rectangle {
 
                             ToolButton {
                                 enabled: root.hasWallpaper
-                                text: Backend.isFavorite(root.wallpaper.id) ? "★" : "☆"
-                                onClicked: root.favoriteToggled(root.wallpaper.id)
+                                text: (root.backend && root.hasWallpaper && root.backend.isFavorite(root.wallpaper.id)) ? "★" : "☆"
+                                onClicked: if (root.hasWallpaper) root.favoriteToggled(root.wallpaper.id)
                             }
                         }
 
@@ -170,7 +171,7 @@ Rectangle {
                                 enabled: root.hasWallpaper
                                 text: "Copy ID"
                                 onClicked: {
-                                    Backend.copyTextToClipboard(root.wallpaper.id || "")
+                                    if (root.backend) root.backend.copyTextToClipboard(root.wallpaper.id || "")
                                 }
                             }
 
@@ -179,7 +180,7 @@ Rectangle {
                                 enabled: root.hasWallpaper
                                 text: "Workshop"
                                 onClicked: {
-                                    Backend.openWorkshopForWallpaper(root.wallpaper.id || "")
+                                    if (root.backend) root.backend.openWorkshopForWallpaper(root.wallpaper.id || "")
                                 }
                             }
                         }

@@ -13,6 +13,8 @@ Dialog {
 
     modal: true
     title: "Delete this wallpaper?"
+    width: 520
+    height: 180
     standardButtons: Dialog.Ok | Dialog.Cancel
 
     onAccepted: {
