@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import Optional
 from typing import TypedDict
@@ -115,6 +116,7 @@ class Backend(QObject):
     settingsChanged = Signal()
     performanceChanged = Signal()
     nicknameChanged = Signal()
+    historyChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -277,6 +279,102 @@ class Backend(QObject):
         value = self.config.get("workshopPath", "")
         return str(value or "")
 
+    @Property(bool, notify=settingsChanged)
+    def cycleEnabled(self) -> bool:
+        return bool(self.config.get("cycleEnabled", False))
+
+    @Property(int, notify=settingsChanged)
+    def cycleInterval(self) -> int:
+        value = self.config.get("cycleInterval", 15)
+        return int(value) if isinstance(value, (int, float)) else 15
+
+    @Property(str, notify=settingsChanged)
+    def cycleOrder(self) -> str:
+        value = self.config.get("cycleOrder", "random")
+        return str(value or "random")
+
+    @Property(str, notify=settingsChanged)
+    def cyclePlaylistId(self) -> str:
+        value = self.config.get("cyclePlaylistId", None)
+        if not isinstance(value, str):
+            return ""
+        return value.strip()
+
+    @Property(bool, notify=settingsChanged)
+    def disableParallax(self) -> bool:
+        return bool(self.config.get("disableParallax", False))
+
+    @Property(bool, notify=settingsChanged)
+    def disableParticles(self) -> bool:
+        return bool(self.config.get("disableParticles", False))
+
+    @Property(bool, notify=settingsChanged)
+    def noFullscreenPause(self) -> bool:
+        return bool(self.config.get("noFullscreenPause", False))
+
+    @Property(bool, notify=settingsChanged)
+    def disableMouse(self) -> bool:
+        return bool(self.config.get("disableMouse", False))
+
+    @Property(bool, notify=settingsChanged)
+    def noAutomute(self) -> bool:
+        return bool(self.config.get("noAutomute", False))
+
+    @Property(bool, notify=settingsChanged)
+    def noAudioProcessing(self) -> bool:
+        return bool(self.config.get("noAudioProcessing", False))
+
+    @Property(bool, notify=settingsChanged)
+    def waylandOnlyActive(self) -> bool:
+        return bool(self.config.get("waylandOnlyActive", False))
+
+    @Property(str, notify=settingsChanged)
+    def waylandIgnoreAppids(self) -> str:
+        value = self.config.get("waylandIgnoreAppids", "")
+        return str(value or "")
+
+    @Property(int, notify=settingsChanged)
+    def screenshotDelay(self) -> int:
+        value = self.config.get("screenshotDelay", 20)
+        return int(value) if isinstance(value, (int, float)) else 20
+
+    @Property(str, notify=settingsChanged)
+    def screenshotRes(self) -> str:
+        value = self.config.get("screenshotRes", "3840x2160")
+        return str(value or "3840x2160")
+
+    @Property(bool, notify=settingsChanged)
+    def preferXvfb(self) -> bool:
+        return bool(self.config.get("preferXvfb", True))
+
+    @Property(str, notify=settingsChanged)
+    def assetsPath(self) -> str:
+        value = self.config.get("assetsPath", "")
+        return str(value or "")
+
+    @Property(bool, notify=settingsChanged)
+    def startHidden(self) -> bool:
+        return bool(self.config.get("startHidden", False))
+
+    @Property(bool, notify=settingsChanged)
+    def autoRestore(self) -> bool:
+        return bool(self.config.get("autoRestore", True))
+
+    @Property(list, notify=historyChanged)
+    def history(self) -> list[dict[str, str]]:
+        raw = self.history_manager.get_all()
+        out: list[dict[str, str]] = []
+        for item in raw:
+            out.append(
+                {
+                    "id": str(item.get("id", "")),
+                    "title": str(item.get("title", "Unknown")),
+                    "preview": _to_file_uri(str(item.get("preview", ""))),
+                    "timestamp": str(item.get("timestamp", "")),
+                }
+            )
+        return out
+
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id
@@ -368,7 +466,11 @@ class Backend(QObject):
 
     @Slot(str)
     def deletePlaylist(self, playlist_id: str) -> None:
-        self.playlist_service.delete_playlist(playlist_id)
+        try:
+            self.playlist_service.delete_playlist(playlist_id)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return
         if self._active_playlist_id == playlist_id:
             self._active_playlist_id = ""
             self.activePlaylistIdChanged.emit()
@@ -428,6 +530,224 @@ class Backend(QObject):
         self.settingsChanged.emit()
         self._set_status("Workshop path updated")
 
+    @Slot(bool)
+    def setCycleEnabled(self, enabled: bool) -> None:
+        self.config.set("cycleEnabled", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Cycle wallpaper {'enabled' if enabled else 'disabled'}")
+
+    @Slot(int)
+    def setCycleInterval(self, interval: int) -> None:
+        clamped = max(1, min(1440, int(interval)))
+        self.config.set("cycleInterval", clamped)
+        self.settingsChanged.emit()
+        self._set_status(f"Cycle interval set to {clamped} minute(s)")
+
+    @Slot(str)
+    def setCycleOrder(self, order: str) -> None:
+        normalized = str(order or "random").strip().lower()
+        if normalized not in {"random", "title", "size", "id", "type"}:
+            normalized = "random"
+        self.config.set("cycleOrder", normalized)
+        self.settingsChanged.emit()
+        self._set_status(f"Cycle order set to {normalized}")
+
+    @Slot(str)
+    def setCyclePlaylistId(self, playlist_id: str) -> None:
+        normalized = str(playlist_id or "").strip()
+        self.config.set("cyclePlaylistId", normalized if normalized else None)
+        self.settingsChanged.emit()
+        self._set_status(
+            f"Cycle source set to {'all wallpapers' if not normalized else normalized}"
+        )
+
+    @Slot(bool)
+    def setDisableParallax(self, disabled: bool) -> None:
+        self.config.set("disableParallax", bool(disabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Parallax {'disabled' if disabled else 'enabled'}")
+
+    @Slot(bool)
+    def setDisableParticles(self, disabled: bool) -> None:
+        self.config.set("disableParticles", bool(disabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Particles {'disabled' if disabled else 'enabled'}")
+
+    @Slot(bool)
+    def setNoFullscreenPause(self, enabled: bool) -> None:
+        self.config.set("noFullscreenPause", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"No fullscreen pause {'enabled' if enabled else 'disabled'}")
+
+    @Slot(bool)
+    def setDisableMouse(self, disabled: bool) -> None:
+        self.config.set("disableMouse", bool(disabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Mouse interaction {'disabled' if disabled else 'enabled'}")
+
+    @Slot(bool)
+    def setNoAutomute(self, enabled: bool) -> None:
+        self.config.set("noAutomute", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Auto mute {'disabled' if enabled else 'enabled'}")
+
+    @Slot(bool)
+    def setNoAudioProcessing(self, enabled: bool) -> None:
+        self.config.set("noAudioProcessing", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Audio processing {'disabled' if enabled else 'enabled'}")
+
+    @Slot(bool)
+    def setWaylandOnlyActive(self, enabled: bool) -> None:
+        self.config.set("waylandOnlyActive", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(
+            f"Wayland active-only pause {'enabled' if enabled else 'disabled'}"
+        )
+
+    @Slot(str)
+    def setWaylandIgnoreAppids(self, appids: str) -> None:
+        cleaned = str(appids or "").strip()
+        self.config.set("waylandIgnoreAppids", cleaned)
+        self.settingsChanged.emit()
+        self._set_status("Wayland ignore app IDs updated")
+
+    @Slot(int)
+    def setScreenshotDelay(self, delay: int) -> None:
+        clamped = max(0, min(300, int(delay)))
+        self.config.set("screenshotDelay", clamped)
+        self.settingsChanged.emit()
+        self._set_status(f"Screenshot delay set to {clamped} second(s)")
+
+    @Slot(str)
+    def setScreenshotRes(self, resolution: str) -> None:
+        cleaned = str(resolution or "").strip() or "3840x2160"
+        self.config.set("screenshotRes", cleaned)
+        self.settingsChanged.emit()
+        self._set_status(f"Screenshot resolution set to {cleaned}")
+
+    @Slot(bool)
+    def setPreferXvfb(self, enabled: bool) -> None:
+        self.config.set("preferXvfb", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Prefer Xvfb {'enabled' if enabled else 'disabled'}")
+
+    @Slot(str)
+    def setAssetsPath(self, assets_path: str) -> None:
+        cleaned = str(assets_path or "").strip()
+        self.config.set("assetsPath", cleaned if cleaned else None)
+        self.settingsChanged.emit()
+        self._set_status("Assets path updated")
+
+    @Slot(bool)
+    def setStartHidden(self, enabled: bool) -> None:
+        self.config.set("startHidden", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Start hidden {'enabled' if enabled else 'disabled'}")
+
+    @Slot(bool)
+    def setAutoRestore(self, enabled: bool) -> None:
+        self.config.set("autoRestore", bool(enabled))
+        self.settingsChanged.emit()
+        self._set_status(f"Auto restore {'enabled' if enabled else 'disabled'}")
+
+    @Slot(str, str)
+    def addToPlaylist(self, playlist_id: str, wp_id: str) -> None:
+        clean_playlist = str(playlist_id or "").strip()
+        clean_wp = str(wp_id or "").strip()
+        if not clean_playlist or not clean_wp:
+            self._set_status("Playlist and wallpaper ID are required")
+            return
+        try:
+            self.playlist_service.add_wallpaper(clean_playlist, clean_wp)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return
+        self.playlistsChanged.emit()
+        self._set_status(f"Added {clean_wp} to playlist")
+
+    @Slot(str, str)
+    def removeFromPlaylist(self, playlist_id: str, wp_id: str) -> None:
+        clean_playlist = str(playlist_id or "").strip()
+        clean_wp = str(wp_id or "").strip()
+        if not clean_playlist or not clean_wp:
+            self._set_status("Playlist and wallpaper ID are required")
+            return
+        try:
+            self.playlist_service.remove_wallpaper(clean_playlist, clean_wp)
+        except ValueError as exc:
+            self._set_status(str(exc))
+            return
+        self.playlistsChanged.emit()
+        self._set_status(f"Removed {clean_wp} from playlist")
+
+    @Slot(list)
+    def reorderPlaylists(self, ordered_ids: list[str]) -> None:
+        ids = [str(item) for item in ordered_ids if str(item).strip()]
+        self.playlist_service.reorder_playlists(ids)
+        self.playlistsChanged.emit()
+        self._set_status("Playlists reordered")
+
+    @Slot(str, str)
+    def removeWallpaper(self, wp_id: str, path: str) -> None:
+        clean_wp = str(wp_id or "").strip()
+        clean_path = str(path or "").strip()
+        if not clean_wp and clean_path:
+            clean_wp = Path(clean_path).name.strip()
+        if not clean_wp:
+            self._set_status("Wallpaper ID is required")
+            return
+
+        if clean_path:
+            expected = str(Path(self.wallpaper_manager.workshop_path) / clean_wp)
+            if Path(clean_path).resolve() != Path(expected).resolve():
+                self._set_status("Wallpaper path does not match wallpaper ID")
+                return
+
+        deleted = self.wallpaper_manager.delete_wallpaper(clean_wp)
+        if not deleted:
+            self._set_status("Failed to delete wallpaper")
+            return
+
+        self.playlist_service.remove_wallpaper_from_all(clean_wp)
+
+        if self._selected_id == clean_wp:
+            self._selected_id = ""
+            self.selectedIdChanged.emit()
+
+        self.refresh()
+        self._set_status(f"Deleted wallpaper {clean_wp}")
+
+    @Slot()
+    def applyRandomWallpaper(self) -> None:
+        if not self._wallpapers:
+            self._set_status("No wallpapers available")
+            return
+
+        chosen = random.choice(self._wallpapers)
+        wp_id = str(chosen.get("id", ""))
+        if not wp_id:
+            self._set_status("Failed to choose a random wallpaper")
+            return
+
+        self._selected_id = wp_id
+        self.selectedIdChanged.emit()
+        self.applyWallpaper(wp_id)
+
+    @Slot(str)
+    def openFolder(self, path: str) -> None:
+        clean = str(path or "").strip()
+        if not clean:
+            self._set_status("No path to open")
+            return
+        self.openExternalUrl(QUrl.fromLocalFile(clean).toString())
+
+    @Slot()
+    def clearHistory(self) -> None:
+        self.history_manager.clear()
+        self.historyChanged.emit()
+        self._set_status("History cleared")
+
     @Slot(str)
     def applyWallpaper(self, wp_id: str) -> None:
         if self._linked_mode and self._screens:
@@ -439,6 +759,7 @@ class Backend(QObject):
                     str(wp.get("title", "Unknown")),
                     str(wp.get("preview", "")),
                 )
+                self.historyChanged.emit()
             self.activeMonitorsChanged.emit()
             self._set_status(
                 f"Applied wallpaper {wp_id} on all screens ({len(self._screens)})"
@@ -457,6 +778,7 @@ class Backend(QObject):
                 str(wp.get("title", "Unknown")),
                 str(wp.get("preview", "")),
             )
+            self.historyChanged.emit()
         self.activeMonitorsChanged.emit()
         self._set_status(f"Applied wallpaper {wp_id} on {target}")
 
