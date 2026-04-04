@@ -16,6 +16,7 @@ ApplicationWindow {
     property string sortBy: "name"
     property string searchText: ""
     property bool playlistFloatingOpen: false
+    property string currentPage: "library"
     
     ColumnLayout {
         anchors.fill: parent
@@ -28,7 +29,7 @@ ApplicationWindow {
             screens: Backend.screens
             selectedScreen: Backend.selectedScreen
             linkedMode: Backend.linkedMode
-            currentPage: "library"
+            currentPage: window.currentPage
 
             onSelectedScreenChangedByUser: function(screen) {
                 Backend.setSelectedScreen(screen)
@@ -36,135 +37,59 @@ ApplicationWindow {
             onLinkedModeChangedByUser: function(linked) {
                 Backend.setLinkedMode(linked)
             }
-            onPageChanged: function(_page) {
-                // Phase 2 scope: keep library page active.
+            onPageChanged: function(page) {
+                window.currentPage = page
             }
         }
 
-        Comp.LibraryHeader {
-            Layout.fillWidth: true
-            Layout.leftMargin: 10
-            Layout.rightMargin: 10
-            Layout.bottomMargin: 10
-
-            currentTitle: Backend.selectedId.length > 0 ? Backend.selectedId : "None"
-            totalCount: Backend.wallpapers.length
-            sortBy: window.sortBy
-            searchText: window.searchText
-
-            onSortSelected: function(value) {
-                window.sortBy = value
-            }
-            onSearchChanged: function(value) {
-                window.searchText = value
-            }
-            onRefreshRequested: {
-                Backend.refresh()
-            }
-        }
-        
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: "#292e42"
-        }
-        
-        Item {
+        StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.margins: 10
+            currentIndex: {
+                if (window.currentPage === "performance") return 1
+                if (window.currentPage === "settings") return 2
+                return 0
+            }
 
-            SplitView {
-                id: contentSplit
-                anchors.fill: parent
-                orientation: Qt.Horizontal
+            Comp.LibraryPage {
+                backend: Backend
+                sortBy: window.sortBy
+                searchText: window.searchText
+                playlistFloatingOpen: window.playlistFloatingOpen
 
-                Comp.PlaylistPanel {
-                    id: playlistPanel
-                    SplitView.preferredWidth: panelState === "locked" ? 268 : 48
-                    SplitView.minimumWidth: panelState === "locked" ? 260 : 48
-                    SplitView.maximumWidth: panelState === "locked" ? 280 : 48
-
-                    playlists: Backend.playlists
-                    activePlaylistId: Backend.activePlaylistId
-                    favoriteIds: Backend.favoriteIds
-
-                    onActivePlaylistChanged: function(playlistId) {
-                        Backend.setActivePlaylist(playlistId)
-                    }
-                    onActivePlaylistCleared: {
-                        Backend.clearActivePlaylist()
-                    }
-                    onCreatePlaylistRequested: function(name) {
-                        Backend.createPlaylist(name)
-                    }
-
-                    onPanelStateChanged: {
-                        window.playlistFloatingOpen = panelState === "floating"
-                    }
+                onSortSelected: function(value) {
+                    window.sortBy = value
                 }
-
-                Comp.WallpaperGrid {
-                    id: wallpaperGrid
-                    SplitView.fillWidth: true
-                    SplitView.minimumWidth: 520
-
-                    wallpapers: Backend.wallpapers
-                    playlists: Backend.playlists
-                    activePlaylistId: Backend.activePlaylistId
-                    selectedId: Backend.selectedId
-                    columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
-                    searchText: window.searchText
-                    sortBy: window.sortBy
-
-                    onSelectRequested: function(wallpaperId) {
-                        Backend.selectWallpaper(wallpaperId)
-                    }
-                    onApplyRequested: function(wallpaperId) {
-                        Backend.applyWallpaper(wallpaperId)
-                    }
-                    onFavoriteToggled: function(wallpaperId) {
-                        Backend.toggleFavorite(wallpaperId)
-                    }
+                onSearchQueryChanged: function(value) {
+                    window.searchText = value
                 }
-
-                Comp.WallpaperSidebar {
-                    id: wallpaperSidebar
-                    SplitView.preferredWidth: 360
-                    SplitView.minimumWidth: 300
-                    SplitView.maximumWidth: 520
-
-                    wallpaper: Backend.selectedWallpaper
-
-                    onApplyRequested: function(wallpaperId) {
-                        Backend.applyWallpaper(wallpaperId)
-                    }
-                    onFavoriteToggled: function(wallpaperId) {
-                        Backend.toggleFavorite(wallpaperId)
-                    }
+                onRefreshRequested: {
+                    Backend.refresh()
+                }
+                onPlaylistFloatingStateChanged: function(opened) {
+                    window.playlistFloatingOpen = opened
                 }
             }
 
             Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.right: parent.right
-                visible: window.playlistFloatingOpen
-                color: "#0000000f"
-                z: 15
+                color: "#1a1b26"
+                Label {
+                    anchors.centerIn: parent
+                    text: "Performance page (WIP)"
+                    color: "#8a90b8"
+                }
+            }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        if (playlistPanel.panelState === "floating") {
-                            playlistPanel.panelState = "minimized"
-                        }
-                    }
+            Rectangle {
+                color: "#1a1b26"
+                Label {
+                    anchors.centerIn: parent
+                    text: "Settings page (WIP)"
+                    color: "#8a90b8"
                 }
             }
         }
-        
+
         Rectangle {
             Layout.fillWidth: true
             height: 40
