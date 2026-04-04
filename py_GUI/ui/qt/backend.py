@@ -5,6 +5,8 @@ from typing import Optional
 from typing import TypedDict
 
 from PySide6.QtCore import QObject, Property, Signal, Slot
+from PySide6.QtGui import QGuiApplication, QDesktopServices
+from PySide6.QtCore import QUrl
 
 from py_GUI.const import WORKSHOP_PATH
 from py_GUI.core.config import ConfigManager
@@ -281,6 +283,33 @@ class Backend(QObject):
             self.selectedIdChanged.emit()
             self.nicknameChanged.emit()
         self._set_status("Nickname updated")
+
+    @Slot(str)
+    def copyTextToClipboard(self, text: str) -> None:
+        clipboard = QGuiApplication.clipboard()
+        if clipboard is None:
+            self._set_status("Clipboard unavailable")
+            return
+        clipboard.setText(str(text or ""))
+        self._set_status("Copied to clipboard")
+
+    @Slot(str)
+    def openExternalUrl(self, url: str) -> None:
+        if not url:
+            self._set_status("No URL to open")
+            return
+        ok = QDesktopServices.openUrl(QUrl(url))
+        self._set_status("Opened external link" if ok else "Failed to open link")
+
+    @Slot(str)
+    def openWorkshopForWallpaper(self, wp_id: str) -> None:
+        clean_id = str(wp_id or "").strip()
+        if not clean_id:
+            self._set_status("No wallpaper selected")
+            return
+        self.openExternalUrl(
+            f"https://steamcommunity.com/sharedfiles/filedetails/?id={clean_id}"
+        )
 
     @Slot(str)
     def setActivePlaylist(self, playlist_id: str) -> None:

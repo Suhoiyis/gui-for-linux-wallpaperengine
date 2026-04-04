@@ -160,6 +160,29 @@ Rectangle {
                                 }
                             }
                         }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Button {
+                                Layout.fillWidth: true
+                                enabled: root.hasWallpaper
+                                text: "Copy ID"
+                                onClicked: {
+                                    Backend.copyTextToClipboard(root.wallpaper.id || "")
+                                }
+                            }
+
+                            Button {
+                                Layout.fillWidth: true
+                                enabled: root.hasWallpaper
+                                text: "Workshop"
+                                onClicked: {
+                                    Backend.openWorkshopForWallpaper(root.wallpaper.id || "")
+                                }
+                            }
+                        }
                     }
                 }
             }
