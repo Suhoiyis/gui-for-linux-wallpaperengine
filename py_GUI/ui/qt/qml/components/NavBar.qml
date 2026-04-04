@@ -99,6 +99,14 @@ Rectangle {
                 highlighted: root.currentPage === "settings"
                 onClicked: root.pageChanged("settings")
             }
+
+            Button {
+                text: "🪟"
+                width: 36
+                height: 36
+                highlighted: root.currentPage === "compact"
+                onClicked: root.pageChanged("compact")
+            }
         }
     }
 }

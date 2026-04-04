@@ -112,6 +112,43 @@ Item {
                     onFavoriteToggled: function(wallpaperId) {
                         if (root.backend) root.backend.toggleFavorite(wallpaperId)
                     }
+                    onStopRequested: function(wallpaperId) {
+                        if (root.backend) root.backend.stopWallpaper()
+                    }
+                    onOpenFolderRequested: function(wallpaperId) {
+                        if (!root.backend) return
+                        var targetPath = ""
+                        for (var i = 0; i < root.backend.wallpapers.length; i++) {
+                            if (root.backend.wallpapers[i].id === wallpaperId) {
+                                targetPath = root.backend.wallpapers[i].path || ""
+                                break
+                            }
+                        }
+                        root.backend.openFolder(targetPath)
+                    }
+                    onDeleteRequested: function(wallpaperId) {
+                        if (!root.backend) return
+                        var targetPath = ""
+                        for (var i = 0; i < root.backend.wallpapers.length; i++) {
+                            if (root.backend.wallpapers[i].id === wallpaperId) {
+                                targetPath = root.backend.wallpapers[i].path || ""
+                                break
+                            }
+                        }
+                        root.backend.removeWallpaper(wallpaperId, targetPath)
+                    }
+                    onEditNicknameRequested: function(wallpaperId, nickname) {
+                        if (root.backend) root.backend.setWallpaperNickname(wallpaperId, nickname)
+                    }
+                    onAddToPlaylistRequested: function(wallpaperId, playlistId) {
+                        if (root.backend) root.backend.addToPlaylist(playlistId, wallpaperId)
+                    }
+                    onCopyIdRequested: function(wallpaperId) {
+                        if (root.backend) root.backend.copyTextToClipboard(wallpaperId)
+                    }
+                    onWorkshopRequested: function(wallpaperId) {
+                        if (root.backend) root.backend.openWorkshopForWallpaper(wallpaperId)
+                    }
                 }
 
                 Comp.WallpaperSidebar {

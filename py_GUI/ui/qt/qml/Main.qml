@@ -48,6 +48,7 @@ ApplicationWindow {
             currentIndex: {
                 if (window.currentPage === "performance") return 1
                 if (window.currentPage === "settings") return 2
+                if (window.currentPage === "compact") return 3
                 return 0
             }
 
@@ -77,6 +78,13 @@ ApplicationWindow {
 
             Comp.SettingsPage {
                 backend: Backend
+            }
+
+            Comp.CompactPage {
+                backend: Backend
+                onSwitchToNormal: function() {
+                    window.currentPage = "library"
+                }
             }
         }
 

@@ -13,6 +13,7 @@ Item {
     signal selected()
     signal applyRequested()
     signal favoriteToggled()
+    signal contextMenuRequested(var mousePos)
 
     layer.enabled: true
     layer.smooth: true
@@ -40,9 +41,21 @@ Item {
             id: mouseArea
             anchors.fill: parent
             hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-            onClicked: root.selected()
-            onDoubleClicked: root.applyRequested()
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.RightButton) {
+                    var mapped = mouseArea.mapToItem(null, mouse.x, mouse.y)
+                    root.contextMenuRequested(mapped)
+                } else {
+                    root.selected()
+                }
+            }
+            onDoubleClicked: function(mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    root.applyRequested()
+                }
+            }
 
             Rectangle {
                 anchors.fill: parent

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "." as Comp
 
 Item {
     id: root
@@ -247,6 +248,11 @@ Item {
                             }
                         }
                     }
+                }
+
+                Comp.CycleSettings {
+                    Layout.fillWidth: true
+                    backend: root.backend
                 }
             }
         }
