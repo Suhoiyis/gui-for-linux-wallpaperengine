@@ -65,6 +65,7 @@ class Backend(QObject):
     statusMessageChanged = Signal()
     playlistsChanged = Signal()
     activePlaylistIdChanged = Signal()
+    linkedModeChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -95,6 +96,7 @@ class Backend(QObject):
         self._screens: list[str] = []
         self._status_message: str = ""
         self._active_playlist_id: str = ""
+        self._linked_mode: bool = bool(self.config.get("apply_mode") == "same")
 
         self.refresh()
 
@@ -161,6 +163,10 @@ class Backend(QObject):
     def activePlaylistId(self) -> str:
         return self._active_playlist_id
 
+    @Property(bool, notify=linkedModeChanged)
+    def linkedMode(self) -> bool:
+        return self._linked_mode
+
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id
@@ -207,8 +213,30 @@ class Backend(QObject):
         self.state_manager.set_last_screen(screen)
         self.selectedScreenChanged.emit()
 
+    @Slot(bool)
+    def setLinkedMode(self, linked: bool) -> None:
+        self._linked_mode = linked
+        self.config.set("apply_mode", "same" if linked else "diff")
+        self.linkedModeChanged.emit()
+        self._set_status(f"Apply mode: {'same' if linked else 'diff'}")
+
     @Slot(str)
     def applyWallpaper(self, wp_id: str) -> None:
+        if self._linked_mode and self._screens:
+            self.controller.apply(wp_id, screens=self._screens)
+            wp = self.wallpaper_manager.get_wallpaper(wp_id)
+            if wp:
+                self.history_manager.add(
+                    wp_id,
+                    str(wp.get("title", "Unknown")),
+                    str(wp.get("preview", "")),
+                )
+            self.activeMonitorsChanged.emit()
+            self._set_status(
+                f"Applied wallpaper {wp_id} on all screens ({len(self._screens)})"
+            )
+            return
+
         target = self._selected_screen or self._preferred_screen()
         if not target:
             self._set_status("No available screens detected")

@@ -21,9 +21,31 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
         
-        Comp.LibraryHeader {
+        Comp.NavBar {
             Layout.fillWidth: true
             Layout.margins: 10
+
+            screens: Backend.screens
+            selectedScreen: Backend.selectedScreen
+            linkedMode: Backend.linkedMode
+            currentPage: "library"
+
+            onSelectedScreenChangedByUser: function(screen) {
+                Backend.setSelectedScreen(screen)
+            }
+            onLinkedModeChangedByUser: function(linked) {
+                Backend.setLinkedMode(linked)
+            }
+            onPageChanged: function(_page) {
+                // Phase 2 scope: keep library page active.
+            }
+        }
+
+        Comp.LibraryHeader {
+            Layout.fillWidth: true
+            Layout.leftMargin: 10
+            Layout.rightMargin: 10
+            Layout.bottomMargin: 10
 
             currentTitle: Backend.selectedId.length > 0 ? Backend.selectedId : "None"
             totalCount: Backend.wallpapers.length
