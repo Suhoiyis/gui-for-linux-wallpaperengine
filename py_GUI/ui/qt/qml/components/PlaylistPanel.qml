@@ -23,6 +23,26 @@ Item {
     signal renamePlaylistRequested(string playlistId, string playlistName)
     signal deletePlaylistRequested(string playlistId)
 
+    function beginRenameForActivePlaylist() {
+        var found = null
+        for (var i = 0; i < root.playlists.length; i++) {
+            if (root.playlists[i].id === root.activePlaylistId) {
+                found = root.playlists[i]
+                break
+            }
+        }
+        if (found) {
+            root.pendingPlaylistId = found.id
+            root.pendingPlaylistName = found.name || ""
+            root.renameDialogOpen = true
+        }
+    }
+
+    function beginDeleteForActivePlaylist() {
+        root.pendingPlaylistId = root.activePlaylistId
+        root.deleteDialogOpen = true
+    }
+
     width: panelState === "locked" ? 268 : 48
 
     Timer {
@@ -209,29 +229,13 @@ Item {
                     Layout.preferredWidth: 74
                     text: "Rename"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
-                    onClicked: {
-                        var found = null
-                        for (var i = 0; i < root.playlists.length; i++) {
-                            if (root.playlists[i].id === root.activePlaylistId) {
-                                found = root.playlists[i]
-                                break
-                            }
-                        }
-                        if (found) {
-                            root.pendingPlaylistId = found.id
-                            root.pendingPlaylistName = found.name || ""
-                            root.renameDialogOpen = true
-                        }
-                    }
+                    onClicked: root.beginRenameForActivePlaylist()
                 }
                 Button {
                     Layout.preferredWidth: 66
                     text: "Delete"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
-                    onClicked: {
-                        root.pendingPlaylistId = root.activePlaylistId
-                        root.deleteDialogOpen = true
-                    }
+                    onClicked: root.beginDeleteForActivePlaylist()
                 }
             }
         }
@@ -312,29 +316,13 @@ Item {
                     Layout.preferredWidth: 74
                     text: "Rename"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
-                    onClicked: {
-                        var found = null
-                        for (var i = 0; i < root.playlists.length; i++) {
-                            if (root.playlists[i].id === root.activePlaylistId) {
-                                found = root.playlists[i]
-                                break
-                            }
-                        }
-                        if (found) {
-                            root.pendingPlaylistId = found.id
-                            root.pendingPlaylistName = found.name || ""
-                            root.renameDialogOpen = true
-                        }
-                    }
+                    onClicked: root.beginRenameForActivePlaylist()
                 }
                 Button {
                     Layout.preferredWidth: 66
                     text: "Delete"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
-                    onClicked: {
-                        root.pendingPlaylistId = root.activePlaylistId
-                        root.deleteDialogOpen = true
-                    }
+                    onClicked: root.beginDeleteForActivePlaylist()
                 }
             }
         }
