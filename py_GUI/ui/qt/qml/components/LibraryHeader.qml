@@ -9,16 +9,20 @@ Rectangle {
     property int totalCount: 0
     property string sortBy: "name"
     property string searchText: ""
+    property bool selectionMode: false
 
     signal searchChanged(string value)
     signal sortSelected(string value)
     signal refreshRequested()
+    signal randomRequested()
+    signal historyRequested()
+    signal selectionModeToggled()
 
     radius: 12
     color: "#1f2335"
     border.width: 1
     border.color: "#2f344b"
-    implicitHeight: 58
+    implicitHeight: 66
 
     RowLayout {
         anchors.fill: parent
@@ -80,6 +84,22 @@ Rectangle {
         Button {
             text: "Refresh"
             onClicked: root.refreshRequested()
+        }
+
+        Button {
+            text: "Random"
+            onClicked: root.randomRequested()
+        }
+
+        Button {
+            text: "History"
+            onClicked: root.historyRequested()
+        }
+
+        Button {
+            text: root.selectionMode ? "Cancel Select" : "Select"
+            highlighted: root.selectionMode
+            onClicked: root.selectionModeToggled()
         }
     }
 }

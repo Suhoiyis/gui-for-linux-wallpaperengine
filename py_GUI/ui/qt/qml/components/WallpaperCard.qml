@@ -9,11 +9,14 @@ Item {
     property bool isFavorite: Backend.isFavorite(wp.id)
     property bool showTitle: true
     property bool showIcons: true
+    property bool selectionMode: false
+    property bool selectionChecked: false
     
     signal selected()
     signal applyRequested()
     signal favoriteToggled()
     signal contextMenuRequested(var mousePos)
+    signal selectionToggled()
 
     layer.enabled: true
     layer.smooth: true
@@ -48,7 +51,11 @@ Item {
                     var mapped = mouseArea.mapToItem(null, mouse.x, mouse.y)
                     root.contextMenuRequested(mapped)
                 } else {
-                    root.selected()
+                    if (root.selectionMode) {
+                        root.selectionToggled()
+                    } else {
+                        root.selected()
+                    }
                 }
             }
             onDoubleClicked: function(mouse) {
@@ -107,8 +114,38 @@ Item {
         }
 
         Rectangle {
+            visible: root.selectionMode
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.margins: 8
+            width: 22
+            height: 22
+            radius: 11
+            color: root.selectionChecked ? "#7aa2f7" : "#1a1b26"
+            border.width: 1
+            border.color: "#4f5f8f"
+
+            Label {
+                anchors.centerIn: parent
+                text: root.selectionChecked ? "✓" : ""
+                color: "#1a1b26"
+                font.bold: true
+                font.pixelSize: 12
+            }
+        }
+
+        Rectangle {
+            visible: root.selectionMode && root.selectionChecked
+            anchors.fill: parent
+            radius: 16
+            color: "#7aa2f733"
+            border.width: 1
+            border.color: "#7aa2f7"
+        }
+
+        Rectangle {
             id: favoriteButton
-            visible: root.showIcons
+            visible: root.showIcons && !root.selectionMode
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.margins: 8

@@ -15,6 +15,8 @@ Item {
     property string sortBy: "name"
     property string activePlaylistId: ""
     property var playlists: []
+    property bool selectionMode: false
+    property var selectedForPlaylist: []
 
     signal selectRequested(string wallpaperId)
     signal applyRequested(string wallpaperId)
@@ -26,6 +28,7 @@ Item {
     signal addToPlaylistRequested(string wallpaperId, string playlistId)
     signal copyIdRequested(string wallpaperId)
     signal workshopRequested(string wallpaperId)
+    signal selectionToggled(string wallpaperId)
 
     GridView {
         id: gridView
@@ -95,6 +98,8 @@ Item {
             showTitle: root.showTitle
             showIcons: root.showIcons
             isSelected: root.selectedId === modelData.id
+            selectionMode: root.selectionMode
+            selectionChecked: root.selectedForPlaylist.indexOf(modelData.id) >= 0
 
             onSelected: root.selectRequested(modelData.id)
             onApplyRequested: root.applyRequested(modelData.id)
@@ -103,6 +108,7 @@ Item {
                 contextMenu.wallpaperId = modelData.id
                 contextMenu.popup(null, mousePos.x, mousePos.y)
             }
+            onSelectionToggled: root.selectionToggled(modelData.id)
         }
 
         ScrollBar.vertical: ScrollBar {
