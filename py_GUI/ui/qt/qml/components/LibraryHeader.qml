@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ".." as AppTheme
 
 Rectangle {
     id: root
@@ -19,9 +20,9 @@ Rectangle {
     signal selectionModeToggled()
 
     radius: 12
-    color: "#1f2335"
+    color: AppTheme.Theme.panelBg
     border.width: 1
-    border.color: "#2f344b"
+    border.color: AppTheme.Theme.panelBorder
     implicitHeight: 66
 
     RowLayout {
@@ -36,14 +37,14 @@ Rectangle {
 
             Label {
                 text: "CURRENTLY USING"
-                color: "#7aa2f7"
+                color: AppTheme.Theme.accent
                 font.pixelSize: 10
                 font.bold: true
             }
 
             Label {
                 text: root.currentTitle && root.currentTitle.length > 0 ? root.currentTitle : "None"
-                color: "#c0caf5"
+                color: AppTheme.Theme.textPrimary
                 font.pixelSize: 12
                 elide: Text.ElideRight
                 Layout.fillWidth: true
@@ -52,7 +53,7 @@ Rectangle {
 
         Label {
             text: root.totalCount + " wallpapers"
-            color: "#8a90b8"
+            color: AppTheme.Theme.textSecondary
             font.pixelSize: 11
         }
 
@@ -81,7 +82,7 @@ Rectangle {
             }
         }
 
-        Button {
+        StatefulButton {
             text: "Refresh"
             onClicked: root.refreshRequested()
         }

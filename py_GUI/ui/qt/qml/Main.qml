@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "components" as Comp
+import "." as AppTheme
 
 ApplicationWindow {
     id: window
@@ -11,7 +12,7 @@ ApplicationWindow {
     height: 800
     title: "LWG Qt Quick PoC"
     
-    color: "#1a1b26"
+    color: AppTheme.Theme.windowBg
 
     property string sortBy: "name"
     property string searchText: ""
@@ -99,7 +100,7 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             height: 40
-            color: "#16161e"
+            color: AppTheme.Theme.statusBarBg
             
             Label {
                 anchors.centerIn: parent
@@ -109,6 +110,21 @@ ApplicationWindow {
                        ? "Selected: " + Backend.selectedId
                        : "Click a wallpaper to select")
                 color: "#565f89"
+            }
+        }
+    }
+
+    Comp.ToastManager {
+        id: toastManager
+        anchors.fill: parent
+        z: 1000
+    }
+
+    Connections {
+        target: Backend
+        function onStatusMessageChanged() {
+            if (Backend && Backend.statusMessage && Backend.statusMessage.length > 0) {
+                toastManager.show(Backend.statusMessage)
             }
         }
     }

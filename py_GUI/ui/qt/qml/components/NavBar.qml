@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ".." as AppTheme
 
 Rectangle {
     id: root
@@ -18,9 +19,9 @@ Rectangle {
     signal appMenuUpdateRequested()
     signal appMenuWelcomeRequested()
 
-    color: "#1f2335"
+    color: AppTheme.Theme.panelBg
     border.width: 1
-    border.color: "#2f344b"
+    border.color: AppTheme.Theme.panelBorder
     radius: 12
     implicitHeight: 50
 

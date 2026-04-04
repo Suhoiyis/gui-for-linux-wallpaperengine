@@ -48,6 +48,15 @@ Item {
                                 font.pixelSize: 18
                                 font.bold: true
                             }
+                            SparklineChart {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 46
+                                values: {
+                                    var hist = root.backend && root.backend.performanceTotal ? root.backend.performanceTotal.history : null
+                                    return hist && hist.cpu ? hist.cpu : []
+                                }
+                                maxValue: 100
+                            }
                         }
                     }
 
@@ -61,6 +70,20 @@ Item {
                                 color: "#c0caf5"
                                 font.pixelSize: 18
                                 font.bold: true
+                            }
+                            SparklineChart {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 46
+                                lineColor: "#93c5fd"
+                                fillColor: "#93c5fd22"
+                                values: {
+                                    var hist = root.backend && root.backend.performanceTotal ? root.backend.performanceTotal.history : null
+                                    return hist && hist.memory_mb ? hist.memory_mb : []
+                                }
+                                maxValue: {
+                                    var total = root.backend && root.backend.performanceTotal ? root.backend.performanceTotal.memory_mb : 1
+                                    return Math.max(1, Number(total) * 1.5)
+                                }
                             }
                         }
                     }
