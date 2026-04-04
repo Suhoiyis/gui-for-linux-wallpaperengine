@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Optional
+from typing import TypedDict
 
 from PySide6.QtCore import QObject, Property, Signal, Slot
 
@@ -12,6 +13,41 @@ from py_GUI.core.history import HistoryManager
 from py_GUI.core.logger import LogManager
 from py_GUI.core.nickname import NicknameManager
 from py_GUI.core.playlists import FAVORITES_PLAYLIST_ID, PlaylistService
+from py_GUI.core.performance import PerformanceMonitor
+
+
+class _QtPerfHistory(TypedDict):
+    cpu: list[float]
+    memory_mb: list[float]
+
+
+class _QtPerfDetail(TypedDict):
+    pid: int
+    name: str
+    cpu: float
+    cpu_fmt: str
+    memory_mb: float
+    memory_fmt: str
+    threads: int
+    status: str
+    history: _QtPerfHistory
+
+
+class _QtPerfTotal(TypedDict):
+    cpu: float
+    cpu_fmt: str
+    memory_mb: float
+    memory_fmt: str
+    threads: int
+    history: _QtPerfHistory
+    thread_names: dict[str, list[str]]
+
+
+class _QtPerfStats(TypedDict):
+    total: _QtPerfTotal
+    details: dict[str, _QtPerfDetail]
+
+
 from py_GUI.core.properties import PropertiesManager
 from py_GUI.core.screen import ScreenManager
 from py_GUI.core.state import StateManager
@@ -67,6 +103,7 @@ class Backend(QObject):
     activePlaylistIdChanged = Signal()
     linkedModeChanged = Signal()
     settingsChanged = Signal()
+    performanceChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -81,6 +118,7 @@ class Backend(QObject):
         self.history_manager = HistoryManager(self.config)
         self.nickname_manager = NicknameManager(self.config)
         self.playlist_service = PlaylistService(self.config, None)
+        self.perf_monitor = PerformanceMonitor(None)
 
         self.controller = WallpaperController(
             self.config,
@@ -98,6 +136,16 @@ class Backend(QObject):
         self._status_message: str = ""
         self._active_playlist_id: str = ""
         self._linked_mode: bool = bool(self.config.get("apply_mode") == "same")
+        self._performance_total: dict[str, object] = {
+            "cpu": 0.0,
+            "cpu_fmt": "0%",
+            "memory_mb": 0.0,
+            "memory_fmt": "0 MB",
+            "threads": 0,
+        }
+        self._performance_details: list[dict[str, object]] = []
+        self._perf_callback_registered = False
+        self._ensure_perf_bridge()
 
         self.refresh()
 
@@ -134,6 +182,14 @@ class Backend(QObject):
     @Property(str, notify=statusMessageChanged)
     def statusMessage(self) -> str:
         return self._status_message
+
+    @Property(dict, notify=performanceChanged)
+    def performanceTotal(self) -> dict[str, object]:
+        return dict(self._performance_total)
+
+    @Property(list, notify=performanceChanged)
+    def performanceProcesses(self) -> list[dict[str, object]]:
+        return list(self._performance_details)
 
     @Property(dict, notify=selectedIdChanged)
     def selectedWallpaper(self) -> dict[str, str]:
@@ -365,6 +421,46 @@ class Backend(QObject):
         self.playlistsChanged.emit()
         self.activeMonitorsChanged.emit()
         self._set_status(f"Loaded {len(self._wallpapers)} wallpapers")
+
+    def _ensure_perf_bridge(self) -> None:
+        if self._perf_callback_registered:
+            return
+        self.perf_monitor.add_callback(self._on_performance_update)
+        self._perf_callback_registered = True
+
+    def _on_performance_update(self, stats: _QtPerfStats) -> None:
+        total = stats.get("total", {}) if isinstance(stats, dict) else {}
+        if isinstance(total, dict):
+            self._performance_total = {
+                "cpu": float(total.get("cpu", 0.0)),
+                "cpu_fmt": str(total.get("cpu_fmt", "0%")),
+                "memory_mb": float(total.get("memory_mb", 0.0)),
+                "memory_fmt": str(total.get("memory_fmt", "0 MB")),
+                "threads": int(total.get("threads", 0)),
+            }
+
+        details_obj = stats.get("details", {}) if isinstance(stats, dict) else {}
+        rows: list[dict[str, object]] = []
+        if isinstance(details_obj, dict):
+            for category, item in details_obj.items():
+                if not isinstance(item, dict):
+                    continue
+                rows.append(
+                    {
+                        "category": str(category),
+                        "pid": int(item.get("pid", 0)),
+                        "name": str(item.get("name", "")),
+                        "cpu": float(item.get("cpu", 0.0)),
+                        "cpu_fmt": str(item.get("cpu_fmt", "0%")),
+                        "memory_mb": float(item.get("memory_mb", 0.0)),
+                        "memory_fmt": str(item.get("memory_fmt", "0 MB")),
+                        "threads": int(item.get("threads", 0)),
+                        "status": str(item.get("status", "")),
+                    }
+                )
+
+        self._performance_details = rows
+        self.performanceChanged.emit()
 
     def _refresh_screens(self) -> None:
         self._screens = self.screen_manager.refresh()

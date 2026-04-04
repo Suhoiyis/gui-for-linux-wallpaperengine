@@ -71,13 +71,8 @@ ApplicationWindow {
                 }
             }
 
-            Rectangle {
-                color: "#1a1b26"
-                Label {
-                    anchors.centerIn: parent
-                    text: "Performance page (WIP)"
-                    color: "#8a90b8"
-                }
+            Comp.PerformancePage {
+                backend: Backend
             }
 
             Comp.SettingsPage {
