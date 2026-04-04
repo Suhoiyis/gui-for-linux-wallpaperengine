@@ -86,7 +86,11 @@ ApplicationWindow {
             
             Label {
                 anchors.centerIn: parent
-                text: Backend.selectedId ? "Selected: " + Backend.selectedId : "Click a wallpaper to select"
+                text: Backend.statusMessage.length > 0
+                    ? Backend.statusMessage
+                    : (Backend.selectedId
+                       ? "Selected: " + Backend.selectedId
+                       : "Click a wallpaper to select")
                 color: "#565f89"
             }
         }
