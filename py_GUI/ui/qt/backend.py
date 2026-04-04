@@ -129,6 +129,15 @@ class Backend(QObject):
     def statusMessage(self) -> str:
         return self._status_message
 
+    @Property(dict, notify=selectedIdChanged)
+    def selectedWallpaper(self) -> dict[str, str]:
+        if not self._selected_id:
+            return {}
+        for wp in self._wallpapers:
+            if wp.get("id") == self._selected_id:
+                return dict(wp)
+        return {}
+
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id

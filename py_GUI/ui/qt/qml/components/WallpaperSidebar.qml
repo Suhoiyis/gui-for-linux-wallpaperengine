@@ -1,0 +1,169 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
+Rectangle {
+    id: root
+
+    property var wallpaper: ({})
+    property bool hasWallpaper: wallpaper && wallpaper.id
+
+    signal applyRequested(string wallpaperId)
+    signal favoriteToggled(string wallpaperId)
+
+    color: "#1b1f2f"
+    border.width: 1
+    border.color: "#2f344b"
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            Item {
+                width: parent ? parent.width : 320
+                implicitHeight: contentColumn.implicitHeight + 20
+
+                ColumnLayout {
+                    id: contentColumn
+                    width: parent.width - 24
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 12
+                    spacing: 10
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: width
+                        radius: 14
+                        color: "#24283b"
+                        border.width: 1
+                        border.color: "#353d57"
+                        clip: true
+
+                        Image {
+                            anchors.fill: parent
+                            source: root.hasWallpaper ? (root.wallpaper.preview || "") : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: "#24283b"
+                            visible: !root.hasWallpaper
+                            Label {
+                                anchors.centerIn: parent
+                                text: "Select a wallpaper"
+                                color: "#8a90b8"
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Label {
+                                text: root.hasWallpaper ? (root.wallpaper.title || "Unknown") : "None"
+                                color: "#c0caf5"
+                                font.pixelSize: 16
+                                font.bold: true
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            ToolButton {
+                                enabled: root.hasWallpaper
+                                text: Backend.isFavorite(root.wallpaper.id) ? "★" : "☆"
+                                onClicked: root.favoriteToggled(root.wallpaper.id)
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Rectangle {
+                                radius: 8
+                                color: "#33415566"
+                                border.width: 1
+                                border.color: "#334155"
+                                implicitHeight: 24
+                                implicitWidth: typeLabel.implicitWidth + 12
+
+                                Label {
+                                    id: typeLabel
+                                    anchors.centerIn: parent
+                                    text: root.hasWallpaper ? (root.wallpaper.type || "unknown") : "unknown"
+                                    color: "#93c5fd"
+                                    font.pixelSize: 10
+                                }
+                            }
+
+                            Rectangle {
+                                radius: 8
+                                color: "#7c2d1266"
+                                border.width: 1
+                                border.color: "#b45309"
+                                implicitHeight: 24
+                                implicitWidth: idLabel.implicitWidth + 12
+
+                                Label {
+                                    id: idLabel
+                                    anchors.centerIn: parent
+                                    text: root.hasWallpaper ? (root.wallpaper.id || "") : ""
+                                    color: "#f59e0b"
+                                    font.pixelSize: 10
+                                }
+                            }
+
+                            Rectangle {
+                                radius: 8
+                                color: "#9f123966"
+                                border.width: 1
+                                border.color: "#be185d"
+                                implicitHeight: 24
+                                implicitWidth: sizeLabel.implicitWidth + 12
+
+                                Label {
+                                    id: sizeLabel
+                                    anchors.centerIn: parent
+                                    text: root.hasWallpaper ? (root.wallpaper.size || "0 MB") : "0 MB"
+                                    color: "#fda4af"
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 66
+            color: "#161926"
+            border.width: 1
+            border.color: "#2f344b"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+
+                Button {
+                    Layout.fillWidth: true
+                    enabled: root.hasWallpaper
+                    text: "Apply Wallpaper"
+                    onClicked: root.applyRequested(root.wallpaper.id)
+                }
+            }
+        }
+    }
+}

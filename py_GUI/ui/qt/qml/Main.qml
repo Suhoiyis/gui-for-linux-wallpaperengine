@@ -46,26 +46,48 @@ ApplicationWindow {
             color: "#292e42"
         }
         
-        Comp.WallpaperGrid {
-            id: wallpaperGrid
+        SplitView {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 10
+            orientation: Qt.Horizontal
 
-            wallpapers: Backend.wallpapers
-            selectedId: Backend.selectedId
-            columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
-            searchText: window.searchText
-            sortBy: window.sortBy
+            Comp.WallpaperGrid {
+                id: wallpaperGrid
+                SplitView.fillWidth: true
+                SplitView.minimumWidth: 520
 
-            onSelectRequested: function(wallpaperId) {
-                Backend.selectWallpaper(wallpaperId)
+                wallpapers: Backend.wallpapers
+                selectedId: Backend.selectedId
+                columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
+                searchText: window.searchText
+                sortBy: window.sortBy
+
+                onSelectRequested: function(wallpaperId) {
+                    Backend.selectWallpaper(wallpaperId)
+                }
+                onApplyRequested: function(wallpaperId) {
+                    Backend.applyWallpaper(wallpaperId)
+                }
+                onFavoriteToggled: function(wallpaperId) {
+                    Backend.toggleFavorite(wallpaperId)
+                }
             }
-            onApplyRequested: function(wallpaperId) {
-                Backend.applyWallpaper(wallpaperId)
-            }
-            onFavoriteToggled: function(wallpaperId) {
-                Backend.toggleFavorite(wallpaperId)
+
+            Comp.WallpaperSidebar {
+                id: wallpaperSidebar
+                SplitView.preferredWidth: 360
+                SplitView.minimumWidth: 300
+                SplitView.maximumWidth: 520
+
+                wallpaper: Backend.selectedWallpaper
+
+                onApplyRequested: function(wallpaperId) {
+                    Backend.applyWallpaper(wallpaperId)
+                }
+                onFavoriteToggled: function(wallpaperId) {
+                    Backend.toggleFavorite(wallpaperId)
+                }
             }
         }
         
