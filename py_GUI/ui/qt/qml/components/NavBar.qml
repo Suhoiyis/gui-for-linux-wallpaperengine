@@ -19,6 +19,7 @@ Rectangle {
     signal appMenuAboutRequested()
     signal appMenuUpdateRequested()
     signal appMenuWelcomeRequested()
+    signal appMenuQuitRequested()
 
     color: Theme.panelBg
     border.width: 1
@@ -88,6 +89,7 @@ Rectangle {
                 onShowAboutRequested: root.appMenuAboutRequested()
                 onShowUpdateRequested: root.appMenuUpdateRequested()
                 onShowWelcomeRequested: root.appMenuWelcomeRequested()
+                onRequestQuitConfirm: root.appMenuQuitRequested()
             }
 
             Button {

@@ -9,6 +9,7 @@ Item {
     signal showUpdateRequested()
     signal showHistoryRequested()
     signal showWelcomeRequested()
+    signal requestQuitConfirm()
 
     width: 36
     height: 36
@@ -44,8 +45,12 @@ Item {
         }
         MenuSeparator {}
         MenuItem {
+            text: "Restart"
+            onTriggered: if (root.backend) root.backend.restartApp()
+        }
+        MenuItem {
             text: "Quit"
-            onTriggered: Qt.quit()
+            onTriggered: root.requestQuitConfirm()
         }
     }
 }

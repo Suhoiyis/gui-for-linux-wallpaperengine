@@ -61,12 +61,15 @@ Dialog {
             Label {
                 anchors.centerIn: parent
                 color: "#a9b1d6"
+                width: parent.width - 40
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
                 text: {
-                    if (root.step === 0) return "Welcome to LWG Qt"
-                    if (root.step === 1) return "Please ensure linux-wallpaperengine is installed"
-                    if (root.step === 2) return "Configure Workshop and Assets directories in Settings"
-                    if (root.step === 3) return "Tune FPS, audio and cycle settings"
-                    return "You are ready to use the app"
+                    if (root.step === 0) return "Welcome to Linux Wallpaper Engine GUI (Qt).\nThis setup helps you finish first-run configuration quickly."
+                    if (root.step === 1) return "Requirements:\n1) linux-wallpaperengine installed\n2) Steam Workshop content available"
+                    if (root.step === 2) return "Directories:\nSet Workshop Path and optional Assets Path in Settings > System."
+                    if (root.step === 3) return "Quick Settings:\nTune FPS, audio, and cycle settings for your machine."
+                    return "All set. You can now browse wallpapers and apply them to your screens."
                 }
             }
         }

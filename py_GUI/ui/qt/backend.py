@@ -17,6 +17,7 @@ from py_GUI.core.logger import LogManager
 from py_GUI.core.nickname import NicknameManager
 from py_GUI.core.playlists import FAVORITES_PLAYLIST_ID, PlaylistService
 from py_GUI.core.performance import PerformanceMonitor
+from py_GUI.core.updater import UpdateChecker
 
 
 class _QtPerfHistory(TypedDict):
@@ -133,6 +134,7 @@ class Backend(QObject):
         self.nickname_manager = NicknameManager(self.config)
         self.playlist_service = PlaylistService(self.config, None)
         self.perf_monitor = PerformanceMonitor(None)
+        self.update_checker = UpdateChecker()
 
         self.controller = WallpaperController(
             self.config,
@@ -368,6 +370,21 @@ class Backend(QObject):
     @Property(bool, notify=appMetaChanged)
     def onboardingCompleted(self) -> bool:
         return bool(self.config.get("onboardingCompleted", False))
+
+    @Property(list, notify=statusMessageChanged)
+    def logs(self) -> list[dict[str, str]]:
+        raw = self.log_manager.get_logs()
+        out: list[dict[str, str]] = []
+        for item in raw:
+            out.append(
+                {
+                    "timestamp": str(item.get("timestamp", "")),
+                    "level": str(item.get("level", "")),
+                    "source": str(item.get("source", "")),
+                    "message": str(item.get("message", "")),
+                }
+            )
+        return out
 
     @Property(list, notify=historyChanged)
     def history(self) -> list[dict[str, str]]:
@@ -762,6 +779,70 @@ class Backend(QObject):
         self.config.set("onboardingCompleted", True)
         self.appMetaChanged.emit()
         self._set_status("Onboarding completed")
+
+    @Slot(result="QVariantMap")
+    def checkForUpdates(self) -> dict[str, object]:
+        result: dict[str, object] = {
+            "hasUpdate": False,
+            "latestVersion": "",
+            "downloadUrl": "",
+            "error": "",
+        }
+
+        done = {"ok": False}
+
+        def _cb(latest: Optional[str], url: Optional[str], has_update: bool) -> None:
+            result["hasUpdate"] = bool(has_update)
+            result["latestVersion"] = str(latest or "")
+            result["downloadUrl"] = str(url or "")
+            if isinstance(latest, str) and latest.startswith("ERROR:"):
+                result["error"] = latest
+            done["ok"] = True
+
+        self.update_checker.check_update(str(VERSION), _cb)
+
+        import time
+
+        deadline = time.time() + 6.0
+        while not done["ok"] and time.time() < deadline:
+            time.sleep(0.02)
+
+        if not done["ok"]:
+            result["error"] = "TIMEOUT"
+            self._set_status("Update check timed out")
+            return result
+
+        if result["error"]:
+            self._set_status("Update check failed")
+        elif bool(result["hasUpdate"]):
+            self._set_status("Update available")
+        else:
+            self._set_status("Already up to date")
+        return result
+
+    @Slot()
+    def clearLogs(self) -> None:
+        self.log_manager.clear()
+        self._set_status("Logs cleared")
+
+    @Slot(result="QVariantList")
+    def getLogs(self) -> list[dict[str, str]]:
+        raw = self.log_manager.get_logs()
+        out: list[dict[str, str]] = []
+        for item in raw:
+            out.append(
+                {
+                    "timestamp": str(item.get("timestamp", "")),
+                    "level": str(item.get("level", "")),
+                    "source": str(item.get("source", "")),
+                    "message": str(item.get("message", "")),
+                }
+            )
+        return out
+
+    @Slot()
+    def restartApp(self) -> None:
+        self._set_status("Restart is not yet wired in Qt mode")
 
     @Slot(str)
     def applyWallpaper(self, wp_id: str) -> None:

@@ -23,6 +23,7 @@ ApplicationWindow {
     property bool showUpdateDialog: false
     property bool showWelcomeDialog: false
     property bool showHistoryDialog: false
+    property bool showQuitConfirm: false
 
     ColumnLayout {
         anchors.fill: parent
@@ -49,8 +50,21 @@ ApplicationWindow {
             }
             onAppMenuHistoryRequested: window.showHistoryDialog = true
             onAppMenuAboutRequested: window.showAboutDialog = true
-            onAppMenuUpdateRequested: window.showUpdateDialog = true
+            onAppMenuUpdateRequested: {
+                if (window.backendRef) {
+                    var info = window.backendRef.checkForUpdates()
+                    if (info && info.hasUpdate) {
+                        updateDialog.latestVersion = info.latestVersion || window.backendRef.appVersion
+                        updateDialog.downloadUrl = info.downloadUrl || "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases"
+                    } else {
+                        updateDialog.latestVersion = window.backendRef.appVersion
+                        updateDialog.downloadUrl = "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases"
+                    }
+                }
+                window.showUpdateDialog = true
+            }
             onAppMenuWelcomeRequested: window.showWelcomeDialog = true
+            onAppMenuQuitRequested: window.showQuitConfirm = true
         }
 
         StackLayout {
@@ -143,6 +157,7 @@ ApplicationWindow {
     }
 
     Comp.UpdateDialog {
+        id: updateDialog
         backend: window.backendRef
         currentVersion: window.backendRef ? window.backendRef.appVersion : "unknown"
         latestVersion: window.backendRef ? window.backendRef.appVersion : "unknown"
@@ -167,5 +182,26 @@ ApplicationWindow {
     Comp.CommandPalette {
         id: commandPalette
         backend: window.backendRef
+        function pageChangedByPalette(page) {
+            window.currentPage = page
+        }
+    }
+
+    Dialog {
+        id: quitConfirm
+        visible: window.showQuitConfirm
+        modal: true
+        title: "Quit Application?"
+        width: 420
+        height: 170
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: Qt.quit()
+        onRejected: window.showQuitConfirm = false
+        onClosed: window.showQuitConfirm = false
+        contentItem: Label {
+            text: "This will stop wallpapers and close the app."
+            color: "#c0caf5"
+            wrapMode: Text.WordWrap
+        }
     }
 }

@@ -93,6 +93,10 @@ Item {
                             Layout.fillWidth: true
                             backend: root.backend
                         }
+                        Comp.LogViewer {
+                            Layout.fillWidth: true
+                            backend: root.backend
+                        }
                         RowLayout {
                             Layout.fillWidth: true
                             Item { Layout.fillWidth: true }
