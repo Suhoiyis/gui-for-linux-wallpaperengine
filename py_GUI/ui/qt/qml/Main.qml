@@ -17,7 +17,11 @@ ApplicationWindow {
     property string searchText: ""
     property bool playlistFloatingOpen: false
     property string currentPage: "library"
-    
+    property bool showAboutDialog: false
+    property bool showUpdateDialog: false
+    property bool showWelcomeDialog: false
+    property bool showHistoryDialog: false
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -40,6 +44,10 @@ ApplicationWindow {
             onPageChanged: function(page) {
                 window.currentPage = page
             }
+            onAppMenuHistoryRequested: window.showHistoryDialog = true
+            onAppMenuAboutRequested: window.showAboutDialog = true
+            onAppMenuUpdateRequested: window.showUpdateDialog = true
+            onAppMenuWelcomeRequested: window.showWelcomeDialog = true
         }
 
         StackLayout {
@@ -103,5 +111,43 @@ ApplicationWindow {
                 color: "#565f89"
             }
         }
+    }
+
+    Shortcut {
+        sequences: ["Ctrl+K", "Meta+K"]
+        onActivated: commandPalette.open()
+    }
+
+    Comp.AboutDialog {
+        backend: Backend
+        visible: window.showAboutDialog
+        onClosed: window.showAboutDialog = false
+    }
+
+    Comp.UpdateDialog {
+        backend: Backend
+        currentVersion: Backend.appVersion
+        latestVersion: Backend.appVersion
+        downloadUrl: "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases"
+        visible: window.showUpdateDialog
+        onClosed: window.showUpdateDialog = false
+    }
+
+    Comp.WelcomeDialog {
+        backend: Backend
+        requiredMode: !Backend.onboardingCompleted
+        visible: window.showWelcomeDialog || !Backend.onboardingCompleted
+        onClosed: window.showWelcomeDialog = false
+    }
+
+    Comp.HistoryDialog {
+        backend: Backend
+        visible: window.showHistoryDialog
+        onClosed: window.showHistoryDialog = false
+    }
+
+    Comp.CommandPalette {
+        id: commandPalette
+        backend: Backend
     }
 }

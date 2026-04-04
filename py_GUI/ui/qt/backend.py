@@ -9,7 +9,7 @@ from PySide6.QtCore import QObject, Property, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QDesktopServices
 from PySide6.QtCore import QUrl
 
-from py_GUI.const import WORKSHOP_PATH
+from py_GUI.const import VERSION, WORKSHOP_PATH
 from py_GUI.core.config import ConfigManager
 from py_GUI.core.controller import WallpaperController
 from py_GUI.core.history import HistoryManager
@@ -117,6 +117,7 @@ class Backend(QObject):
     performanceChanged = Signal()
     nicknameChanged = Signal()
     historyChanged = Signal()
+    appMetaChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -359,6 +360,14 @@ class Backend(QObject):
     @Property(bool, notify=settingsChanged)
     def autoRestore(self) -> bool:
         return bool(self.config.get("autoRestore", True))
+
+    @Property(str, notify=appMetaChanged)
+    def appVersion(self) -> str:
+        return str(VERSION)
+
+    @Property(bool, notify=appMetaChanged)
+    def onboardingCompleted(self) -> bool:
+        return bool(self.config.get("onboardingCompleted", False))
 
     @Property(list, notify=historyChanged)
     def history(self) -> list[dict[str, str]]:
@@ -747,6 +756,12 @@ class Backend(QObject):
         self.history_manager.clear()
         self.historyChanged.emit()
         self._set_status("History cleared")
+
+    @Slot()
+    def completeOnboarding(self) -> None:
+        self.config.set("onboardingCompleted", True)
+        self.appMetaChanged.emit()
+        self._set_status("Onboarding completed")
 
     @Slot(str)
     def applyWallpaper(self, wp_id: str) -> None:

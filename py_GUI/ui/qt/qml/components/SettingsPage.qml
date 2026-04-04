@@ -8,6 +8,8 @@ Item {
 
     property var backend
     property int settingsTabIndex: 0
+    property bool showNicknameManager: false
+    property bool showFavoriteManager: false
 
     Rectangle {
         anchors.fill: parent
@@ -84,12 +86,40 @@ Item {
                 ScrollView {
                     clip: true
                     contentWidth: availableWidth
-                    Comp.SystemSettings {
+                    ColumnLayout {
                         width: parent.width
-                        backend: root.backend
+                        spacing: 10
+                        Comp.SystemSettings {
+                            Layout.fillWidth: true
+                            backend: root.backend
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Item { Layout.fillWidth: true }
+                            Button {
+                                text: "Manage Nicknames"
+                                onClicked: root.showNicknameManager = true
+                            }
+                            Button {
+                                text: "Manage Favorites"
+                                onClicked: root.showFavoriteManager = true
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    Comp.NicknameManagerDialog {
+        backend: root.backend
+        visible: root.showNicknameManager
+        onClosed: root.showNicknameManager = false
+    }
+
+    Comp.FavoriteManagerDialog {
+        backend: root.backend
+        visible: root.showFavoriteManager
+        onClosed: root.showFavoriteManager = false
     }
 }

@@ -13,6 +13,10 @@ Rectangle {
     signal selectedScreenChangedByUser(string screen)
     signal linkedModeChangedByUser(bool linked)
     signal pageChanged(string page)
+    signal appMenuHistoryRequested()
+    signal appMenuAboutRequested()
+    signal appMenuUpdateRequested()
+    signal appMenuWelcomeRequested()
 
     color: "#1f2335"
     border.width: 1
@@ -75,6 +79,14 @@ Rectangle {
 
         RowLayout {
             spacing: 6
+
+            AppMenu {
+                backend: null
+                onShowHistoryRequested: root.appMenuHistoryRequested()
+                onShowAboutRequested: root.appMenuAboutRequested()
+                onShowUpdateRequested: root.appMenuUpdateRequested()
+                onShowWelcomeRequested: root.appMenuWelcomeRequested()
+            }
 
             Button {
                 text: "🏠"
