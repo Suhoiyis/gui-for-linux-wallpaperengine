@@ -15,6 +15,7 @@ ApplicationWindow {
 
     property string sortBy: "name"
     property string searchText: ""
+    property bool playlistFloatingOpen: false
     
     ColumnLayout {
         anchors.fill: parent
@@ -46,47 +47,98 @@ ApplicationWindow {
             color: "#292e42"
         }
         
-        SplitView {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 10
-            orientation: Qt.Horizontal
 
-            Comp.WallpaperGrid {
-                id: wallpaperGrid
-                SplitView.fillWidth: true
-                SplitView.minimumWidth: 520
+            SplitView {
+                id: contentSplit
+                anchors.fill: parent
+                orientation: Qt.Horizontal
 
-                wallpapers: Backend.wallpapers
-                selectedId: Backend.selectedId
-                columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
-                searchText: window.searchText
-                sortBy: window.sortBy
+                Comp.PlaylistPanel {
+                    id: playlistPanel
+                    SplitView.preferredWidth: panelState === "locked" ? 268 : 48
+                    SplitView.minimumWidth: panelState === "locked" ? 260 : 48
+                    SplitView.maximumWidth: panelState === "locked" ? 280 : 48
 
-                onSelectRequested: function(wallpaperId) {
-                    Backend.selectWallpaper(wallpaperId)
+                    playlists: Backend.playlists
+                    activePlaylistId: Backend.activePlaylistId
+                    favoriteIds: Backend.favoriteIds
+
+                    onActivePlaylistChanged: function(playlistId) {
+                        Backend.setActivePlaylist(playlistId)
+                    }
+                    onActivePlaylistCleared: {
+                        Backend.clearActivePlaylist()
+                    }
+                    onCreatePlaylistRequested: function(name) {
+                        Backend.createPlaylist(name)
+                    }
+
+                    onPanelStateChanged: {
+                        window.playlistFloatingOpen = panelState === "floating"
+                    }
                 }
-                onApplyRequested: function(wallpaperId) {
-                    Backend.applyWallpaper(wallpaperId)
+
+                Comp.WallpaperGrid {
+                    id: wallpaperGrid
+                    SplitView.fillWidth: true
+                    SplitView.minimumWidth: 520
+
+                    wallpapers: Backend.wallpapers
+                    playlists: Backend.playlists
+                    activePlaylistId: Backend.activePlaylistId
+                    selectedId: Backend.selectedId
+                    columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
+                    searchText: window.searchText
+                    sortBy: window.sortBy
+
+                    onSelectRequested: function(wallpaperId) {
+                        Backend.selectWallpaper(wallpaperId)
+                    }
+                    onApplyRequested: function(wallpaperId) {
+                        Backend.applyWallpaper(wallpaperId)
+                    }
+                    onFavoriteToggled: function(wallpaperId) {
+                        Backend.toggleFavorite(wallpaperId)
+                    }
                 }
-                onFavoriteToggled: function(wallpaperId) {
-                    Backend.toggleFavorite(wallpaperId)
+
+                Comp.WallpaperSidebar {
+                    id: wallpaperSidebar
+                    SplitView.preferredWidth: 360
+                    SplitView.minimumWidth: 300
+                    SplitView.maximumWidth: 520
+
+                    wallpaper: Backend.selectedWallpaper
+
+                    onApplyRequested: function(wallpaperId) {
+                        Backend.applyWallpaper(wallpaperId)
+                    }
+                    onFavoriteToggled: function(wallpaperId) {
+                        Backend.toggleFavorite(wallpaperId)
+                    }
                 }
             }
 
-            Comp.WallpaperSidebar {
-                id: wallpaperSidebar
-                SplitView.preferredWidth: 360
-                SplitView.minimumWidth: 300
-                SplitView.maximumWidth: 520
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                visible: window.playlistFloatingOpen
+                color: "#0000000f"
+                z: 15
 
-                wallpaper: Backend.selectedWallpaper
-
-                onApplyRequested: function(wallpaperId) {
-                    Backend.applyWallpaper(wallpaperId)
-                }
-                onFavoriteToggled: function(wallpaperId) {
-                    Backend.toggleFavorite(wallpaperId)
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        if (playlistPanel.panelState === "floating") {
+                            playlistPanel.panelState = "minimized"
+                        }
+                    }
                 }
             }
         }

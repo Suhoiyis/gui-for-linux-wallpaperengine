@@ -12,6 +12,8 @@ Item {
     property bool showIcons: true
     property string searchText: ""
     property string sortBy: "name"
+    property string activePlaylistId: ""
+    property var playlists: []
 
     signal selectRequested(string wallpaperId)
     signal applyRequested(string wallpaperId)
@@ -34,6 +36,24 @@ Item {
                     var wid = (item.id || "").toLowerCase()
                     return title.indexOf(q) >= 0 || wid.indexOf(q) >= 0
                 })
+            }
+
+            if (root.activePlaylistId && root.activePlaylistId.length > 0) {
+                var matched = null
+                for (var p = 0; p < root.playlists.length; p++) {
+                    var playlist = root.playlists[p]
+                    if (playlist.id === root.activePlaylistId) {
+                        matched = playlist
+                        break
+                    }
+                }
+                if (matched && matched.wallpaper_ids) {
+                    arr = arr.filter(function(item) {
+                        return matched.wallpaper_ids.indexOf(item.id) >= 0
+                    })
+                } else {
+                    arr = []
+                }
             }
 
             if (root.sortBy === "id") {

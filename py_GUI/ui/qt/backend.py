@@ -63,6 +63,8 @@ class Backend(QObject):
     selectedScreenChanged = Signal()
     activeMonitorsChanged = Signal()
     statusMessageChanged = Signal()
+    playlistsChanged = Signal()
+    activePlaylistIdChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -92,6 +94,7 @@ class Backend(QObject):
         self._selected_screen: str = ""
         self._screens: list[str] = []
         self._status_message: str = ""
+        self._active_playlist_id: str = ""
 
         self.refresh()
 
@@ -138,11 +141,65 @@ class Backend(QObject):
                 return dict(wp)
         return {}
 
+    @Property(list, notify=playlistsChanged)
+    def playlists(self) -> list[dict[str, object]]:
+        raw = self.playlist_service.get_playlists()
+        out: list[dict[str, object]] = []
+        for item in raw:
+            out.append(
+                {
+                    "id": str(item.get("id", "")),
+                    "name": str(item.get("name", "Unnamed")),
+                    "wallpaper_ids": [
+                        str(wid) for wid in item.get("wallpaper_ids", [])
+                    ],
+                }
+            )
+        return out
+
+    @Property(str, notify=activePlaylistIdChanged)
+    def activePlaylistId(self) -> str:
+        return self._active_playlist_id
+
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id
         self.selectedIdChanged.emit()
         self._set_status(f"Selected wallpaper: {wp_id}")
+
+    @Slot(str)
+    def setActivePlaylist(self, playlist_id: str) -> None:
+        self._active_playlist_id = playlist_id
+        self.activePlaylistIdChanged.emit()
+
+    @Slot()
+    def clearActivePlaylist(self) -> None:
+        self._active_playlist_id = ""
+        self.activePlaylistIdChanged.emit()
+
+    @Slot(str)
+    def createPlaylist(self, name: str) -> None:
+        if not name.strip():
+            self._set_status("Playlist name cannot be empty")
+            return
+        self.playlist_service.create_playlist(name)
+        self.playlistsChanged.emit()
+        self._set_status(f"Created playlist: {name.strip()}")
+
+    @Slot(str, str)
+    def renamePlaylist(self, playlist_id: str, name: str) -> None:
+        self.playlist_service.rename_playlist(playlist_id, name)
+        self.playlistsChanged.emit()
+        self._set_status("Playlist renamed")
+
+    @Slot(str)
+    def deletePlaylist(self, playlist_id: str) -> None:
+        self.playlist_service.delete_playlist(playlist_id)
+        if self._active_playlist_id == playlist_id:
+            self._active_playlist_id = ""
+            self.activePlaylistIdChanged.emit()
+        self.playlistsChanged.emit()
+        self._set_status("Playlist deleted")
 
     @Slot(str)
     def setSelectedScreen(self, screen: str) -> None:
@@ -207,6 +264,7 @@ class Backend(QObject):
             self.selectedIdChanged.emit()
 
         self.favoriteIdsChanged.emit()
+        self.playlistsChanged.emit()
         self.activeMonitorsChanged.emit()
         self._set_status(f"Loaded {len(self._wallpapers)} wallpapers")
 
