@@ -80,13 +80,8 @@ ApplicationWindow {
                 }
             }
 
-            Rectangle {
-                color: "#1a1b26"
-                Label {
-                    anchors.centerIn: parent
-                    text: "Settings page (WIP)"
-                    color: "#8a90b8"
-                }
+            Comp.SettingsPage {
+                backend: Backend
             }
         }
 

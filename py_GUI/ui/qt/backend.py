@@ -66,6 +66,7 @@ class Backend(QObject):
     playlistsChanged = Signal()
     activePlaylistIdChanged = Signal()
     linkedModeChanged = Signal()
+    settingsChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -167,6 +168,35 @@ class Backend(QObject):
     def linkedMode(self) -> bool:
         return self._linked_mode
 
+    @Property(int, notify=settingsChanged)
+    def fps(self) -> int:
+        value = self.config.get("fps", 30)
+        return int(value) if isinstance(value, (int, float)) else 30
+
+    @Property(int, notify=settingsChanged)
+    def volume(self) -> int:
+        value = self.config.get("volume", 0)
+        return int(value) if isinstance(value, (int, float)) else 0
+
+    @Property(bool, notify=settingsChanged)
+    def silence(self) -> bool:
+        return bool(self.config.get("silence", True))
+
+    @Property(str, notify=settingsChanged)
+    def scaling(self) -> str:
+        value = self.config.get("scaling", "default")
+        return str(value)
+
+    @Property(str, notify=settingsChanged)
+    def clamping(self) -> str:
+        value = self.config.get("clamping", "clamp")
+        return str(value)
+
+    @Property(str, notify=settingsChanged)
+    def workshopPath(self) -> str:
+        value = self.config.get("workshopPath", "")
+        return str(value or "")
+
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id
@@ -218,7 +248,47 @@ class Backend(QObject):
         self._linked_mode = linked
         self.config.set("apply_mode", "same" if linked else "diff")
         self.linkedModeChanged.emit()
+        self.settingsChanged.emit()
         self._set_status(f"Apply mode: {'same' if linked else 'diff'}")
+
+    @Slot(int)
+    def setFps(self, fps: int) -> None:
+        clamped = max(1, min(144, int(fps)))
+        self.config.set("fps", clamped)
+        self.settingsChanged.emit()
+        self._set_status(f"FPS set to {clamped}")
+
+    @Slot(int)
+    def setVolume(self, volume: int) -> None:
+        clamped = max(0, min(100, int(volume)))
+        self.config.set("volume", clamped)
+        self.settingsChanged.emit()
+        self._set_status(f"Volume set to {clamped}")
+
+    @Slot(bool)
+    def setSilence(self, silence: bool) -> None:
+        self.config.set("silence", bool(silence))
+        self.settingsChanged.emit()
+        self._set_status(f"Silence {'enabled' if silence else 'disabled'}")
+
+    @Slot(str)
+    def setScaling(self, scaling: str) -> None:
+        self.config.set("scaling", str(scaling))
+        self.settingsChanged.emit()
+        self._set_status(f"Scaling set to {scaling}")
+
+    @Slot(str)
+    def setClamping(self, clamping: str) -> None:
+        self.config.set("clamping", str(clamping))
+        self.settingsChanged.emit()
+        self._set_status(f"Clamping set to {clamping}")
+
+    @Slot(str)
+    def setWorkshopPath(self, workshop_path: str) -> None:
+        self.config.set("workshopPath", str(workshop_path))
+        self.wallpaper_manager.workshop_path = str(workshop_path)
+        self.settingsChanged.emit()
+        self._set_status("Workshop path updated")
 
     @Slot(str)
     def applyWallpaper(self, wp_id: str) -> None:
