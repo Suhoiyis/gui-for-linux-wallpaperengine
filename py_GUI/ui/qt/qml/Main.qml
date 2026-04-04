@@ -12,33 +12,31 @@ ApplicationWindow {
     title: "LWG Qt Quick PoC"
     
     color: "#1a1b26"
+
+    property string sortBy: "name"
+    property string searchText: ""
     
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
         
-        RowLayout {
+        Comp.LibraryHeader {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
             Layout.margins: 10
-            
-            Label {
-                text: "LWG Qt Quick PoC"
-                font.pixelSize: 20
-                font.bold: true
-                color: "#c0caf5"
+
+            currentTitle: Backend.selectedId.length > 0 ? Backend.selectedId : "None"
+            totalCount: Backend.wallpapers.length
+            sortBy: window.sortBy
+            searchText: window.searchText
+
+            onSortSelected: function(value) {
+                window.sortBy = value
             }
-            
-            Item { Layout.fillWidth: true }
-            
-            Label {
-                text: Backend.wallpapers.length + " wallpapers"
-                color: "#565f89"
+            onSearchChanged: function(value) {
+                window.searchText = value
             }
-            
-            Button {
-                text: "Refresh"
-                onClicked: Backend.refresh()
+            onRefreshRequested: {
+                Backend.refresh()
             }
         }
         
@@ -57,6 +55,8 @@ ApplicationWindow {
             wallpapers: Backend.wallpapers
             selectedId: Backend.selectedId
             columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
+            searchText: window.searchText
+            sortBy: window.sortBy
 
             onSelectRequested: function(wallpaperId) {
                 Backend.selectWallpaper(wallpaperId)

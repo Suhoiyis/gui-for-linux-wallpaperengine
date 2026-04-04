@@ -10,6 +10,8 @@ Item {
     property int cellGap: 12
     property bool showTitle: true
     property bool showIcons: true
+    property string searchText: ""
+    property string sortBy: "name"
 
     signal selectRequested(string wallpaperId)
     signal applyRequested(string wallpaperId)
@@ -19,7 +21,39 @@ Item {
         id: gridView
         anchors.fill: parent
 
-        model: root.wallpapers
+        model: {
+            var arr = []
+            for (var i = 0; i < root.wallpapers.length; i++) {
+                arr.push(root.wallpapers[i])
+            }
+
+            var q = (root.searchText || "").toLowerCase()
+            if (q.length > 0) {
+                arr = arr.filter(function(item) {
+                    var title = (item.title || "").toLowerCase()
+                    var wid = (item.id || "").toLowerCase()
+                    return title.indexOf(q) >= 0 || wid.indexOf(q) >= 0
+                })
+            }
+
+            if (root.sortBy === "id") {
+                arr.sort(function(a, b) {
+                    return (a.id || "").localeCompare(b.id || "")
+                })
+            } else if (root.sortBy === "size") {
+                arr.sort(function(a, b) {
+                    var sa = parseFloat(String(a.size || "0").replace(" MB", ""))
+                    var sb = parseFloat(String(b.size || "0").replace(" MB", ""))
+                    return sb - sa
+                })
+            } else {
+                arr.sort(function(a, b) {
+                    return (a.title || "").localeCompare(b.title || "")
+                })
+            }
+
+            return arr
+        }
         clip: true
 
         cellWidth: Math.max(220, Math.floor((width - ((root.columns - 1) * root.cellGap)) / root.columns))
