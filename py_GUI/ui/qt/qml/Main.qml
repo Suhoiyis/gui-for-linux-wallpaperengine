@@ -48,35 +48,25 @@ ApplicationWindow {
             color: "#292e42"
         }
         
-        GridView {
-            id: gridView
+        Comp.WallpaperGrid {
+            id: wallpaperGrid
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 10
-            
-            model: Backend.wallpapers
-            cellWidth: 200
-            cellHeight: 220
-            
-            delegate: Comp.WallpaperCard {
-                width: gridView.cellWidth - 10
-                height: gridView.cellHeight - 10
-                
-                wp: model.modelData
-                isSelected: Backend.selectedId === model.modelData.id
-                
-                onSelected: {
-                    Backend.selectWallpaper(model.modelData.id)
-                }
-                onApplyRequested: {
-                    Backend.applyWallpaper(model.modelData.id)
-                }
-                onFavoriteToggled: {
-                    Backend.toggleFavorite(model.modelData.id)
-                }
+
+            wallpapers: Backend.wallpapers
+            selectedId: Backend.selectedId
+            columns: width >= 1400 ? 6 : (width >= 1100 ? 5 : (width >= 800 ? 4 : 3))
+
+            onSelectRequested: function(wallpaperId) {
+                Backend.selectWallpaper(wallpaperId)
             }
-            
-            ScrollBar.vertical: ScrollBar {}
+            onApplyRequested: function(wallpaperId) {
+                Backend.applyWallpaper(wallpaperId)
+            }
+            onFavoriteToggled: function(wallpaperId) {
+                Backend.toggleFavorite(wallpaperId)
+            }
         }
         
         Rectangle {
