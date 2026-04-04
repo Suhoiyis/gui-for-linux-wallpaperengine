@@ -1,149 +1,296 @@
-# LWG (Linux Wallpaper Engine) GUI & Core Project Rules
+# LWG (Linux Wallpaper Engine) GUI Project Rules
 
 ## 🎯 Project Overview
 
-This is a complex, multi-module project migrating a Linux Wallpaper Engine GUI from a legacy Python implementation to a modern **Tauri + React (TypeScript) + Rust** architecture.
+A Linux Wallpaper Engine GUI application built with **Python + GTK4 + Libadwaita**. The project provides a modern interface for managing and applying Steam Workshop live wallpapers on Linux.
 
-- **Active Development Zone**: `lwg-gui-tauri/` (The new Tauri desktop app).
-- **Core Engine (Source of Truth)**: `lwg-rs/crates/lwg-core/` (The native Rust core logic).
-- **Legacy Reference**: `py_GUI/` (The old Python app, used strictly for backward compatibility reference).
+- **Active Development Zone**: `py_GUI/` (Python GTK4 application)
+- **Optional Rust Library**: `lwg-rs/` (Independent Rust core library, can be used for performance-critical operations)
+- **Archived Experiment**: `lwg-gui-tauri/` (Tauri + React version - archived due to WebKit memory issues)
+
+### Project Status
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `py_GUI/` | 🟢 Active | Main development target |
+| `lwg-rs/` | 🟡 Maintained | Independent Rust library (optional) |
+| `lwg-gui-tauri/` | 🔴 Archived | Tauri experiment - not maintained |
+
+> **Note**: The Tauri version was archived due to severe WebKit memory leaks (~3GB on startup), which is unacceptable for a desktop application. The Python version using GTK4 has significantly better memory footprint.
+
+---
 
 ## 📂 Directory Structure & Agent Navigation Guide
 
-### 1. The New Frontend & Tauri Backend (`/lwg-gui-tauri/`)
+### 1. Main Application (`/py_GUI/`)
 
-This is where 90% of UI and frontend-to-backend integration tasks happen.
+This is the primary development zone for all UI and application logic.
 
-- `src/components/`: Modular React components using Tailwind CSS and shadcn/ui.
-- `src/store/appStore.ts`: Zustand state management. Handles optimistic updates and debounced Tauri invokes.
-- `src/pages/`: Main route views (Settings, Library, Performance, etc.).
-- `src-tauri/src/lib.rs` & `main.rs`: The Tauri Rust backend. Exposes commands (`#[tauri::command]`) to the React frontend.
+```
+py_GUI/
+├── core/                    # Business logic layer
+│   ├── config.py           # Configuration management
+│   ├── controller.py       # Wallpaper process control
+│   ├── wallpaper.py        # Wallpaper scanning & metadata
+│   ├── screen.py           # Multi-monitor management
+│   ├── state.py            # Application state & event bus
+│   ├── history.py          # Playback history (30 entries)
+│   ├── nickname.py         # Wallpaper nickname system
+│   ├── playlists.py        # Playlist & favorites service
+│   ├── performance.py      # CPU/memory monitoring
+│   ├── logger.py           # Logging system
+│   ├── updater.py          # GitHub update checker
+│   └── integrations.py     # System integration (.desktop, etc.)
+│
+├── ui/                      # User interface layer
+│   ├── app.py              # Main application window
+│   ├── pages/              # Page views
+│   │   ├── library.py      # Wallpaper library (main page)
+│   │   ├── settings.py     # Settings page
+│   │   └── performance.py  # Performance monitor page
+│   ├── components/         # Reusable UI components
+│   │   ├── layout/         # NavBar, Sidebar
+│   │   ├── library/        # Wallpaper grid, sidebar, playlist panel
+│   │   ├── dialogs/        # Various dialogs
+│   │   ├── common/         # Shared widgets
+│   │   └── performance/    # Sparkline charts
+│   ├── tray.py             # System tray (Rust sidecar launcher)
+│   └── compact_window.py   # Compact preview mode
+│
+├── main.py                  # Application entry point
+└── const.py                # Constants, version, CSS styles
+```
 
-### 2. The Rust Core & Workspaces (`/lwg-rs/`)
+### 2. Rust Core Library (`/lwg-rs/`)
 
-This is the native Rust implementation of the engine.
+An independent Rust library that can be optionally used for performance-critical operations.
 
-- `crates/lwg-core/src/`: Contains the actual implementation for config parsing (`config.rs`), performance monitoring (`performance.rs`), and wallpaper control (`wallpaper.rs`).
-- **CRITICAL**: When implementing backend logic in `lwg-gui-tauri/src-tauri/`, always check `lwg-rs/crates/lwg-core/` first to see how the engine expects the data to be formatted or handled.
+```
+lwg-rs/
+├── crates/
+│   └── lwg-core/           # Core library
+│       ├── src/config.rs   # Configuration structures
+│       ├── src/controller.rs # Wallpaper controller
+│       ├── src/wallpaper.rs # Wallpaper management
+│       ├── src/performance.rs # Performance monitoring
+│       ├── src/history.rs  # History management
+│       ├── src/nickname.rs # Nickname system
+│       ├── src/favorite.rs # Favorites system
+│       └── src/logger.rs   # Logging utilities
+```
 
-### 3. The Legacy Python App (`/py_GUI/`)
+> **Usage**: The Rust library can be integrated via PyO3 or used as a standalone CLI tool. It is NOT required for the Python app to function.
 
-Used strictly as a reference for backward compatibility.
+### 3. Archived Tauri Experiment (`/lwg-gui-tauri/`)
 
-- `ui/pages/`: Check these files to understand the original behavior of complex UI interactions.
+> ⚠️ **ARCHIVED**: This version is no longer maintained. Kept for reference only.
+
+Reason for archival: WebKitGTK memory leak causing ~3GB RAM usage on startup, which is unacceptable for a desktop application.
+
+---
 
 ## ⚠️ Core Development Rules
 
-### Rule 1: Field Naming Compatibility
+### Rule 1: Configuration Management
 
-- The new Tauri app uses a **JSON file separation scheme** that differs from the Python version:
-  - Field naming remains compatible via `#[serde(alias = "old_snake_case")]` in Rust structs
-  - But the overall configuration structure has changed (separate `config.json` / `state.json` / `history.json` / `screenshot_history.json`)
-- **Naming Conventions**: The React frontend uses `camelCase` (e.g., `waylandOnlyActive`). The legacy Python config and Rust backend use `snake_case` (e.g., `wayland_only_active`).
-- **Implementation Strategy**: In Rust (`src-tauri`), use `#[serde(alias = "old_snake_case_name")]` on configuration structs to seamlessly parse legacy configs while outputting camelCase for the frontend.
-- **Empty or Missing Fields**: Always use `Option<T>` for optional or frequently missing fields in Rust structs (like `description: Option<String>`) to prevent JSON deserialization panics.
+- **Location**: `~/.config/linux-wallpaperengine-gui/config.json`
+- **State File**: `~/.local/state/linux-wallpaperengine-gui/state.json`
+- **Naming Convention**: Python uses `snake_case` internally (e.g., `wayland_only_active`)
+- **Legacy Compatibility**: Field aliases are defined in `py_GUI/core/schema.py`
 
-### Rule 2: State Management & Tauri Invokes (Hybrid Save Strategy)
+```python
+# Example: ConfigManager usage
+config = ConfigManager()
+fps = config.get("fps", default=30)
+config.set("silence", True)  # Auto-saves
+```
 
-- **Source of Truth**: The React frontend relies on `src/store/appStore.ts` (Zustand) as the immediate source of truth for the UI.
-- **Optimistic Updates**: Always update the local Zustand store immediately for snappy UI feedback.
-- **Debouncing**: Changes to Sliders (e.g., `volume`, `fps`) and text inputs must be debounced by **500ms** before calling a Tauri `invoke` to save, preventing I/O flooding.
-- **Runtime vs. Persistent State**:
-  - Settings that represent actual user preferences go to `config.json`.
-  - Runtime state (screen → wallpaper mappings) is persisted to `state.json` for multi-monitor wallpaper restoration. This file can be safely deleted - the app will start with an empty state.
-- **Error Handling**: Always wrap Tauri `invoke` calls in `try/catch`. If the backend fails, revert the Zustand state to its previous value and show a `toast.error`.
+**Configuration Keys** (see `py_GUI/core/schema.py` for full list):
+| Key | Default | Description |
+|-----|---------|-------------|
+| `fps` | 30 | Frame rate limit (1-144) |
+| `volume` | 0 | Audio volume (0-100) |
+| `silence` | True | Mute audio |
+| `scaling` | "default" | Scaling mode |
+| `clamping` | "clamp" | Clamping mode |
+| `cycleEnabled` | False | Auto-rotation enabled |
+| `cycleInterval` | 15 | Rotation interval (minutes) |
+| `workshopPath` | None | Steam Workshop path |
 
-### Rule 3: UI & Styling Guidelines
+### Rule 2: State Management
 
-- **Framework**: Strictly use **Tailwind CSS** and **shadcn/ui** components. Do not introduce new component libraries without permission.
-- **Animations**: For conditionally rendered expansion panels (like accordions or settings groups), apply standard Tailwind animation classes: `animate-in fade-in slide-in-from-top-2 duration-300`.
-- **Text Rendering**: For long descriptions or backend logs, always use CSS classes like `whitespace-pre-wrap` to preserve line breaks, and `line-clamp-N` to prevent layout overflow.
-- **Environment Safety**: Before invoking any Tauri API (`invoke`, `listen`), verify the environment using: `const isTauri = !!(window as any).__TAURI_INTERNALS__;`. Provide mock fallbacks for browser testing.
+- **StateBus**: Event-driven state updates via `AppStateBus`
+- **StateManager**: Persistent state for multi-monitor wallpaper mappings
+
+```python
+# Example: State management
+state = StateManager()
+state.set_active_monitors({"HDMI-1": "12345678", "eDP-1": "87654321"})
+active = state.get_active_monitors()  # Returns dict
+```
+
+**State File Structure** (`state.json`):
+```json
+{
+  "active_monitors": {"HDMI-1": "2874425843"},
+  "lastWallpaper": "2874425843",
+  "lastScreen": "HDMI-1"
+}
+```
+
+### Rule 3: UI Development
+
+- **Framework**: GTK4 + Libadwaita
+- **Styling**: Use GTK named colors (`@window_bg_color`, `@accent_bg_color`)
+- **Theme**: Automatic light/dark mode adaptation
+- **CSS**: Defined in `py_GUI/const.py` as `CSS_STYLE`
+
+**Key UI Patterns**:
+- Pages extend `Adw.Bin` or `Gtk.Box`
+- Components are modular and reusable
+- Dialogs use `Adw.Dialog` or `Gtk.Dialog`
+
+### Rule 4: Logging
+
+- **Sources**: GUI, Controller, Engine, Core
+- **Implementation**: `py_GUI/core/logger.py`
+
+```python
+log_manager = LogManager()
+log_manager.add_info("Message", "Source")
+log_manager.add_error("Error occurred", "Controller")
+log_manager.add_warning("Warning", "GUI")
+```
+
+**Log Sources**:
+| Source | Description |
+|--------|-------------|
+| GUI | User interactions, UI events |
+| Controller | Wallpaper apply/stop, process management |
+| Engine | linux-wallpaperengine stdout/stderr |
+| Core | Config parsing, internal utilities |
+
+### Rule 5: Wallpaper Controller
+
+- **Backend**: Controls `linux-wallpaperengine` (C++ binary) via subprocess
+- **Implementation**: `py_GUI/core/controller.py`
+
+**Engine Argument Mapping**:
+| Config Key | Engine Flag | Notes |
+|------------|-------------|-------|
+| `silence=True` | `--silent` | Highest priority |
+| `volume` | `--volume` | Only when not silent |
+| `fps` | `-f` | Frame rate |
+| `scaling` | `--scaling` | Scaling mode |
+| `clamping` | `--clamp` | Note: `--clamp` not `--clamping` |
+
+---
 
 ## 🤖 Instructions for the AI Agent
 
-1. **Never guess config keys**: If asked to implement a new setting, grep `lwg-rs/crates/lwg-core/src/config.rs` and `py_GUI/core/config.py` to find the exact key name.
-2. **Verify Tauri Commands**: Before writing `invoke('some_command')` in React, verify that `some_command` is actually defined and registered in `lwg-gui-tauri/src-tauri/src/lib.rs`.
-3. **Check standard UI components**: Before building a new form element, check `lwg-gui-tauri/src/components/settings/Shared.tsx` for existing reusable wrappers (like `SliderRow`, `SwitchRow`, `EditableComboboxField`).
-4. **Prefer Tauri Native APIs**: When interacting with the OS (e.g., fetching monitors, dialogs, clipboard), prefer `@tauri-apps/api` over executing shell commands (`std::process::Command`), UNLESS the backend core engine strictly requires native output (like `xrandr` connector names).
-5. **Listen to Events**: Favor Tauri's event-driven architecture. For things like logs or wallpaper status changes, the Rust backend should use `app.emit()`, and the frontend should use `listen()` in a `useEffect` with proper cleanup, rather than polling the backend.
+1. **Never guess config keys**: Check `py_GUI/core/schema.py` for all valid configuration keys and their defaults.
+
+2. **Follow existing patterns**: Before implementing new features, check existing components in `py_GUI/ui/components/` for patterns.
+
+3. **Respect the event bus**: Use `AppStateBus` for cross-component communication, not direct method calls.
+
+4. **Backend integration**: The app controls `linux-wallpaperengine` (C++ backend) via subprocess. Check `py_GUI/core/controller.py` for command-line argument passing.
+
+5. **Multi-monitor support**: Always consider multi-monitor scenarios. Use `ScreenManager` to get available screens.
+
+6. **Check schema first**: `py_GUI/core/schema.py` defines all config keys, defaults, and aliases. It's the source of truth.
 
 ---
 
 ## 📦 Version Management
 
-Version numbers must be kept in sync across these files:
+Version is defined in `py_GUI/const.py`:
 
-| File | Field | Example |
-|------|-------|---------|
-| `src-tauri/Cargo.toml` | `version = "0.1.0"` | Rust crate version |
-| `src-tauri/tauri.conf.json` | `"version": "0.1.0"` | Tauri app version |
-| `package.json` | `"version": "0.1.0"` | NPM package version |
+```python
+VERSION = "1.0.0-pre"
+```
 
-**Sync Commands**:
-- Manual: `npm run sync-version`
-- Auto: Runs in `predev` and `prebuild` hooks
+Also update in:
+- `docs/CHANGELOG.md`
+- Git tags for releases
 
 ---
 
-## 🔌 Tauri Plugin Status
+## 🔧 Development Setup
 
-| Plugin | Status | Usage |
-|--------|--------|-------|
-| single-instance | ✅ Active | Prevents multiple instances, focuses main window on second launch |
-| window-state | ✅ Active | Persists window position and size across sessions |
-| autostart | ✅ Used | Settings page toggle for auto-start on login |
-| notification | ✅ Used | Random wallpaper switch, screenshot completion notifications |
-| opener | ✅ Used | Open GitHub releases, Steam Workshop URLs |
-| dialog | ✅ Used | Folder path selection in Settings page |
-| fs | ⚠️ Registered | File operations done in Rust backend, frontend not using |
-| shell | ⚠️ Registered | Command execution done in Rust backend, frontend not using |
+### Requirements
 
-**Status Legend**:
-- ✅ Active: Plugin registered and automatically working
-- ✅ Used: Plugin registered and actively used in business logic
-- ⚠️ Registered: Plugin added but not currently used
+- **Python**: 3.10+
+- **GTK**: GTK4 + Libadwaita
+- **Backend**: `linux-wallpaperengine` (install separately)
 
----
+### System Dependencies (Arch Linux)
 
-## 📝 Logging System
+```bash
+sudo pacman -S python-gobject gtk4 libadwaita libayatana-appindicator
+```
 
-Log sources and their content:
+### System Dependencies (Ubuntu/Debian)
 
-| Source | Definition | Content |
-|--------|------------|---------|
-| **Engine** | linux-wallpaperengine process stdout/stderr | Engine status, video decoding, hardware acceleration, errors |
-| **GUI** | Tauri app frontend/backend operations | User interactions, UI events, state changes |
-| **Controller** | WallpaperController | Wallpaper apply/stop, process management, screen operations |
-| **Core** | lwg-core library | Config parsing, internal utilities |
+```bash
+sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libayatana-appindicator3-1
+```
 
-**Implementation**: See `lwg-rs/crates/lwg-core/src/logger.rs`
+### Run Development
+
+```bash
+cd /home/yua/suw
+python3 py_GUI/main.py
+```
+
+### CLI Commands
+
+```bash
+python3 py_GUI/main.py --show      # Show window
+python3 py_GUI/main.py --hide      # Hide window
+python3 py_GUI/main.py --toggle    # Toggle window
+python3 py_GUI/main.py --random    # Random wallpaper
+python3 py_GUI/main.py --stop      # Stop wallpaper
+python3 py_GUI/main.py --quit      # Quit application
+```
+
+### Build AppImage
+
+```bash
+./build_appimage.sh
+```
 
 ---
 
 ## 🖼️ System Tray Implementation
 
-**Decision**: Use Tauri built-in Tray (not tray_rs sidecar)
-
-| Feature | Tauri Built-in | tray_rs |
-|---------|----------------|---------|
-| Tray icon | ✅ Supported | ✅ Supported |
-| Context menu | ✅ Supported | ✅ Supported |
-| Left/right click events | ✅ Supported | ✅ Supported |
-| Dynamic icon switching | ✅ Supported | ✅ Supported |
-| Tooltip (Linux) | ❌ Not supported | ✅ Supported |
-| Pango markup formatting | ❌ Not supported | ✅ Supported |
-
-**Trade-off**: Tooltip not supported on Linux, but simpler architecture (same process, no IPC, no separate process management).
-
-**Alternative**: Use dynamic menu items to display multi-monitor status instead of tooltip.
+- **Implementation**: Rust sidecar (`lwg-rs/crates/lwg-tray/`) launched via `py_GUI/ui/tray.py`
+- **Icons**: Stored in `pic/icons/` with fallback to local XDG directory
+- **Features**: 
+  - Dynamic icon (color/grayscale based on playback state)
+  - Left-click toggle main window
+  - Context menu with actions
 
 ---
 
-## ⚠️ App Restart Known Issue
+## 📚 Related Documentation
 
-**Symptom**: In `npm run tauri dev` mode, clicking restart shows white screen or connection refused.
+| Document | Description |
+|----------|-------------|
+| `PROJECT.md` | Project architecture and technical details |
+| `README.md` | User-facing documentation and features |
+| `docs/ADVANCED.md` | Advanced features and configuration |
+| `docs/COMPATIBILITY.md` | Wallpaper type compatibility |
+| `docs/CHANGELOG.md` | Version history |
 
-**Cause**: Dev mode webview connects to Vite dev server (`localhost:1420`). Restarting the binary doesn't reconnect properly.
+---
 
-**Workaround**: Manually restart (Ctrl+C and re-run) during development. Production builds work correctly.
+## 🚫 Common Pitfalls
+
+1. **Engine flag mismatch**: Engine uses `--clamp` not `--clamping`. Always check `controller.py`.
+
+2. **Config key confusion**: Frontend uses `muteAudio`, internal uses `silence`. Check `schema.py` for aliases.
+
+3. **Empty fields**: Use `config.get("key", default)` to handle missing keys gracefully.
+
+4. **State persistence**: `state.json` can be safely deleted; app will start fresh.
