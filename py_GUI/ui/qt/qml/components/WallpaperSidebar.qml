@@ -216,6 +216,38 @@ Rectangle {
                                 verticalAlignment: Text.AlignTop
                             }
                         }
+
+                        Label {
+                            text: "Tags"
+                            color: "#9aa5ce"
+                            font.pixelSize: 12
+                            font.bold: true
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            radius: 8
+                            color: "#161926"
+                            border.width: 1
+                            border.color: "#2f344b"
+                            implicitHeight: Math.max(48, tagsText.implicitHeight + 16)
+
+                            Label {
+                                id: tagsText
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                text: root.hasWallpaper
+                                    ? ((root.wallpaper.tags || "").trim().length > 0
+                                       ? root.wallpaper.tags
+                                       : "No tags")
+                                    : "No tags"
+                                color: "#8a90b8"
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 3
+                                elide: Text.ElideRight
+                            }
+                        }
                     }
                 }
             }

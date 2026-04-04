@@ -80,6 +80,12 @@ def _to_qt_wallpaper_list(
     items: list[dict[str, str]] = []
     for wp_id, wp in scanned.items():
         preview = str(wp.get("preview", ""))
+        raw_tags = wp.get("tags", [])
+        tags_text = (
+            ", ".join([str(tag) for tag in raw_tags])
+            if isinstance(raw_tags, list)
+            else ""
+        )
         items.append(
             {
                 "id": str(wp_id),
@@ -89,6 +95,7 @@ def _to_qt_wallpaper_list(
                 "path": str(Path(workshop_path) / str(wp_id)),
                 "size": _format_size_text(wp.get("size", 0)),
                 "description": str(wp.get("description", "")),
+                "tags": tags_text,
             }
         )
     return items
