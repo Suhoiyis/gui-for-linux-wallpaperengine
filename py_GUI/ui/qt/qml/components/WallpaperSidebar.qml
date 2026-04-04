@@ -281,10 +281,18 @@ Rectangle {
         title: "Edit Nickname"
         standardButtons: Dialog.Ok | Dialog.Cancel
 
+        readonly property var okButton: standardButton(Dialog.Ok)
+
         onOpened: {
             nicknameInput.text = root.hasWallpaper ? (root.wallpaper.title || "") : ""
             nicknameInput.forceActiveFocus()
             nicknameInput.selectAll()
+        }
+
+        Component.onCompleted: {
+            okButton.enabled = Qt.binding(function() {
+                return root.hasWallpaper
+            })
         }
 
         onAccepted: {
@@ -304,7 +312,9 @@ Rectangle {
                 id: nicknameInput
                 placeholderText: "Nickname"
                 selectByMouse: true
-                onAccepted: nicknameDialog.accept()
+                onAccepted: {
+                    if (nicknameDialog.okButton.enabled) nicknameDialog.accept()
+                }
             }
         }
     }

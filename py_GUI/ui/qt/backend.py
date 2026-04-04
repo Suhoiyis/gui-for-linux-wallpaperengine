@@ -331,16 +331,38 @@ class Backend(QObject):
 
     @Slot(str)
     def createPlaylist(self, name: str) -> None:
-        if not name.strip():
+        trimmed = name.strip()
+        if not trimmed:
             self._set_status("Playlist name cannot be empty")
             return
-        self.playlist_service.create_playlist(name)
+
+        lowered = trimmed.lower()
+        for item in self.playlist_service.get_playlists():
+            existing = str(item.get("name", "")).strip().lower()
+            if existing == lowered:
+                self._set_status("Playlist name already exists")
+                return
+
+        self.playlist_service.create_playlist(trimmed)
         self.playlistsChanged.emit()
-        self._set_status(f"Created playlist: {name.strip()}")
+        self._set_status(f"Created playlist: {trimmed}")
 
     @Slot(str, str)
     def renamePlaylist(self, playlist_id: str, name: str) -> None:
-        self.playlist_service.rename_playlist(playlist_id, name)
+        trimmed = name.strip()
+        if not trimmed:
+            self._set_status("Playlist name cannot be empty")
+            return
+
+        lowered = trimmed.lower()
+        for item in self.playlist_service.get_playlists():
+            item_id = str(item.get("id", ""))
+            existing = str(item.get("name", "")).strip().lower()
+            if item_id != playlist_id and existing == lowered:
+                self._set_status("Playlist name already exists")
+                return
+
+        self.playlist_service.rename_playlist(playlist_id, trimmed)
         self.playlistsChanged.emit()
         self._set_status("Playlist renamed")
 

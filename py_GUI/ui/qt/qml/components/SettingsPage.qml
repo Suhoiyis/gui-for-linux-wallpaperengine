@@ -84,6 +84,14 @@ Item {
                                 onActivated: {
                                     if (root.backend) root.backend.setScaling(currentText)
                                 }
+                                Connections {
+                                    target: root.backend
+                                    function onSettingsChanged() {
+                                        if (!root.backend) return
+                                        var idx = scalingCombo.model.indexOf(root.backend.scaling)
+                                        scalingCombo.currentIndex = idx >= 0 ? idx : 0
+                                    }
+                                }
                             }
                         }
 
@@ -105,6 +113,14 @@ Item {
                                 }
                                 onActivated: {
                                     if (root.backend) root.backend.setClamping(currentText)
+                                }
+                                Connections {
+                                    target: root.backend
+                                    function onSettingsChanged() {
+                                        if (!root.backend) return
+                                        var idx = clampingCombo.model.indexOf(root.backend.clamping)
+                                        clampingCombo.currentIndex = idx >= 0 ? idx : 0
+                                    }
                                 }
                             }
                         }
@@ -162,6 +178,13 @@ Item {
                                 onToggled: {
                                     if (root.backend) root.backend.setSilence(checked)
                                 }
+                                Connections {
+                                    target: root.backend
+                                    function onSettingsChanged() {
+                                        if (!root.backend) return
+                                        silenceSwitch.checked = root.backend.silence
+                                    }
+                                }
                             }
                         }
                     }
@@ -192,6 +215,13 @@ Item {
                                 Layout.fillWidth: true
                                 text: root.backend ? root.backend.workshopPath : ""
                                 selectByMouse: true
+                                Connections {
+                                    target: root.backend
+                                    function onSettingsChanged() {
+                                        if (!root.backend) return
+                                        workshopPathField.text = root.backend.workshopPath
+                                    }
+                                }
                             }
                             Button {
                                 text: "Save"

@@ -347,6 +347,19 @@ Item {
         title: "Create Playlist"
         standardButtons: Dialog.Ok | Dialog.Cancel
 
+        readonly property var okButton: standardButton(Dialog.Ok)
+
+        onOpened: {
+            nameInput.forceActiveFocus()
+            nameInput.selectAll()
+        }
+
+        Component.onCompleted: {
+            okButton.enabled = Qt.binding(function() {
+                return nameInput.text.trim().length > 0
+            })
+        }
+
         onAccepted: {
             if (nameInput.text.trim().length > 0) {
                 root.createPlaylistRequested(nameInput.text.trim())
@@ -364,7 +377,9 @@ Item {
                 id: nameInput
                 placeholderText: "Playlist name"
                 selectByMouse: true
-                onAccepted: createDialog.accept()
+                onAccepted: {
+                    if (createDialog.okButton.enabled) createDialog.accept()
+                }
             }
         }
     }
@@ -376,10 +391,18 @@ Item {
         title: "Rename Playlist"
         standardButtons: Dialog.Ok | Dialog.Cancel
 
+        readonly property var okButton: standardButton(Dialog.Ok)
+
         onOpened: {
             renameInput.text = root.pendingPlaylistName
             renameInput.forceActiveFocus()
             renameInput.selectAll()
+        }
+
+        Component.onCompleted: {
+            okButton.enabled = Qt.binding(function() {
+                return renameInput.text.trim().length > 0
+            })
         }
 
         onAccepted: {
@@ -398,7 +421,9 @@ Item {
                 id: renameInput
                 placeholderText: "Playlist name"
                 selectByMouse: true
-                onAccepted: renameDialog.accept()
+                onAccepted: {
+                    if (renameDialog.okButton.enabled) renameDialog.accept()
+                }
             }
         }
     }
