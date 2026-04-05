@@ -53,7 +53,8 @@ Popup {
                 var quick = [
                     { kind: "action", label: "Random Wallpaper", tab: "library" },
                     { kind: "action", label: "Stop All", tab: "library" },
-                    { kind: "action", label: "Refresh Library", tab: "library" }
+                    { kind: "action", label: "Refresh Library", tab: "library" },
+                    { kind: "action", label: "Restart App", tab: "library" }
                 ]
                 for (var qi = 0; qi < quick.length; qi++) {
                     if (root._matches(quick[qi].label, q)) out.push(quick[qi])
@@ -93,6 +94,7 @@ Popup {
                         if (modelData.label === "Random Wallpaper") root.backend.applyRandomWallpaper()
                         else if (modelData.label === "Stop All") root.backend.stopWallpaper()
                         else if (modelData.label === "Refresh Library") root.backend.refresh()
+                        else if (modelData.label === "Restart App") root.backend.restartApp()
                     } else if (modelData.kind === "navigate") {
                         if (root.parent && root.parent.pageChangedByPalette) {
                             root.parent.pageChangedByPalette(modelData.page)

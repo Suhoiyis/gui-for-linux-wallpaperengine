@@ -16,6 +16,7 @@ Rectangle {
     signal sortSelected(string value)
     signal refreshRequested()
     signal randomRequested()
+    signal screenshotRequested()
     signal historyRequested()
     signal selectionModeToggled()
 
@@ -90,6 +91,11 @@ Rectangle {
         Button {
             text: "Random"
             onClicked: root.randomRequested()
+        }
+
+        Button {
+            text: "Screenshot"
+            onClicked: root.screenshotRequested()
         }
 
         Button {

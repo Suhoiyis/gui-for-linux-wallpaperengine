@@ -86,6 +86,13 @@ Item {
             onRandomRequested: {
                 if (root.backend) root.backend.applyRandomWallpaper()
             }
+            onScreenshotRequested: {
+                if (!root.backend) return
+                var targetId = root.backend.selectedId || ""
+                if (targetId.length > 0) {
+                    root.backend.takeScreenshot(targetId)
+                }
+            }
             onHistoryRequested: {
                 root.historyDialogOpen = true
             }

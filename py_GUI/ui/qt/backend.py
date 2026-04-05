@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import os
 import random
+import signal
+import shutil
+import sys
+import time
 from pathlib import Path
 from typing import Optional
 from typing import TypedDict
 
-from PySide6.QtCore import QObject, Property, Signal, Slot
+from PySide6.QtCore import (
+    QCoreApplication,
+    QObject,
+    Property,
+    QProcess,
+    QTimer,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QGuiApplication, QDesktopServices
 from PySide6.QtCore import QUrl
 
@@ -161,9 +174,136 @@ class Backend(QObject):
         }
         self._performance_details: list[dict[str, object]] = []
         self._perf_callback_registered = False
+        self._cycle_timer: QTimer | None = None
         self._ensure_perf_bridge()
+        self._init_cycle_timer()
 
         self.refresh()
+
+    def _init_cycle_timer(self) -> None:
+        if self._cycle_timer is not None:
+            return
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        timer.timeout.connect(self._on_cycle_timeout)
+        self._cycle_timer = timer
+
+    def _on_cycle_timeout(self) -> None:
+        self._cycle_once()
+        if self._cfg_cycle_enabled():
+            self._start_cycle_timer()
+
+    def _cfg_cycle_enabled(self) -> bool:
+        return bool(self.config.get("cycleEnabled", False))
+
+    def _cfg_cycle_interval(self) -> int:
+        value = self.config.get("cycleInterval", 15)
+        if isinstance(value, (int, float)):
+            return int(value)
+        return 15
+
+    def _cfg_cycle_order(self) -> str:
+        value = self.config.get("cycleOrder", "random")
+        return str(value or "random")
+
+    def _cfg_cycle_playlist_id(self) -> str:
+        value = self.config.get("cyclePlaylistId", None)
+        return str(value).strip() if isinstance(value, str) else ""
+
+    def _start_cycle_timer(self) -> None:
+        self._init_cycle_timer()
+        if self._cycle_timer is None:
+            return
+        if not self._cfg_cycle_enabled():
+            self._cycle_timer.stop()
+            return
+        active_monitors = self.state_manager.get_active_monitors()
+        if not active_monitors:
+            self._cycle_timer.stop()
+            return
+        interval_ms = max(1, self._cfg_cycle_interval()) * 60 * 1000
+        self._cycle_timer.start(interval_ms)
+
+    def _stop_cycle_timer(self) -> None:
+        if self._cycle_timer is not None:
+            self._cycle_timer.stop()
+
+    def _cycle_candidates(self) -> list[str]:
+        all_ids = [str(item.get("id", "")) for item in self._wallpapers]
+        all_ids = [wid for wid in all_ids if wid]
+        if not all_ids:
+            return []
+
+        cycle_playlist_id = self._cfg_cycle_playlist_id()
+        if not cycle_playlist_id:
+            return all_ids
+
+        playlist = self.playlist_service.get_playlist(cycle_playlist_id)
+        if not playlist:
+            return all_ids
+        selected = [
+            str(wid)
+            for wid in playlist.get("wallpaper_ids", [])
+            if str(wid) in set(all_ids)
+        ]
+        return selected if selected else all_ids
+
+    def _cycle_once(self) -> None:
+        active_monitors = self.state_manager.get_active_monitors()
+        if not active_monitors:
+            return
+
+        screens = self.screen_manager.get_screens()
+        candidates = self._cycle_candidates()
+        if not candidates:
+            self._set_status("Cycle skipped: no wallpapers available")
+            return
+
+        cycle_order = self._cfg_cycle_order()
+        sorted_ids: list[str] = []
+        if cycle_order != "random":
+            sorted_ids = self.wallpaper_manager.get_sorted_wallpapers(cycle_order)
+            allowed = set(candidates)
+            sorted_ids = [wid for wid in sorted_ids if wid in allowed]
+            if not sorted_ids:
+                sorted_ids = candidates
+                cycle_order = "random"
+
+        new_monitors: dict[str, str | None] = {}
+        for screen in active_monitors.keys():
+            if screen not in screens:
+                continue
+            if cycle_order == "random":
+                chosen = random.choice(candidates)
+            else:
+                current = active_monitors.get(screen)
+                if current in sorted_ids:
+                    idx = sorted_ids.index(str(current))
+                    chosen = sorted_ids[(idx + 1) % len(sorted_ids)]
+                else:
+                    chosen = sorted_ids[0]
+            new_monitors[screen] = chosen
+
+        if not new_monitors:
+            self._set_status("Cycle skipped: no active screens")
+            return
+
+        self.state_manager.set_active_monitors(new_monitors)
+        primary = self.state_manager.get_last_screen()
+        if primary not in new_monitors:
+            primary = next(iter(new_monitors.keys()))
+            self.state_manager.set_last_screen(primary)
+        self.state_manager.set_last_wallpaper(new_monitors.get(primary))
+
+        self.controller.restart_wallpapers()
+        self.activeMonitorsChanged.emit()
+        self._set_status(f"Cycled wallpaper ({cycle_order})")
+
+    def _start_detached(self, program: str, args: list[str], workdir: str) -> bool:
+        result = QProcess.startDetached(program, args, workdir)
+        if isinstance(result, tuple):
+            return bool(result[0])
+        return bool(result)
 
     @Property(list, notify=wallpapersChanged)
     def wallpapers(self) -> list[dict[str, str]]:
@@ -561,6 +701,10 @@ class Backend(QObject):
         self.config.set("cycleEnabled", bool(enabled))
         self.settingsChanged.emit()
         self._set_status(f"Cycle wallpaper {'enabled' if enabled else 'disabled'}")
+        if enabled:
+            self._start_cycle_timer()
+        else:
+            self._stop_cycle_timer()
 
     @Slot(int)
     def setCycleInterval(self, interval: int) -> None:
@@ -568,6 +712,8 @@ class Backend(QObject):
         self.config.set("cycleInterval", clamped)
         self.settingsChanged.emit()
         self._set_status(f"Cycle interval set to {clamped} minute(s)")
+        if self.cycleEnabled:
+            self._start_cycle_timer()
 
     @Slot(str)
     def setCycleOrder(self, order: str) -> None:
@@ -586,6 +732,137 @@ class Backend(QObject):
         self._set_status(
             f"Cycle source set to {'all wallpapers' if not normalized else normalized}"
         )
+
+    @Slot()
+    def startCycleTimer(self) -> None:
+        self._start_cycle_timer()
+        self._set_status("Cycle timer started")
+
+    @Slot()
+    def stopCycleTimer(self) -> None:
+        self._stop_cycle_timer()
+        self._set_status("Cycle timer stopped")
+
+    @Slot(str, result="QVariantMap")
+    def takeScreenshot(self, wp_id: str) -> dict[str, object]:
+        target_id = str(wp_id or self._selected_id).strip()
+        if not target_id:
+            self._set_status("No wallpaper selected for screenshot")
+            return {"ok": False, "error": "NO_WALLPAPER"}
+
+        save_dir = Path.home() / "Pictures" / "wallpaperengine"
+        try:
+            save_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            save_dir = Path("/tmp")
+
+        output_path = (
+            save_dir / f"Screenshot_{target_id}_{time.strftime('%Y%m%d_%H%M%S')}.png"
+        )
+
+        wp = self.wallpaper_manager.get_wallpaper(target_id)
+        wp_type = str((wp or {}).get("type", "unknown")).lower()
+        delay_cfg = self.config.get("screenshotDelay", 20)
+        user_delay = int(delay_cfg) if isinstance(delay_cfg, (int, float)) else 20
+        delay_frames = 5 if wp_type == "video" else user_delay
+
+        try:
+            proc, tracker = self.controller.take_screenshot(
+                target_id,
+                str(output_path),
+                delay=delay_frames,
+            )
+        except Exception as exc:
+            self._set_status(f"Failed to start screenshot: {exc}")
+            return {"ok": False, "error": str(exc)}
+
+        start_time = time.time()
+        has_file = False
+        stable_ticks = 0
+        last_size = -1
+
+        def _kill_process_group() -> None:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+            except Exception:
+                try:
+                    proc.terminate()
+                except Exception:
+                    pass
+
+        has_xvfb = bool(self.config.get("preferXvfb", True)) and bool(
+            shutil.which("xvfb-run")
+        )
+
+        timeout_s = (delay_frames / (1.0 if has_xvfb else 60.0)) + (
+            20.0 if has_xvfb else 3.0
+        )
+
+        while True:
+            elapsed = time.time() - start_time
+
+            if proc.poll() is not None:
+                break
+
+            if output_path.exists():
+                try:
+                    current_size = output_path.stat().st_size
+                except OSError:
+                    current_size = -1
+                if current_size > 0:
+                    has_file = True
+                    if current_size == last_size:
+                        stable_ticks += 1
+                    else:
+                        stable_ticks = 0
+                    last_size = current_size
+                    if stable_ticks >= 2:
+                        _kill_process_group()
+                        break
+
+            if elapsed > timeout_s:
+                _kill_process_group()
+                break
+
+            time.sleep(0.1)
+
+        final_exists = output_path.exists()
+        final_size = output_path.stat().st_size if final_exists else 0
+        if final_exists and final_size > 0:
+            stats = self.controller.perf_monitor.stop_task(tracker)
+            self.controller.perf_monitor.add_screenshot_history(
+                target_id,
+                str(output_path),
+                stats,
+            )
+            self._set_status(f"Screenshot saved: {output_path}")
+            return {
+                "ok": True,
+                "path": str(output_path),
+                "duration": float(stats.get("duration", 0.0)),
+                "maxCpu": float(stats.get("max_cpu", 0.0)),
+                "maxMem": float(stats.get("max_mem", 0.0)),
+                "avgCpu": float(stats.get("avg_cpu", 0.0)),
+                "avgMem": float(stats.get("avg_mem", 0.0)),
+            }
+
+        _ = self.controller.perf_monitor.stop_task(tracker)
+        self._set_status("Screenshot failed")
+        return {
+            "ok": False,
+            "error": "SCREENSHOT_FAILED",
+            "path": str(output_path),
+            "captured": bool(has_file),
+        }
+
+    @Slot(result="QVariantList")
+    def getScreenshotHistory(self) -> list[dict[str, object]]:
+        return self.controller.perf_monitor.get_screenshot_history()
+
+    @Slot()
+    def clearScreenshotHistory(self) -> None:
+        self.controller.perf_monitor.clear_screenshot_history()
+        self._set_status("Screenshot history cleared")
 
     @Slot(bool)
     def setDisableParallax(self, disabled: bool) -> None:
@@ -842,7 +1119,46 @@ class Backend(QObject):
 
     @Slot()
     def restartApp(self) -> None:
-        self._set_status("Restart is not yet wired in Qt mode")
+        self._set_status("Restarting application...")
+
+        try:
+            self.controller.stop()
+        except Exception:
+            pass
+
+        argv = [str(arg) for arg in QCoreApplication.arguments()]
+        if not argv:
+            argv = [sys.argv[0] if sys.argv else ""]
+
+        filtered_args = [
+            arg for arg in argv[1:] if arg not in ("--hidden", "--minimized")
+        ]
+
+        appimage_path = os.environ.get("APPIMAGE", "").strip()
+        if appimage_path:
+            program = appimage_path
+            launch_args = filtered_args
+            workdir = str(Path.home())
+        else:
+            app_path = QCoreApplication.applicationFilePath().strip()
+            script_entry = Path(sys.argv[0]).resolve() if sys.argv else None
+            if app_path and Path(app_path).resolve() != Path(sys.executable).resolve():
+                program = app_path
+                launch_args = filtered_args
+            else:
+                program = sys.executable
+                if script_entry is not None:
+                    launch_args = [str(script_entry)] + filtered_args
+                else:
+                    launch_args = filtered_args
+            workdir = str(Path.home())
+
+        ok = self._start_detached(program, launch_args, workdir)
+        if ok:
+            QCoreApplication.quit()
+            return
+
+        self._set_status("Failed to restart application")
 
     @Slot(str)
     def applyWallpaper(self, wp_id: str) -> None:
@@ -921,6 +1237,8 @@ class Backend(QObject):
         self.playlistsChanged.emit()
         self.activeMonitorsChanged.emit()
         self._set_status(f"Loaded {len(self._wallpapers)} wallpapers")
+        if self.cycleEnabled:
+            self._start_cycle_timer()
 
     def _ensure_perf_bridge(self) -> None:
         if self._perf_callback_registered:
