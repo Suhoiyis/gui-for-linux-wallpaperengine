@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Item {
     id: root
@@ -8,7 +10,7 @@ Item {
     property var wallpapers: []
     property string selectedId: ""
     property int columns: 5
-    property int cellGap: 12
+    property int cellGap: Theme.spaceMd
     property bool showTitle: true
     property bool showIcons: true
     property string searchText: ""
@@ -138,7 +140,7 @@ Item {
         anchors.centerIn: parent
         visible: !gridView.count
         text: "No wallpapers found"
-        color: "#8a90b8"
+        color: Theme.textSecondary
     }
 
     Dialog {
@@ -147,6 +149,13 @@ Item {
         modal: true
         title: "Edit Nickname"
         standardButtons: Dialog.Ok | Dialog.Cancel
+
+        background: Rectangle {
+            radius: Theme.radiusXl
+            color: Theme.panelBg
+            border.width: 1
+            border.color: Theme.panelBorder
+        }
 
         onOpened: {
             nicknameInput.text = ""
@@ -167,8 +176,8 @@ Item {
         }
 
         contentItem: ColumnLayout {
-            spacing: 8
-            TextField {
+            spacing: Theme.spaceSm
+            Ctrl.GTextField {
                 id: nicknameInput
                 placeholderText: "Nickname"
                 selectByMouse: true

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
 import "../Theme.js" as Theme
 
 Rectangle {
@@ -24,33 +25,32 @@ Rectangle {
     color: Theme.panelBg
     border.width: 1
     border.color: Theme.panelBorder
-    radius: 12
-    implicitHeight: 50
+    radius: Theme.radiusXl
+    implicitHeight: Theme.navHeight
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 8
+        anchors.leftMargin: Theme.spaceMd
+        anchors.rightMargin: Theme.spaceMd
+        spacing: Theme.spaceSm
 
         RowLayout {
-            spacing: 8
+            spacing: Theme.spaceSm
 
-            Button {
+            Ctrl.GIconButton {
                 visible: root.screens.length > 1
                 text: root.linkedMode ? "🔗" : "⛓"
-                width: 34
-                height: 34
+                size: Theme.iconButtonMd
                 onClicked: root.linkedModeChangedByUser(!root.linkedMode)
             }
 
             Label {
                 text: "🖥"
-                color: "#8a90b8"
-                font.pixelSize: 12
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontSizeMd
             }
 
-            ComboBox {
+            Ctrl.GComboBox {
                 id: screenCombo
                 model: root.screens
                 implicitWidth: 180
@@ -81,7 +81,7 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
         RowLayout {
-            spacing: 6
+            spacing: Theme.spaceXs
 
             AppMenu {
                 backend: root.backend
@@ -92,34 +92,30 @@ Rectangle {
                 onRequestQuitConfirm: root.appMenuQuitRequested()
             }
 
-            Button {
+            Ctrl.GIconButton {
                 text: "🏠"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 highlighted: root.currentPage === "library"
                 onClicked: root.pageChanged("library")
             }
 
-            Button {
+            Ctrl.GIconButton {
                 text: "📈"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 highlighted: root.currentPage === "performance"
                 onClicked: root.pageChanged("performance")
             }
 
-            Button {
+            Ctrl.GIconButton {
                 text: "⚙"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 highlighted: root.currentPage === "settings"
                 onClicked: root.pageChanged("settings")
             }
 
-            Button {
+            Ctrl.GIconButton {
                 text: "🪟"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 highlighted: root.currentPage === "compact"
                 onClicked: root.pageChanged("compact")
             }

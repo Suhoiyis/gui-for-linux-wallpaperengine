@@ -1,20 +1,30 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
+import "../Theme.js" as Theme
 
 Frame {
     id: root
 
     property var backend
 
+    background: Rectangle {
+        color: Theme.panelBg
+        radius: Theme.radiusXl
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+    padding: Theme.spaceMd
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spaceSm
 
         Label {
             text: "Playback & Performance"
-            color: "#9aa5ce"
-            font.pixelSize: 12
+            color: Theme.textSection
+            font.pixelSize: Theme.fontSizeMd
             font.bold: true
         }
 
@@ -22,10 +32,10 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Target FPS"
-                color: "#c0caf5"
-                Layout.preferredWidth: 170
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 8.5
             }
-            Slider {
+            Ctrl.GSlider {
                 id: fpsSlider
                 Layout.fillWidth: true
                 from: 10
@@ -36,8 +46,8 @@ Frame {
             }
             Label {
                 text: String(Math.round(fpsSlider.value))
-                color: "#8a90b8"
-                Layout.preferredWidth: 36
+                color: Theme.textSecondary
+                Layout.preferredWidth: Theme.spaceXl * 1.8
             }
         }
 
@@ -45,10 +55,10 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Scaling"
-                color: "#c0caf5"
-                Layout.preferredWidth: 170
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 8.5
             }
-            ComboBox {
+            Ctrl.GComboBox {
                 id: scalingCombo
                 Layout.fillWidth: true
                 model: ["default", "stretch", "fit", "fill"]
@@ -65,10 +75,10 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Clamping"
-                color: "#c0caf5"
-                Layout.preferredWidth: 170
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 8.5
             }
-            ComboBox {
+            Ctrl.GComboBox {
                 id: clampingCombo
                 Layout.fillWidth: true
                 model: ["clamp", "border", "repeat"]
@@ -83,8 +93,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Parallax"; color: "#c0caf5"; Layout.preferredWidth: 170 }
-            Switch {
+            Label { text: "Disable Parallax"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.disableParallax : false
                 onToggled: if (root.backend) root.backend.setDisableParallax(checked)
             }
@@ -92,8 +102,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Particles"; color: "#c0caf5"; Layout.preferredWidth: 170 }
-            Switch {
+            Label { text: "Disable Particles"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.disableParticles : false
                 onToggled: if (root.backend) root.backend.setDisableParticles(checked)
             }
@@ -101,8 +111,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "No Fullscreen Pause"; color: "#c0caf5"; Layout.preferredWidth: 170 }
-            Switch {
+            Label { text: "No Fullscreen Pause"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.noFullscreenPause : false
                 onToggled: if (root.backend) root.backend.setNoFullscreenPause(checked)
             }
@@ -110,8 +120,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Mouse Interaction"; color: "#c0caf5"; Layout.preferredWidth: 170 }
-            Switch {
+            Label { text: "Disable Mouse Interaction"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.disableMouse : false
                 onToggled: if (root.backend) root.backend.setDisableMouse(checked)
             }

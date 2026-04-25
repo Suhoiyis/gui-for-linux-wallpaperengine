@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
 
 Rectangle {
     id: root
@@ -10,16 +11,16 @@ Rectangle {
 
     signal selectRequested(string wallpaperId)
 
-    color: "#16161e"
+    color: Theme.statusBarBg
     border.width: 1
-    border.color: "#2f344b"
+    border.color: Theme.panelBorder
 
     ListView {
         id: listView
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: Theme.spaceSm
         orientation: ListView.Horizontal
-        spacing: 10
+        spacing: Theme.spaceSm
         clip: true
 
         model: root.wallpapers
@@ -27,15 +28,15 @@ Rectangle {
         delegate: Rectangle {
             width: 100
             height: 100
-            radius: 8
-            color: "#1f2335"
-            border.width: root.selectedId === modelData.id ? 2 : 0
-            border.color: "#7aa2f7"
+            radius: Theme.radiusMd
+            color: Theme.cardBg
+            border.width: root.selectedId === modelData.id ? Theme.cardBorderWidth : 0
+            border.color: Theme.cardBorderActive
             clip: true
 
             Image {
                 anchors.fill: parent
-                anchors.margins: root.selectedId === modelData.id ? 2 : 0
+                anchors.margins: root.selectedId === modelData.id ? Theme.cardBorderWidth : 0
                 source: modelData.preview || ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true

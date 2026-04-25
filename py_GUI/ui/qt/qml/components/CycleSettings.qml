@@ -1,20 +1,30 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
+import "../Theme.js" as Theme
 
 Frame {
     id: root
 
     property var backend
 
+    background: Rectangle {
+        color: Theme.panelBg
+        radius: Theme.radiusXl
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+    padding: Theme.spaceMd
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spaceSm
 
         Label {
             text: "Automation"
-            color: "#9aa5ce"
-            font.pixelSize: 12
+            color: Theme.textSection
+            font.pixelSize: Theme.fontSizeMd
             font.bold: true
         }
 
@@ -22,10 +32,10 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Enable Cycle"
-                color: "#c0caf5"
-                Layout.preferredWidth: 140
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 7
             }
-            Switch {
+            Ctrl.GSwitch {
                 id: cycleSwitch
                 checked: root.backend ? root.backend.cycleEnabled : false
                 onToggled: {
@@ -47,10 +57,10 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Interval (minutes)"
-                color: "#c0caf5"
-                Layout.preferredWidth: 140
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 7
             }
-            SpinBox {
+            Ctrl.GSpinBox {
                 id: intervalSpin
                 from: 1
                 to: 1440
@@ -75,10 +85,10 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Order"
-                color: "#c0caf5"
-                Layout.preferredWidth: 140
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 7
             }
-            ComboBox {
+            Ctrl.GComboBox {
                 id: orderCombo
                 Layout.fillWidth: true
                 model: ["random", "title", "size", "type", "id"]
@@ -107,10 +117,10 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Playlist"
-                color: "#c0caf5"
-                Layout.preferredWidth: 140
+                color: Theme.textPrimary
+                Layout.preferredWidth: Theme.spaceXl * 7
             }
-            ComboBox {
+            Ctrl.GComboBox {
                 id: playlistCombo
                 Layout.fillWidth: true
                 textRole: "name"

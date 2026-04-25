@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Item {
     id: root
@@ -19,17 +21,17 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 16
+        spacing: Theme.spaceLg
 
         // Preview Image
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
             width: 200
             height: 200
-            radius: 16
-            color: "#1f2335"
-            border.width: 2
-            border.color: "#2b2f42"
+            radius: Theme.radius3xl
+            color: Theme.cardBg
+            border.width: Theme.cardBorderWidth
+            border.color: Theme.cardBorder
             clip: true
 
             Image {
@@ -49,13 +51,13 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: "#374151"
+                    color: Theme.errorBg
                     visible: previewImage.status === Image.Error || !previewImage.source
                     Text {
                         anchors.centerIn: parent
                         text: "No Preview"
-                        color: "#9ca3af"
-                        font.pixelSize: 12
+                        color: Theme.errorText
+                        font.pixelSize: Theme.fontSizeMd
                     }
                 }
             }
@@ -64,14 +66,14 @@ Item {
         // Title & ID
         ColumnLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 4
+            spacing: Theme.spaceXs
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: 280
                 text: root.wallpaper && root.wallpaper.title ? root.wallpaper.title : "Select Wallpaper"
-                color: "#c0caf5"
-                font.pixelSize: 16
+                color: Theme.textPrimary
+                font.pixelSize: Theme.fontSizeXl
                 font.bold: true
                 elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
@@ -79,28 +81,28 @@ Item {
 
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
-                width: idRow.implicitWidth + 16
-                height: 24
-                radius: 12
-                color: "#16161e"
+                width: idRow.implicitWidth + Theme.spaceLg
+                height: Theme.space2xl
+                radius: Theme.radiusXl
+                color: Theme.inputBg
                 border.width: 1
-                border.color: "#2f344b"
+                border.color: Theme.panelBorder
 
                 RowLayout {
                     id: idRow
                     anchors.centerIn: parent
-                    spacing: 4
+                    spacing: Theme.spaceXs
 
                     Label {
                         text: root.wallpaper && root.wallpaper.id ? root.wallpaper.id : "---"
-                        color: "#565f89"
-                        font.pixelSize: 10
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontSizeXs
                     }
 
                     Label {
                         text: "📋"
-                        color: "#565f89"
-                        font.pixelSize: 10
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontSizeXs
                     }
                 }
 
@@ -115,35 +117,34 @@ Item {
         // Navigation
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 12
+            spacing: Theme.spaceMd
 
-            Button {
+            Ctrl.GIconButton {
                 text: "◀"
-                width: 32
-                height: 32
+                size: Theme.iconButtonSm
                 onClicked: root.navigate(-1)
             }
 
             Rectangle {
                 width: 80
-                height: 32
-                radius: 6
-                color: "#16161e"
+                height: Theme.iconButtonSm
+                radius: Theme.radiusSm
+                color: Theme.inputBg
                 border.width: 1
-                border.color: "#2f344b"
+                border.color: Theme.panelBorder
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 4
+                    anchors.margins: Theme.spaceXs
                     spacing: 2
 
-                    TextField {
+                    Ctrl.GTextField {
                         id: pageInput
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         text: root.currentIndex.toString()
-                        color: "#c0caf5"
-                        font.pixelSize: 12
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.fontSizeMd
                         horizontalAlignment: Text.AlignHCenter
                         background: Item {}
                         onEditingFinished: {
@@ -158,39 +159,26 @@ Item {
 
                     Label {
                         text: "/ " + root.totalCount
-                        color: "#565f89"
-                        font.pixelSize: 12
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontSizeMd
                     }
                 }
             }
 
-            Button {
+            Ctrl.GIconButton {
                 text: "▶"
-                width: 32
-                height: 32
+                size: Theme.iconButtonSm
                 onClicked: root.navigate(1)
             }
         }
 
         // Apply Button
-        Button {
+        Ctrl.GPillButton {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 40
+            Layout.preferredWidth: Theme.spaceXl * 10
+            Layout.preferredHeight: Theme.navHeight - Theme.spaceXs
             text: "Apply Wallpaper"
-            font.bold: true
             onClicked: root.applyRequested()
-            background: Rectangle {
-                radius: 8
-                color: parent.down ? "#3d59a1" : (parent.hovered ? "#7aa2f7" : "#27a1b9")
-            }
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: "#1a1b26"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
         }
     }
 }

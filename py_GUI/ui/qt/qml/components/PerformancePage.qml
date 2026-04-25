@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
 
 Item {
     id: root
@@ -9,48 +10,48 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#1a1b26"
+        color: Theme.windowBg
 
         ScrollView {
             anchors.fill: parent
-            anchors.margins: 12
+            anchors.margins: Theme.spaceMd
             contentWidth: availableWidth
 
             ColumnLayout {
                 width: parent.width
-                spacing: 12
+                spacing: Theme.spaceMd
 
                 Label {
                     text: "System Monitor"
-                    color: "#c0caf5"
-                    font.pixelSize: 20
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.fontSize3xl
                     font.bold: true
                 }
 
                 Label {
                     text: "Real-time resource usage of wallpaper components."
-                    color: "#8a90b8"
-                    font.pixelSize: 12
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.fontSizeMd
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: Theme.spaceSm
 
                     Frame {
                         Layout.fillWidth: true
                         ColumnLayout {
                             anchors.fill: parent
-                            Label { text: "Total CPU"; color: "#8a90b8" }
+                            Label { text: "Total CPU"; color: Theme.textSecondary }
                             Label {
                                 text: root.backend ? String(root.backend.performanceTotal.cpu_fmt || "0%") : "0%"
-                                color: "#c0caf5"
-                                font.pixelSize: 18
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.fontSize2xl
                                 font.bold: true
                             }
                             SparklineChart {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 46
+                                Layout.preferredHeight: Theme.spaceXl * 2.3
                                 values: {
                                     var hist = root.backend && root.backend.performanceTotal ? root.backend.performanceTotal.history : null
                                     return hist && hist.cpu ? hist.cpu : []
@@ -64,17 +65,17 @@ Item {
                         Layout.fillWidth: true
                         ColumnLayout {
                             anchors.fill: parent
-                            Label { text: "Total Memory"; color: "#8a90b8" }
+                            Label { text: "Total Memory"; color: Theme.textSecondary }
                             Label {
                                 text: root.backend ? String(root.backend.performanceTotal.memory_fmt || "0 MB") : "0 MB"
-                                color: "#c0caf5"
-                                font.pixelSize: 18
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.fontSize2xl
                                 font.bold: true
                             }
                             SparklineChart {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 46
-                                lineColor: "#93c5fd"
+                                Layout.preferredHeight: Theme.spaceXl * 2.3
+                                lineColor: Theme.typeBlue
                                 fillColor: "#93c5fd22"
                                 values: {
                                     var hist = root.backend && root.backend.performanceTotal ? root.backend.performanceTotal.history : null
@@ -92,11 +93,11 @@ Item {
                         Layout.fillWidth: true
                         ColumnLayout {
                             anchors.fill: parent
-                            Label { text: "Threads"; color: "#8a90b8" }
+                            Label { text: "Threads"; color: Theme.textSecondary }
                             Label {
                                 text: root.backend ? String(root.backend.performanceTotal.threads || 0) : "0"
-                                color: "#c0caf5"
-                                font.pixelSize: 18
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.fontSize2xl
                                 font.bold: true
                             }
                         }
@@ -107,12 +108,12 @@ Item {
                     Layout.fillWidth: true
                     ColumnLayout {
                         anchors.fill: parent
-                        spacing: 8
+                        spacing: Theme.spaceSm
 
                         Label {
                             text: "Process Details"
-                            color: "#9aa5ce"
-                            font.pixelSize: 12
+                            color: Theme.textSection
+                            font.pixelSize: Theme.fontSizeMd
                             font.bold: true
                         }
 
@@ -124,28 +125,28 @@ Item {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    spacing: 10
+                                    spacing: Theme.spaceSm
 
                                     Label {
                                         text: (modelData.category || "process") + " (" + String(modelData.pid || 0) + ")"
-                                        color: "#c0caf5"
+                                        color: Theme.textPrimary
                                         font.bold: true
                                         Layout.fillWidth: true
                                     }
                                     Label {
                                         text: String(modelData.cpu_fmt || "0%")
-                                        color: "#fda4af"
-                                        Layout.preferredWidth: 80
+                                        color: Theme.sizePink
+                                        Layout.preferredWidth: Theme.spaceXl * 4
                                     }
                                     Label {
                                         text: String(modelData.memory_fmt || "0 MB")
-                                        color: "#93c5fd"
-                                        Layout.preferredWidth: 100
+                                        color: Theme.typeBlue
+                                        Layout.preferredWidth: Theme.spaceXl * 5
                                     }
                                     Label {
                                         text: String(modelData.status || "")
-                                        color: "#8a90b8"
-                                        Layout.preferredWidth: 100
+                                        color: Theme.textSecondary
+                                        Layout.preferredWidth: Theme.spaceXl * 5
                                     }
                                 }
                             }
@@ -154,7 +155,7 @@ Item {
                         Label {
                             visible: (root.backend ? root.backend.performanceProcesses.length : 0) === 0
                             text: "No active monitored processes"
-                            color: "#8a90b8"
+                            color: Theme.textSecondary
                         }
                     }
                 }

@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Dialog {
     id: root
@@ -12,9 +14,16 @@ Dialog {
     width: 560
     height: 500
 
+    background: Rectangle {
+        radius: Theme.radiusXl
+        color: Theme.panelBg
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spaceSm
 
         ListView {
             Layout.fillWidth: true
@@ -26,29 +35,29 @@ Dialog {
                 required property var modelData
                 width: ListView.view.width
                 height: 58
-                color: model.index % 2 === 0 ? "#1f2335" : "#1b1f2f"
+                color: model.index % 2 === 0 ? Theme.rowEven : Theme.rowOdd
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
+                    anchors.leftMargin: Theme.spaceSm
+                    anchors.rightMargin: Theme.spaceSm
 
                     Label {
                         text: modelData.title || "Unknown"
-                        color: "#c0caf5"
+                        color: Theme.textPrimary
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                     }
 
                     Label {
                         text: modelData.id || ""
-                        color: "#8a90b8"
-                        font.pixelSize: 11
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontSizeSm
                         Layout.preferredWidth: 120
                         elide: Text.ElideRight
                     }
 
-                    Button {
+                    Ctrl.GButton {
                         text: "Reuse"
                         onClicked: {
                             if (root.backend) {
@@ -65,7 +74,7 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
-            Button {
+            Ctrl.GButton {
                 text: "Clear History"
                 enabled: (root.backend ? root.backend.history.length : 0) > 0
                 onClicked: {

@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Item {
     id: root
@@ -11,12 +13,13 @@ Item {
     signal showWelcomeRequested()
     signal requestQuitConfirm()
 
-    width: 36
-    height: 36
+    width: Theme.navButtonSize
+    height: Theme.navButtonSize
 
-    Button {
+    Ctrl.GIconButton {
         anchors.fill: parent
         text: "☰"
+        size: Theme.navButtonSize
         onClicked: menu.popup()
     }
 

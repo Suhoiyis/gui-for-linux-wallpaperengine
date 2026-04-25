@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Popup {
     id: root
@@ -14,10 +16,10 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
-        radius: 12
-        color: "#1a1b26"
+        radius: Theme.radiusXl
+        color: Theme.windowBg
         border.width: 1
-        border.color: "#2f344b"
+        border.color: Theme.panelBorder
     }
 
     property string query: ""
@@ -30,10 +32,10 @@ Popup {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: Theme.spaceMd
+        spacing: Theme.spaceSm
 
-        TextField {
+        Ctrl.GTextField {
             id: searchField
             Layout.fillWidth: true
             placeholderText: "Search wallpapers and commands..."
@@ -84,7 +86,7 @@ Popup {
                 return out
             }
 
-            delegate: ItemDelegate {
+            delegate: Ctrl.GItemDelegate {
                 required property var modelData
                 width: ListView.view.width
                 text: modelData.label

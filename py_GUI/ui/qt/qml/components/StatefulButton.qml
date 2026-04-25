@@ -1,7 +1,9 @@
 import QtQuick
 import QtQuick.Controls
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
-Button {
+Ctrl.GButton {
     id: root
 
     property string idleText: text

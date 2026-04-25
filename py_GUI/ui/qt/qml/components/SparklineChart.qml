@@ -1,10 +1,11 @@
 import QtQuick
+import "../Theme.js" as Theme
 
 Item {
     id: root
 
     property var values: []
-    property color lineColor: "#7aa2f7"
+    property color lineColor: Theme.accent
     property color fillColor: "#7aa2f722"
     property real maxValue: 100
 
@@ -29,7 +30,7 @@ Item {
                 else ctx.lineTo(x, y)
             }
             ctx.strokeStyle = root.lineColor
-            ctx.lineWidth = 2
+            ctx.lineWidth = Theme.cardBorderWidth
             ctx.stroke()
 
             ctx.lineTo(width, height)

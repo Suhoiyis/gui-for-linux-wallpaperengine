@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
 
 Item {
     id: root
@@ -11,7 +12,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#1a1b26"
+        color: Theme.windowBg
 
         ColumnLayout {
             anchors.fill: parent
@@ -19,7 +20,7 @@ Item {
 
             CompactNavbar {
                 Layout.fillWidth: true
-                Layout.margins: 10
+                Layout.margins: Theme.spaceSm
                 onSwitchToNormal: root.switchToNormal()
             }
 
@@ -30,11 +31,11 @@ Item {
 
                 ColumnLayout {
                     width: parent.width
-                    spacing: 20
+                    spacing: Theme.spaceXl
 
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 20
+                        Layout.preferredHeight: Theme.spaceXl
                     }
 
                     CompactPreview {

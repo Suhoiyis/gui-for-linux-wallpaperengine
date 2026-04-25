@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Dialog {
     id: root
@@ -9,8 +11,15 @@ Dialog {
     property var rows: []
     modal: true
     title: "Nickname Manager"
-    width: 680
-    height: 560
+    width: 560
+    height: 440
+
+    background: Rectangle {
+        radius: Theme.radiusXl
+        color: Theme.panelBg
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
 
     function rebuildRows() {
         var arr = []
@@ -35,11 +44,11 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        spacing: Theme.spaceSm
 
         RowLayout {
             Layout.fillWidth: true
-            Button {
+            Ctrl.GButton {
                 text: "Select All"
                 onClicked: {
                     var arr = root.rows.slice()
@@ -47,7 +56,7 @@ Dialog {
                     root.rows = arr
                 }
             }
-            Button {
+            Ctrl.GButton {
                 text: "Deselect All"
                 onClicked: {
                     var arr = root.rows.slice()
@@ -56,7 +65,7 @@ Dialog {
                 }
             }
             Item { Layout.fillWidth: true }
-            Button {
+            Ctrl.GButton {
                 text: "Clear Selected"
                 onClicked: {
                     var arr = root.rows.slice()
@@ -78,16 +87,16 @@ Dialog {
                 required property var modelData
                 width: ListView.view.width
                 height: 54
-                color: modelData.selected ? "#2c3148" : "#1f2335"
+                color: modelData.selected ? Theme.rowSelected : Theme.panelBg
                 border.width: 1
-                border.color: "#2f344b"
-                radius: 8
+                border.color: Theme.panelBorder
+                radius: Theme.radiusMd
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
-                    spacing: 8
+                    anchors.leftMargin: Theme.spaceSm
+                    anchors.rightMargin: Theme.spaceSm
+                    spacing: Theme.spaceSm
 
                     CheckBox {
                         checked: modelData.selected
@@ -100,12 +109,12 @@ Dialog {
 
                     Label {
                         text: modelData.title
-                        color: "#a9b1d6"
+                        color: Theme.textBody
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                     }
 
-                    TextField {
+                    Ctrl.GTextField {
                         Layout.preferredWidth: 300
                         text: modelData.nickname
                         onTextEdited: {
@@ -121,8 +130,8 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
-            Button { text: "Cancel"; onClicked: root.close() }
-            Button {
+            Ctrl.GButton { text: "Cancel"; onClicked: root.close() }
+            Ctrl.GPillButton {
                 text: "Save Changes"
                 onClicked: {
                     if (root.backend) {

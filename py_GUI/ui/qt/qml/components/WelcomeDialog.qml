@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Dialog {
     id: root
@@ -14,12 +16,19 @@ Dialog {
     height: 500
     title: "Welcome"
 
+    background: Rectangle {
+        radius: Theme.radiusXl
+        color: Theme.panelBg
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+
     onOpened: step = 0
     closePolicy: requiredMode ? Popup.NoAutoClose : (Popup.CloseOnEscape | Popup.CloseOnPressOutside)
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: Theme.spaceMd
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
@@ -30,7 +39,7 @@ Dialog {
                     width: 8
                     height: 8
                     radius: 4
-                    color: root.step === index ? "#7aa2f7" : "#4a506b"
+                    color: root.step === index ? Theme.accent : Theme.inputBorder
                 }
             }
         }
@@ -38,8 +47,8 @@ Dialog {
         Label {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
-            color: "#c0caf5"
-            font.pixelSize: 18
+            color: Theme.textPrimary
+            font.pixelSize: Theme.fontSize2xl
             font.bold: true
             text: {
                 if (root.step === 0) return "Welcome"
@@ -53,15 +62,15 @@ Dialog {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 10
-            color: "#1f2335"
+            radius: Theme.radiusLg
+            color: Theme.panelBg
             border.width: 1
-            border.color: "#2f344b"
+            border.color: Theme.panelBorder
 
             Label {
                 anchors.centerIn: parent
-                color: "#a9b1d6"
-                width: parent.width - 40
+                color: Theme.textBody
+                width: parent.width - Theme.spaceXl * 2
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 text: {
@@ -76,18 +85,18 @@ Dialog {
 
         RowLayout {
             Layout.fillWidth: true
-            Button {
+            Ctrl.GButton {
                 text: "Back"
                 enabled: root.step > 0
                 onClicked: root.step = Math.max(0, root.step - 1)
             }
             Item { Layout.fillWidth: true }
-            Button {
+            Ctrl.GPillButton {
                 visible: root.step < 4
                 text: root.step === 0 ? "Get Started" : "Continue"
                 onClicked: root.step = Math.min(4, root.step + 1)
             }
-            Button {
+            Ctrl.GPillButton {
                 visible: root.step === 4
                 text: "Start Using App"
                 onClicked: {

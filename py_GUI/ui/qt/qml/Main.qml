@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "components" as Comp
+import "controls" as Ctrl
 import "Theme.js" as Theme
 
 ApplicationWindow {
@@ -11,7 +12,7 @@ ApplicationWindow {
     width: 1200
     height: 800
     title: "LWG Qt Quick PoC"
-    
+
     color: Theme.windowBg
 
     property string sortBy: "name"
@@ -28,10 +29,10 @@ ApplicationWindow {
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
-        
+
         Comp.NavBar {
             Layout.fillWidth: true
-            Layout.margins: 10
+            Layout.margins: Theme.spaceSm
 
             screens: window.backendRef ? window.backendRef.screens : []
             selectedScreen: window.backendRef ? window.backendRef.selectedScreen : ""
@@ -117,7 +118,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             height: 40
             color: Theme.statusBarBg
-            
+
             Label {
                 anchors.centerIn: parent
                 text: (window.backendRef && window.backendRef.statusMessage.length > 0)
@@ -125,7 +126,7 @@ ApplicationWindow {
                     : (window.backendRef && window.backendRef.selectedId
                        ? "Selected: " + window.backendRef.selectedId
                        : "Click a wallpaper to select")
-                color: "#565f89"
+                color: Theme.textSecondary
             }
         }
     }
@@ -192,15 +193,20 @@ ApplicationWindow {
         visible: window.showQuitConfirm
         modal: true
         title: "Quit Application?"
-        width: 420
-        height: 170
+        width: 400
         standardButtons: Dialog.Ok | Dialog.Cancel
         onAccepted: Qt.quit()
         onRejected: window.showQuitConfirm = false
         onClosed: window.showQuitConfirm = false
+        background: Rectangle {
+            radius: Theme.radiusXl
+            color: Theme.panelBg
+            border.width: 1
+            border.color: Theme.panelBorder
+        }
         contentItem: Label {
             text: "This will stop wallpapers and close the app."
-            color: "#c0caf5"
+            color: Theme.textPrimary
             wrapMode: Text.WordWrap
         }
     }

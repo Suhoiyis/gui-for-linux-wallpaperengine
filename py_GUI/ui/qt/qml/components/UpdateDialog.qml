@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Dialog {
     id: root
@@ -15,24 +17,31 @@ Dialog {
     width: 430
     height: 290
 
+    background: Rectangle {
+        radius: Theme.radiusXl
+        color: Theme.panelBg
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: Theme.spaceMd
 
         Frame {
             Layout.fillWidth: true
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 6
-                Label { text: "Current: v" + root.currentVersion; color: "#8a90b8" }
-                Label { text: "Latest: " + root.latestVersion; color: "#7aa2f7"; font.bold: true }
+                spacing: Theme.spaceXs
+                Label { text: "Current: v" + root.currentVersion; color: Theme.textSecondary }
+                Label { text: "Latest: " + root.latestVersion; color: Theme.accent; font.bold: true }
             }
         }
 
         Label {
             Layout.fillWidth: true
             text: "A new version is available."
-            color: "#a9b1d6"
+            color: Theme.textBody
             wrapMode: Text.WordWrap
         }
 
@@ -40,11 +49,11 @@ Dialog {
 
         RowLayout {
             Layout.alignment: Qt.AlignRight
-            Button {
+            Ctrl.GButton {
                 text: "Later"
                 onClicked: root.close()
             }
-            Button {
+            Ctrl.GPillButton {
                 text: "Download"
                 onClicked: {
                     if (root.backend && root.downloadUrl.length > 0) {

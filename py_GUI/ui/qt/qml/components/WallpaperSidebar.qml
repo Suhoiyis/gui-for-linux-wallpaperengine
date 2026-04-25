@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Rectangle {
     id: root
@@ -16,9 +18,9 @@ Rectangle {
     signal favoriteToggled(string wallpaperId)
     signal nicknameEditRequested(string wallpaperId, string nickname)
 
-    color: "#1b1f2f"
+    color: Theme.sidebarBg
     border.width: 1
-    border.color: "#2f344b"
+    border.color: Theme.panelBorder
 
     ColumnLayout {
         anchors.fill: parent
@@ -29,24 +31,24 @@ Rectangle {
             Layout.fillHeight: true
 
             Item {
-                width: parent ? parent.width : 320
-                implicitHeight: contentColumn.implicitHeight + 20
+                width: parent ? parent.width : Theme.sidebarWidth
+                implicitHeight: contentColumn.implicitHeight + Theme.spaceXl
 
                 ColumnLayout {
                     id: contentColumn
-                    width: parent.width - 24
+                    width: parent.width - Theme.space2xl
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
-                    anchors.topMargin: 12
-                    spacing: 10
+                    anchors.topMargin: Theme.spaceMd
+                    spacing: Theme.spaceSm
 
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: width
-                        radius: 14
-                        color: "#24283b"
+                        radius: Theme.radius2xl
+                        color: Theme.cardBg
                         border.width: 1
-                        border.color: "#353d57"
+                        border.color: Theme.panelBorder
                         clip: true
 
                         Image {
@@ -58,41 +60,43 @@ Rectangle {
 
                         Rectangle {
                             anchors.fill: parent
-                            color: "#24283b"
+                            color: Theme.cardBg
                             visible: !root.hasWallpaper
                             Label {
                                 anchors.centerIn: parent
                                 text: "Select a wallpaper"
-                                color: "#8a90b8"
+                                color: Theme.textSecondary
                             }
                         }
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 6
+                        spacing: Theme.spaceXs
 
                         RowLayout {
                             Layout.fillWidth: true
 
                             Label {
                                 text: root.hasWallpaper ? (root.wallpaper.title || "Unknown") : "None"
-                                color: "#c0caf5"
-                                font.pixelSize: 16
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.fontSizeXl
                                 font.bold: true
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
 
-                            ToolButton {
+                            Ctrl.GIconButton {
                                 enabled: root.hasWallpaper
                                 text: "✎"
+                                size: Theme.iconButtonSm
                                 onClicked: root.nicknameDialogOpen = true
                             }
 
-                            ToolButton {
+                            Ctrl.GIconButton {
                                 enabled: root.hasWallpaper
                                 text: (root.backend && root.hasWallpaper && root.backend.isFavorite(root.wallpaper.id)) ? "★" : "☆"
+                                size: Theme.iconButtonSm
                                 onClicked: if (root.hasWallpaper) root.favoriteToggled(root.wallpaper.id)
                             }
                         }
@@ -100,73 +104,73 @@ Rectangle {
                         Label {
                             visible: root.hasWallpaper && root.originalTitle.length > 0 && root.originalTitle !== (root.wallpaper.title || "")
                             text: root.originalTitle
-                            color: "#8a90b8"
-                            font.pixelSize: 11
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontSizeSm
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 6
+                            spacing: Theme.spaceXs
 
                             Rectangle {
-                                radius: 8
-                                color: "#33415566"
+                                radius: Theme.radiusMd
+                                color: Theme.cardBg
                                 border.width: 1
-                                border.color: "#334155"
-                                implicitHeight: 24
-                                implicitWidth: typeLabel.implicitWidth + 12
+                                border.color: Theme.cardBorder
+                                implicitHeight: Theme.space2xl
+                                implicitWidth: typeLabel.implicitWidth + Theme.spaceMd
 
                                 Label {
                                     id: typeLabel
                                     anchors.centerIn: parent
                                     text: root.hasWallpaper ? (root.wallpaper.type || "unknown") : "unknown"
-                                    color: "#93c5fd"
-                                    font.pixelSize: 10
+                                    color: Theme.typeBlue
+                                    font.pixelSize: Theme.fontSizeXs
                                 }
                             }
 
                             Rectangle {
-                                radius: 8
-                                color: "#7c2d1266"
+                                radius: Theme.radiusMd
+                                color: Theme.favoriteGoldBg
                                 border.width: 1
-                                border.color: "#b45309"
-                                implicitHeight: 24
-                                implicitWidth: idLabel.implicitWidth + 12
+                                border.color: Theme.cardBorder
+                                implicitHeight: Theme.space2xl
+                                implicitWidth: idLabel.implicitWidth + Theme.spaceMd
 
                                 Label {
                                     id: idLabel
                                     anchors.centerIn: parent
                                     text: root.hasWallpaper ? (root.wallpaper.id || "") : ""
-                                    color: "#f59e0b"
-                                    font.pixelSize: 10
+                                    color: Theme.idOrange
+                                    font.pixelSize: Theme.fontSizeXs
                                 }
                             }
 
                             Rectangle {
-                                radius: 8
-                                color: "#9f123966"
+                                radius: Theme.radiusMd
+                                color: Theme.cardBg
                                 border.width: 1
-                                border.color: "#be185d"
-                                implicitHeight: 24
-                                implicitWidth: sizeLabel.implicitWidth + 12
+                                border.color: Theme.cardBorder
+                                implicitHeight: Theme.space2xl
+                                implicitWidth: sizeLabel.implicitWidth + Theme.spaceMd
 
                                 Label {
                                     id: sizeLabel
                                     anchors.centerIn: parent
                                     text: root.hasWallpaper ? (root.wallpaper.size || "0 MB") : "0 MB"
-                                    color: "#fda4af"
-                                    font.pixelSize: 10
+                                    color: Theme.sizePink
+                                    font.pixelSize: Theme.fontSizeXs
                                 }
                             }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: Theme.spaceSm
 
-                            Button {
+                            Ctrl.GButton {
                                 Layout.fillWidth: true
                                 enabled: root.hasWallpaper
                                 text: "Copy ID"
@@ -175,7 +179,7 @@ Rectangle {
                                 }
                             }
 
-                            Button {
+                            Ctrl.GButton {
                                 Layout.fillWidth: true
                                 enabled: root.hasWallpaper
                                 text: "Workshop"
@@ -187,30 +191,30 @@ Rectangle {
 
                         Label {
                             text: "Description"
-                            color: "#9aa5ce"
-                            font.pixelSize: 12
+                            color: Theme.textSection
+                            font.pixelSize: Theme.fontSizeMd
                             font.bold: true
                             Layout.fillWidth: true
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
-                            radius: 8
-                            color: "#161926"
+                            radius: Theme.radiusMd
+                            color: Theme.inputBg
                             border.width: 1
-                            border.color: "#2f344b"
-                            implicitHeight: Math.max(72, descriptionText.implicitHeight + 16)
+                            border.color: Theme.panelBorder
+                            implicitHeight: Math.max(72, descriptionText.implicitHeight + Theme.spaceLg)
 
                             Label {
                                 id: descriptionText
                                 anchors.fill: parent
-                                anchors.margins: 8
+                                anchors.margins: Theme.spaceSm
                                 text: root.hasWallpaper
                                     ? ((root.wallpaper.description || "").trim().length > 0
                                        ? root.wallpaper.description
                                        : "No description")
                                     : "No description"
-                                color: "#8a90b8"
+                                color: Theme.textSecondary
                                 wrapMode: Text.WordWrap
                                 elide: Text.ElideRight
                                 maximumLineCount: 6
@@ -220,30 +224,30 @@ Rectangle {
 
                         Label {
                             text: "Tags"
-                            color: "#9aa5ce"
-                            font.pixelSize: 12
+                            color: Theme.textSection
+                            font.pixelSize: Theme.fontSizeMd
                             font.bold: true
                             Layout.fillWidth: true
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
-                            radius: 8
-                            color: "#161926"
+                            radius: Theme.radiusMd
+                            color: Theme.inputBg
                             border.width: 1
-                            border.color: "#2f344b"
-                            implicitHeight: Math.max(48, tagsText.implicitHeight + 16)
+                            border.color: Theme.panelBorder
+                            implicitHeight: Math.max(48, tagsText.implicitHeight + Theme.spaceLg)
 
                             Label {
                                 id: tagsText
                                 anchors.fill: parent
-                                anchors.margins: 8
+                                anchors.margins: Theme.spaceSm
                                 text: root.hasWallpaper
                                     ? ((root.wallpaper.tags || "").trim().length > 0
                                        ? root.wallpaper.tags
                                        : "No tags")
                                     : "No tags"
-                                color: "#8a90b8"
+                                color: Theme.textSecondary
                                 wrapMode: Text.WordWrap
                                 maximumLineCount: 3
                                 elide: Text.ElideRight
@@ -256,16 +260,16 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 66
-            color: "#161926"
+            Layout.preferredHeight: Theme.navHeight + Theme.spaceLg
+            color: Theme.inputBg
             border.width: 1
-            border.color: "#2f344b"
+            border.color: Theme.panelBorder
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 12
+                anchors.margins: Theme.spaceMd
 
-                Button {
+                Ctrl.GPillButton {
                     Layout.fillWidth: true
                     enabled: root.hasWallpaper
                     text: "Apply Wallpaper"
@@ -281,6 +285,13 @@ Rectangle {
         modal: true
         title: "Edit Nickname"
         standardButtons: Dialog.Ok | Dialog.Cancel
+
+        background: Rectangle {
+            radius: Theme.radiusXl
+            color: Theme.panelBg
+            border.width: 1
+            border.color: Theme.panelBorder
+        }
 
         readonly property var okButton: standardButton(Dialog.Ok)
 
@@ -308,8 +319,8 @@ Rectangle {
         }
 
         contentItem: ColumnLayout {
-            spacing: 8
-            TextField {
+            spacing: Theme.spaceSm
+            Ctrl.GTextField {
                 id: nicknameInput
                 placeholderText: "Nickname"
                 selectByMouse: true

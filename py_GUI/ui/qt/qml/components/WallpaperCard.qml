@@ -1,9 +1,10 @@
 import QtQuick
 import QtQuick.Controls
+import "../Theme.js" as Theme
 
 Item {
     id: root
-    
+
     property var wp: ({})
     property bool isSelected: false
     property bool isFavorite: Backend.isFavorite(wp.id)
@@ -11,7 +12,7 @@ Item {
     property bool showIcons: true
     property bool selectionMode: false
     property bool selectionChecked: false
-    
+
     signal selected()
     signal applyRequested()
     signal favoriteToggled()
@@ -20,24 +21,28 @@ Item {
 
     layer.enabled: true
     layer.smooth: true
-    
+
     Rectangle {
         id: cardContainer
         anchors.fill: parent
-        radius: 16
+        radius: Theme.radius3xl
 
-        color: "#1f2335"
+        color: Theme.cardBg
 
-        border.width: 2
-        border.color: root.isSelected ? "#7aa2f7" : (mouseArea.containsMouse ? "#4f5f8f" : "#2b2f42")
+        border.width: Theme.cardBorderWidth
+        border.color: root.isSelected ? Theme.cardBorderActive : (mouseArea.containsMouse ? Theme.cardBorderHover : Theme.cardBorder)
 
         scale: mouseArea.containsMouse ? 1.01 : 1.0
+        y: mouseArea.containsMouse ? -2 : 0
 
         Behavior on border.color {
-            ColorAnimation { duration: 180 }
+            ColorAnimation { duration: Theme.animNormal }
         }
         Behavior on scale {
-            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Theme.animNormal; easing.type: Easing.OutCubic }
+        }
+        Behavior on y {
+            NumberAnimation { duration: Theme.animNormal; easing.type: Easing.OutCubic }
         }
 
         MouseArea {
@@ -85,18 +90,18 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: "#374151"
+                        color: Theme.errorBg
                         visible: previewImage.status === Image.Error || !previewImage.source
                         Text {
                             anchors.centerIn: parent
                             text: "No Preview"
-                            color: "#9ca3af"
-                            font.pixelSize: 12
+                            color: Theme.errorText
+                            font.pixelSize: Theme.fontSizeMd
                         }
                     }
 
                     Behavior on scale {
-                        NumberAnimation { duration: 420; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: Theme.animSlow; easing.type: Easing.OutCubic }
                     }
                 }
 
@@ -117,30 +122,30 @@ Item {
             visible: root.selectionMode
             anchors.top: parent.top
             anchors.left: parent.left
-            anchors.margins: 8
+            anchors.margins: Theme.spaceSm
             width: 22
             height: 22
             radius: 11
-            color: root.selectionChecked ? "#7aa2f7" : "#1a1b26"
+            color: root.selectionChecked ? Theme.accent : Theme.windowBg
             border.width: 1
-            border.color: "#4f5f8f"
+            border.color: Theme.cardBorderHover
 
             Label {
                 anchors.centerIn: parent
                 text: root.selectionChecked ? "✓" : ""
-                color: "#1a1b26"
+                color: Theme.windowBg
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: Theme.fontSizeMd
             }
         }
 
         Rectangle {
             visible: root.selectionMode && root.selectionChecked
             anchors.fill: parent
-            radius: 16
-            color: "#7aa2f733"
+            radius: Theme.radius3xl
+            color: Theme.selectionOverlay
             border.width: 1
-            border.color: "#7aa2f7"
+            border.color: Theme.accent
         }
 
         Rectangle {
@@ -148,25 +153,25 @@ Item {
             visible: root.showIcons && !root.selectionMode
             anchors.top: parent.top
             anchors.left: parent.left
-            anchors.margins: 8
-            width: 28
-            height: 28
-            radius: 14
+            anchors.margins: Theme.spaceSm
+            width: Theme.iconButtonSm
+            height: Theme.iconButtonSm
+            radius: Theme.radius2xl
 
-            color: root.isFavorite ? "#665216" : "#1a1b26"
+            color: root.isFavorite ? Theme.favoriteGoldBg : Theme.windowBg
             border.width: 1
-            border.color: root.isFavorite ? "#e0af68" : "#3b4261"
+            border.color: root.isFavorite ? Theme.favoriteGold : Theme.inputBorder
             opacity: mouseArea.containsMouse || root.isFavorite ? 1 : 0
 
             Behavior on opacity {
-                NumberAnimation { duration: 160 }
+                NumberAnimation { duration: Theme.animFast }
             }
 
             Text {
                 anchors.centerIn: parent
                 text: root.isFavorite ? "★" : "☆"
-                color: root.isFavorite ? "#e0af68" : "#c0caf5"
-                font.pixelSize: 14
+                color: root.isFavorite ? Theme.favoriteGold : Theme.textPrimary
+                font.pixelSize: Theme.fontSizeLg
             }
 
             MouseArea {
@@ -183,14 +188,14 @@ Item {
             visible: root.showIcons
             anchors.top: parent.top
             anchors.right: parent.right
-            anchors.margins: 8
-            width: typeLabel.implicitWidth + 12
-            height: 24
-            radius: 6
+            anchors.margins: Theme.spaceSm
+            width: typeLabel.implicitWidth + Theme.spaceMd
+            height: Theme.spaceXl
+            radius: Theme.radiusSm
 
-            color: "#161926"
+            color: Theme.inputBg
             border.width: 1
-            border.color: "#3b4261"
+            border.color: Theme.inputBorder
             opacity: 0.92
 
             Text {
@@ -203,7 +208,7 @@ Item {
                     if (t === "scene") return "🖥️"
                     return "🖼️"
                 }
-                font.pixelSize: 12
+                font.pixelSize: Theme.fontSizeMd
             }
         }
 
@@ -214,7 +219,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: 52
-            radius: 16
+            radius: Theme.radius3xl
 
             gradient: Gradient {
                 orientation: Gradient.Vertical
@@ -229,10 +234,10 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: 10
+                anchors.margins: Theme.spaceSm
                 text: root.wp.title || "Unknown"
-                color: "#c0caf5"
-                font.pixelSize: 12
+                color: Theme.textPrimary
+                font.pixelSize: Theme.fontSizeMd
                 font.bold: true
                 elide: Text.ElideRight
             }
@@ -240,27 +245,27 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            radius: 16
+            radius: Theme.radius3xl
             color: "transparent"
             border.width: root.isSelected ? 3 : 0
-            border.color: "#7aa2f7"
+            border.color: Theme.accent
 
             Rectangle {
                 anchors.fill: parent
-                radius: 16
+                radius: Theme.radius3xl
                 color: "transparent"
                 border.width: root.isSelected ? 1 : 0
                 border.color: "#4da6ff66"
             }
 
             Behavior on border.width {
-                NumberAnimation { duration: 120 }
+                NumberAnimation { duration: Theme.animFast }
             }
         }
 
         Rectangle {
             anchors.fill: parent
-            radius: 16
+            radius: Theme.radius3xl
             color: "transparent"
             border.width: 1
             border.color: "#ffffff10"

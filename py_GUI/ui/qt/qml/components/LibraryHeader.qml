@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
 import "../Theme.js" as Theme
 
 Rectangle {
@@ -20,7 +21,7 @@ Rectangle {
     signal historyRequested()
     signal selectionModeToggled()
 
-    radius: 12
+    radius: Theme.radiusXl
     color: Theme.panelBg
     border.width: 1
     border.color: Theme.panelBorder
@@ -28,25 +29,25 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 14
-        anchors.rightMargin: 14
-        spacing: 10
+        anchors.leftMargin: Theme.spaceMd
+        anchors.rightMargin: Theme.spaceMd
+        spacing: Theme.spaceSm
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 2
+            spacing: Theme.spaceXs
 
             Label {
                 text: "CURRENTLY USING"
                 color: Theme.accent
-                font.pixelSize: 10
+                font.pixelSize: Theme.fontSizeXs
                 font.bold: true
             }
 
             Label {
                 text: root.currentTitle && root.currentTitle.length > 0 ? root.currentTitle : "None"
                 color: Theme.textPrimary
-                font.pixelSize: 12
+                font.pixelSize: Theme.fontSizeMd
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
@@ -55,10 +56,10 @@ Rectangle {
         Label {
             text: root.totalCount + " wallpapers"
             color: Theme.textSecondary
-            font.pixelSize: 11
+            font.pixelSize: Theme.fontSizeSm
         }
 
-        ComboBox {
+        Ctrl.GComboBox {
             id: sortBox
             model: ["name", "id", "size"]
             currentIndex: {
@@ -72,7 +73,7 @@ Rectangle {
             }
         }
 
-        TextField {
+        Ctrl.GTextField {
             id: searchField
             placeholderText: "Search wallpapers"
             text: root.searchText
@@ -88,22 +89,22 @@ Rectangle {
             onClicked: root.refreshRequested()
         }
 
-        Button {
+        Ctrl.GButton {
             text: "Random"
             onClicked: root.randomRequested()
         }
 
-        Button {
+        Ctrl.GButton {
             text: "Screenshot"
             onClicked: root.screenshotRequested()
         }
 
-        Button {
+        Ctrl.GButton {
             text: "History"
             onClicked: root.historyRequested()
         }
 
-        Button {
+        Ctrl.GButton {
             text: root.selectionMode ? "Cancel Select" : "Select"
             highlighted: root.selectionMode
             onClicked: root.selectionModeToggled()

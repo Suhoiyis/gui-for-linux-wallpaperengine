@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
+import "../Theme.js" as Theme
 
 Rectangle {
     id: root
@@ -14,37 +16,37 @@ Rectangle {
     signal cancelRequested()
     signal addToPlaylistRequested(string playlistId)
 
-    color: "#252a3f"
+    color: Theme.rowSelected
     border.width: 1
-    border.color: "#3b4261"
-    radius: 10
+    border.color: Theme.cardBorder
+    radius: Theme.radiusLg
     implicitHeight: 48
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        spacing: 8
+        anchors.leftMargin: Theme.spaceSm
+        anchors.rightMargin: Theme.spaceSm
+        spacing: Theme.spaceSm
 
         Label {
             text: root.selectedCount + " selected"
-            color: "#c0caf5"
+            color: Theme.textPrimary
             font.bold: true
         }
 
         Item { Layout.fillWidth: true }
 
-        Button {
+        Ctrl.GButton {
             text: "Select All"
             onClicked: root.selectAllRequested()
         }
 
-        Button {
+        Ctrl.GButton {
             text: "Deselect"
             onClicked: root.deselectRequested()
         }
 
-        ComboBox {
+        Ctrl.GComboBox {
             id: playlistCombo
             model: root.playlists
             textRole: "name"
@@ -52,7 +54,7 @@ Rectangle {
             Layout.preferredWidth: 180
         }
 
-        Button {
+        Ctrl.GButton {
             text: "Add to Playlist"
             enabled: root.selectedCount > 0 && playlistCombo.count > 0
             onClicked: {
@@ -62,7 +64,7 @@ Rectangle {
             }
         }
 
-        Button {
+        Ctrl.GButton {
             text: "Cancel"
             onClicked: root.cancelRequested()
         }

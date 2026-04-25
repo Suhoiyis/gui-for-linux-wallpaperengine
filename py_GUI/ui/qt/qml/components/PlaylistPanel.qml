@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Item {
     id: root
@@ -43,11 +45,11 @@ Item {
         root.deleteDialogOpen = true
     }
 
-    width: panelState === "locked" ? 268 : 48
+    width: panelState === "locked" ? 268 : Theme.navButtonSize + Theme.spaceMd
 
     Timer {
         id: hoverOpenTimer
-        interval: 300
+        interval: Theme.playlistHoverOpen
         repeat: false
         onTriggered: {
             if (root.panelState === "minimized") {
@@ -58,7 +60,7 @@ Item {
 
     Timer {
         id: autoCloseTimer
-        interval: 500
+        interval: Theme.playlistAutoClose
         repeat: false
         onTriggered: {
             if (root.panelState === "floating") {
@@ -69,45 +71,42 @@ Item {
 
     Rectangle {
         id: iconColumn
-        width: 48
+        width: Theme.navButtonSize + Theme.spaceMd
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: "#181b28"
+        color: Theme.sidebarBg
         border.width: 1
-        border.color: "#2f344b"
+        border.color: Theme.panelBorder
 
         ColumnLayout {
             anchors.fill: parent
-            spacing: 6
+            spacing: Theme.spaceSm
 
-            Item { Layout.preferredHeight: 44 }
+            Item { Layout.preferredHeight: Theme.navHeight - Theme.spaceXs }
 
-            Button {
+            Ctrl.GIconButton {
                 Layout.alignment: Qt.AlignHCenter
                 text: "≡"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 highlighted: root.activePlaylistId.length === 0
                 onClicked: root.activePlaylistCleared()
             }
 
-            Button {
+            Ctrl.GIconButton {
                 Layout.alignment: Qt.AlignHCenter
                 text: "★"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 highlighted: root.activePlaylistId === "favorites"
                 onClicked: root.activePlaylistChanged("favorites")
             }
 
             Repeater {
                 model: root.playlists.filter(function(p) { return p.id !== "favorites" })
-                delegate: Button {
+                delegate: Ctrl.GIconButton {
                     required property var modelData
                     Layout.alignment: Qt.AlignHCenter
                     text: (modelData.name || "?").charAt(0).toUpperCase()
-                    width: 36
-                    height: 36
+                    size: Theme.navButtonSize
                     highlighted: root.activePlaylistId === modelData.id
                     onClicked: root.activePlaylistChanged(modelData.id)
                 }
@@ -115,11 +114,10 @@ Item {
 
             Item { Layout.fillHeight: true }
 
-            Button {
+            Ctrl.GIconButton {
                 Layout.alignment: Qt.AlignHCenter
                 text: "+"
-                width: 36
-                height: 36
+                size: Theme.navButtonSize
                 onClicked: root.createDialogOpen = true
             }
         }
@@ -145,13 +143,13 @@ Item {
     Rectangle {
         id: floatingPanel
         visible: root.panelState === "floating"
-        x: 48
+        x: Theme.navButtonSize + Theme.spaceMd
         width: 220
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: "#1b1f2f"
+        color: Theme.sidebarBg
         border.width: 1
-        border.color: "#2f344b"
+        border.color: Theme.panelBorder
         z: 20
 
         HoverHandler {
@@ -171,19 +169,18 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 52
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
+                Layout.preferredHeight: Theme.navHeight + Theme.spaceXs
+                Layout.leftMargin: Theme.spaceSm
+                Layout.rightMargin: Theme.spaceSm
                 Label {
                     text: "Playlists"
-                    color: "#c0caf5"
+                    color: Theme.textPrimary
                     font.bold: true
                     Layout.fillWidth: true
                 }
-                Button {
+                Ctrl.GIconButton {
                     text: "📌"
-                    width: 28
-                    height: 28
+                    size: Theme.iconButtonSm
                     onClicked: root.panelState = "locked"
                 }
             }
@@ -193,9 +190,9 @@ Item {
                 Layout.fillHeight: true
                 Column {
                     width: parent.width
-                    spacing: 4
+                    spacing: Theme.spaceXs
 
-                    Button {
+                    Ctrl.GButton {
                         width: parent.width
                         text: "All Wallpapers"
                         highlighted: root.activePlaylistId.length === 0
@@ -204,7 +201,7 @@ Item {
 
                     Repeater {
                         model: root.playlists
-                        delegate: Button {
+                        delegate: Ctrl.GButton {
                             required property var modelData
                             width: parent.width
                             text: modelData.name || "Unnamed"
@@ -217,21 +214,21 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                Button {
+                Layout.preferredHeight: Theme.navButtonSize + Theme.spaceSm
+                Layout.leftMargin: Theme.spaceSm
+                Layout.rightMargin: Theme.spaceSm
+                Ctrl.GButton {
                     Layout.fillWidth: true
                     text: "New Playlist"
                     onClicked: root.createDialogOpen = true
                 }
-                Button {
+                Ctrl.GButton {
                     Layout.preferredWidth: 74
                     text: "Rename"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
                     onClicked: root.beginRenameForActivePlaylist()
                 }
-                Button {
+                Ctrl.GButton {
                     Layout.preferredWidth: 66
                     text: "Delete"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
@@ -244,13 +241,13 @@ Item {
     Rectangle {
         id: lockedPanel
         visible: root.panelState === "locked"
-        x: 48
+        x: Theme.navButtonSize + Theme.spaceMd
         width: 220
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: "#1b1f2f"
+        color: Theme.sidebarBg
         border.width: 1
-        border.color: "#2f344b"
+        border.color: Theme.panelBorder
 
         ColumnLayout {
             anchors.fill: parent
@@ -258,19 +255,18 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 52
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
+                Layout.preferredHeight: Theme.navHeight + Theme.spaceXs
+                Layout.leftMargin: Theme.spaceSm
+                Layout.rightMargin: Theme.spaceSm
                 Label {
                     text: "Playlists"
-                    color: "#c0caf5"
+                    color: Theme.textPrimary
                     font.bold: true
                     Layout.fillWidth: true
                 }
-                Button {
+                Ctrl.GIconButton {
                     text: "📍"
-                    width: 28
-                    height: 28
+                    size: Theme.iconButtonSm
                     onClicked: root.panelState = "minimized"
                 }
             }
@@ -280,9 +276,9 @@ Item {
                 Layout.fillHeight: true
                 Column {
                     width: parent.width
-                    spacing: 4
+                    spacing: Theme.spaceXs
 
-                    Button {
+                    Ctrl.GButton {
                         width: parent.width
                         text: "All Wallpapers"
                         highlighted: root.activePlaylistId.length === 0
@@ -291,7 +287,7 @@ Item {
 
                     Repeater {
                         model: root.playlists
-                        delegate: Button {
+                        delegate: Ctrl.GButton {
                             required property var modelData
                             width: parent.width
                             text: modelData.name || "Unnamed"
@@ -304,21 +300,21 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                Button {
+                Layout.preferredHeight: Theme.navButtonSize + Theme.spaceSm
+                Layout.leftMargin: Theme.spaceSm
+                Layout.rightMargin: Theme.spaceSm
+                Ctrl.GButton {
                     Layout.fillWidth: true
                     text: "New Playlist"
                     onClicked: root.createDialogOpen = true
                 }
-                Button {
+                Ctrl.GButton {
                     Layout.preferredWidth: 74
                     text: "Rename"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
                     onClicked: root.beginRenameForActivePlaylist()
                 }
-                Button {
+                Ctrl.GButton {
                     Layout.preferredWidth: 66
                     text: "Delete"
                     enabled: root.activePlaylistId.length > 0 && root.activePlaylistId !== "favorites"
@@ -336,6 +332,13 @@ Item {
         width: 420
         height: 170
         standardButtons: Dialog.Ok | Dialog.Cancel
+
+        background: Rectangle {
+            radius: Theme.radiusXl
+            color: Theme.panelBg
+            border.width: 1
+            border.color: Theme.panelBorder
+        }
 
         readonly property var okButton: standardButton(Dialog.Ok)
 
@@ -362,8 +365,8 @@ Item {
         }
 
         contentItem: ColumnLayout {
-            spacing: 8
-            TextField {
+            spacing: Theme.spaceSm
+            Ctrl.GTextField {
                 id: nameInput
                 placeholderText: "Playlist name"
                 selectByMouse: true
@@ -382,6 +385,13 @@ Item {
         width: 420
         height: 170
         standardButtons: Dialog.Ok | Dialog.Cancel
+
+        background: Rectangle {
+            radius: Theme.radiusXl
+            color: Theme.panelBg
+            border.width: 1
+            border.color: Theme.panelBorder
+        }
 
         readonly property var okButton: standardButton(Dialog.Ok)
 
@@ -408,8 +418,8 @@ Item {
         }
 
         contentItem: ColumnLayout {
-            spacing: 8
-            TextField {
+            spacing: Theme.spaceSm
+            Ctrl.GTextField {
                 id: renameInput
                 placeholderText: "Playlist name"
                 selectByMouse: true
@@ -429,6 +439,13 @@ Item {
         height: 150
         standardButtons: Dialog.Ok | Dialog.Cancel
 
+        background: Rectangle {
+            radius: Theme.radiusXl
+            color: Theme.panelBg
+            border.width: 1
+            border.color: Theme.panelBorder
+        }
+
         onAccepted: {
             if (root.pendingPlaylistId.length > 0) {
                 root.deletePlaylistRequested(root.pendingPlaylistId)
@@ -440,7 +457,7 @@ Item {
         }
 
         contentItem: ColumnLayout {
-            spacing: 8
+            spacing: Theme.spaceSm
             Label {
                 text: "Delete selected playlist?"
             }

@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "." as Comp
+import "../controls" as Ctrl
+import "../Theme.js" as Theme
 
 Item {
     id: root
@@ -13,27 +15,27 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#1a1b26"
+        color: Theme.windowBg
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 12
-            spacing: 12
+            anchors.margins: Theme.spaceMd
+            spacing: Theme.spaceMd
 
             Label {
                 text: "Settings"
-                color: "#c0caf5"
-                font.pixelSize: 20
+                color: Theme.textPrimary
+                font.pixelSize: Theme.fontSize3xl
                 font.bold: true
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: Theme.spaceSm
 
                 Repeater {
                     model: ["Playback", "Audio", "Wayland", "System"]
-                    delegate: Button {
+                    delegate: Ctrl.GButton {
                         required property var modelData
                         required property int index
                         text: modelData
@@ -53,7 +55,7 @@ Item {
                     contentWidth: availableWidth
                     ColumnLayout {
                         width: parent.width
-                        spacing: 10
+                        spacing: Theme.spaceSm
                         Comp.PlaybackSettings {
                             Layout.fillWidth: true
                             backend: root.backend
@@ -88,7 +90,7 @@ Item {
                     contentWidth: availableWidth
                     ColumnLayout {
                         width: parent.width
-                        spacing: 10
+                        spacing: Theme.spaceSm
                         Comp.SystemSettings {
                             Layout.fillWidth: true
                             backend: root.backend
@@ -100,11 +102,11 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Item { Layout.fillWidth: true }
-                            Button {
+                            Ctrl.GButton {
                                 text: "Manage Nicknames"
                                 onClicked: root.showNicknameManager = true
                             }
-                            Button {
+                            Ctrl.GButton {
                                 text: "Manage Favorites"
                                 onClicked: root.showFavoriteManager = true
                             }

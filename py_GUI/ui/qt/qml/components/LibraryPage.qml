@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
 
 import "." as Comp
 
@@ -62,9 +63,9 @@ Item {
 
         Comp.LibraryHeader {
             Layout.fillWidth: true
-            Layout.leftMargin: 10
-            Layout.rightMargin: 10
-            Layout.bottomMargin: 10
+            Layout.leftMargin: Theme.spaceSm
+            Layout.rightMargin: Theme.spaceSm
+            Layout.bottomMargin: Theme.spaceSm
 
             currentTitle: root.backend && root.backend.selectedId.length > 0
                 ? root.backend.selectedId
@@ -107,9 +108,9 @@ Item {
         Comp.SelectionModeBar {
             visible: root.selectionMode
             Layout.fillWidth: true
-            Layout.leftMargin: 10
-            Layout.rightMargin: 10
-            Layout.bottomMargin: 10
+            Layout.leftMargin: Theme.spaceSm
+            Layout.rightMargin: Theme.spaceSm
+            Layout.bottomMargin: Theme.spaceSm
 
             selectedCount: root.selectedForPlaylist.length
             totalCount: root.backend ? root.backend.wallpapers.length : 0
@@ -141,13 +142,13 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: "#292e42"
+            color: Theme.divider
         }
 
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.margins: 10
+            Layout.margins: Theme.spaceSm
 
             SplitView {
                 anchors.fill: parent
@@ -255,7 +256,7 @@ Item {
                 }
 
                 Comp.WallpaperSidebar {
-                    SplitView.preferredWidth: 360
+                    SplitView.preferredWidth: Theme.sidebarWidth
                     SplitView.minimumWidth: 300
                     SplitView.maximumWidth: 520
 
@@ -278,7 +279,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 visible: root.playlistFloatingOpen
-                color: "#0000000f"
+                color: Theme.overlayDim
                 z: 15
 
                 MouseArea {
@@ -294,7 +295,7 @@ Item {
             Comp.LibraryPagination {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 8
+                anchors.bottomMargin: Theme.spaceSm
                 width: 360
 
                 currentPage: root.currentPage

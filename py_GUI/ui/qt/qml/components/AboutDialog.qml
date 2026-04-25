@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Dialog {
     id: root
@@ -11,21 +13,28 @@ Dialog {
     width: 460
     height: 360
 
+    background: Rectangle {
+        radius: Theme.radiusXl
+        color: Theme.panelBg
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: Theme.spaceMd
 
         Label {
             text: "LINUX WALLPAPER ENGINE GUI"
-            color: "#c0caf5"
-            font.pixelSize: 20
+            color: Theme.textPrimary
+            font.pixelSize: Theme.fontSize3xl
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
         }
 
         Label {
             text: "Qt Quick Edition"
-            color: "#8a90b8"
+            color: Theme.textSecondary
             Layout.alignment: Qt.AlignHCenter
         }
 
@@ -34,14 +43,14 @@ Dialog {
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             text: "A modern wallpaper manager for linux-wallpaperengine, migrated to Qt Quick."
-            color: "#a9b1d6"
+            color: Theme.textBody
         }
 
         Item { Layout.fillHeight: true }
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            Button {
+            Ctrl.GButton {
                 text: "GitHub"
                 onClicked: {
                     if (root.backend) {
@@ -49,7 +58,7 @@ Dialog {
                     }
                 }
             }
-            Button {
+            Ctrl.GButton {
                 text: "Close"
                 onClicked: root.close()
             }

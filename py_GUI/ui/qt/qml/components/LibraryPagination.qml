@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
+import "../Theme.js" as Theme
 
 Item {
     id: root
@@ -14,23 +16,24 @@ Item {
 
     RowLayout {
         anchors.centerIn: parent
-        spacing: 8
+        spacing: Theme.spaceSm
         visible: root.totalPages > 1
 
-        Button {
+        Ctrl.GIconButton {
             text: "◀"
+            size: Theme.iconButtonSm
             enabled: root.currentPage > 1
             onClicked: root.pageChangedByUser(root.currentPage - 1)
         }
 
         Label {
             text: "Page " + root.currentPage + " / " + root.totalPages
-            color: "#8a90b8"
+            color: Theme.textSecondary
         }
 
-        TextField {
+        Ctrl.GTextField {
             id: jumpInput
-            placeholderText: String(root.currentPage)
+            placeholderText: "Page..."
             implicitWidth: 60
             horizontalAlignment: Text.AlignHCenter
             inputMethodHints: Qt.ImhDigitsOnly
@@ -43,8 +46,9 @@ Item {
             }
         }
 
-        Button {
+        Ctrl.GIconButton {
             text: "▶"
+            size: Theme.iconButtonSm
             enabled: root.currentPage < root.totalPages
             onClicked: root.pageChangedByUser(root.currentPage + 1)
         }

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQml
+import "../Theme.js" as Theme
 
 Menu {
     id: root

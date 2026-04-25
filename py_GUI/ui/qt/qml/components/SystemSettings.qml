@@ -1,33 +1,43 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../controls" as Ctrl
+import "../Theme.js" as Theme
 
 Frame {
     id: root
 
     property var backend
 
+    background: Rectangle {
+        color: Theme.panelBg
+        radius: Theme.radiusXl
+        border.width: 1
+        border.color: Theme.panelBorder
+    }
+    padding: Theme.spaceMd
+
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spaceSm
 
         Label {
             text: "System & Tools"
-            color: "#9aa5ce"
-            font.pixelSize: 12
+            color: Theme.textSection
+            font.pixelSize: Theme.fontSizeMd
             font.bold: true
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Workshop Path"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            TextField {
+            Label { text: "Workshop Path"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GTextField {
                 id: workshopField
                 Layout.fillWidth: true
                 text: root.backend ? root.backend.workshopPath : ""
                 selectByMouse: true
             }
-            Button {
+            Ctrl.GPillButton {
                 text: "Save"
                 onClicked: if (root.backend) root.backend.setWorkshopPath(workshopField.text)
             }
@@ -35,13 +45,13 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Assets Directory"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            TextField {
+            Label { text: "Assets Directory"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GTextField {
                 id: assetsField
                 Layout.fillWidth: true
                 text: root.backend ? root.backend.assetsPath : ""
             }
-            Button {
+            Ctrl.GPillButton {
                 text: "Save"
                 onClicked: if (root.backend) root.backend.setAssetsPath(assetsField.text)
             }
@@ -49,8 +59,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Target Resolution"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            ComboBox {
+            Label { text: "Target Resolution"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GComboBox {
                 id: resolutionCombo
                 Layout.fillWidth: true
                 editable: true
@@ -71,8 +81,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Screenshot Delay (s)"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            SpinBox {
+            Label { text: "Screenshot Delay (s)"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GSpinBox {
                 from: 0
                 to: 300
                 value: root.backend ? root.backend.screenshotDelay : 20
@@ -83,8 +93,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Prefer Xvfb"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            Switch {
+            Label { text: "Prefer Xvfb"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.preferXvfb : true
                 onToggled: if (root.backend) root.backend.setPreferXvfb(checked)
             }
@@ -92,8 +102,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Start Hidden"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            Switch {
+            Label { text: "Start Hidden"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.startHidden : false
                 onToggled: if (root.backend) root.backend.setStartHidden(checked)
             }
@@ -101,8 +111,8 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Auto Restore"; color: "#c0caf5"; Layout.preferredWidth: 160 }
-            Switch {
+            Label { text: "Auto Restore"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Ctrl.GSwitch {
                 checked: root.backend ? root.backend.autoRestore : false
                 onToggled: if (root.backend) root.backend.setAutoRestore(checked)
             }
