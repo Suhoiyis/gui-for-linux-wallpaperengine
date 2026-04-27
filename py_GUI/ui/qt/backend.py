@@ -132,6 +132,7 @@ class Backend(QObject):
     nicknameChanged = Signal()
     historyChanged = Signal()
     appMetaChanged = Signal()
+    screenshotHistoryChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -541,6 +542,25 @@ class Backend(QObject):
             )
         return out
 
+    @Property(list, notify=screenshotHistoryChanged)
+    def screenshotHistory(self) -> list[dict[str, object]]:
+        raw = self.controller.perf_monitor.get_screenshot_history()
+        out: list[dict[str, object]] = []
+        for record in raw:
+            wp_id = str(record.get("wp_id", ""))
+            wp = self.wallpaper_manager.get_wallpaper(wp_id)
+            out.append(
+                {
+                    "wpId": wp_id,
+                    "title": str(wp.get("title", "Unknown")) if wp else "Unknown",
+                    "preview": _to_file_uri(str(wp.get("preview", ""))) if wp else "",
+                    "outputPath": str(record.get("output_path", "")),
+                    "timestamp": float(record.get("timestamp", 0.0)),
+                    "duration": float(record.get("duration", 0.0)),
+                }
+            )
+        return out
+
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
         self._selected_id = wp_id
@@ -835,6 +855,7 @@ class Backend(QObject):
                 str(output_path),
                 stats,
             )
+            self.screenshotHistoryChanged.emit()
             self._set_status(f"Screenshot saved: {output_path}")
             return {
                 "ok": True,
@@ -862,6 +883,7 @@ class Backend(QObject):
     @Slot()
     def clearScreenshotHistory(self) -> None:
         self.controller.perf_monitor.clear_screenshot_history()
+        self.screenshotHistoryChanged.emit()
         self._set_status("Screenshot history cleared")
 
     @Slot(bool)
@@ -1056,6 +1078,17 @@ class Backend(QObject):
         self.config.set("onboardingCompleted", True)
         self.appMetaChanged.emit()
         self._set_status("Onboarding completed")
+
+    @Slot()
+    def saveSettings(self) -> None:
+        self.config.save()
+        self._set_status("Settings saved")
+
+    @Slot()
+    def restartWallpapers(self) -> None:
+        self.controller.restart_wallpapers()
+        self.activeMonitorsChanged.emit()
+        self._set_status("Wallpapers restarted with updated settings")
 
     @Slot(result="QVariantMap")
     def checkForUpdates(self) -> dict[str, object]:
