@@ -5,6 +5,8 @@ import "../Theme.js" as Theme
 Slider {
     id: root
 
+    property color trackColor: Theme.brand
+
     background: Item {
         x: root.leftPadding
         y: root.topPadding + root.availableHeight / 2 - 2
@@ -15,14 +17,14 @@ Slider {
             width: parent.width
             height: parent.height
             radius: 2
-            color: Theme.inputBorder
+            color: Theme.border
         }
 
         Rectangle {
             width: root.visualPosition * parent.width
             height: parent.height
             radius: 2
-            color: Theme.accent
+            color: root.trackColor
         }
     }
 
@@ -32,10 +34,13 @@ Slider {
         width: 16
         height: 16
         radius: 8
-        color: Theme.accent
+        color: root.trackColor
         border.width: 2
-        border.color: Theme.windowBg
+        border.color: Theme.bg
 
         Behavior on x { NumberAnimation { duration: Theme.animNormal } }
+        Behavior on scale { NumberAnimation { duration: Theme.animFast; easing.type: Easing.OutCubic } }
+
+        scale: root.hovered ? 1.15 : 1.0
     }
 }

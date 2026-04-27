@@ -18,9 +18,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.panelBg
+        color: Theme.elevated
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
 
     onOpened: step = 0
@@ -39,7 +39,7 @@ Dialog {
                     width: 8
                     height: 8
                     radius: 4
-                    color: root.step === index ? Theme.accent : Theme.inputBorder
+                    color: root.step === index ? Theme.accent : Theme.border
                 }
             }
         }
@@ -47,7 +47,7 @@ Dialog {
         Label {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
-            color: Theme.textPrimary
+            color: Theme.fg
             font.pixelSize: Theme.fontSize2xl
             font.bold: true
             text: {
@@ -63,13 +63,13 @@ Dialog {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: Theme.radiusLg
-            color: Theme.panelBg
+            color: Theme.elevated
             border.width: 1
-            border.color: Theme.panelBorder
+            border.color: Theme.border
 
             Label {
                 anchors.centerIn: parent
-                color: Theme.textBody
+                color: Theme.fg
                 width: parent.width - Theme.spaceXl * 2
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter

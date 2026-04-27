@@ -9,9 +9,9 @@ Rectangle {
 
     signal switchToNormal()
 
-    color: Theme.panelBg
+    color: Theme.surface
     border.width: 1
-    border.color: Theme.panelBorder
+    border.color: Theme.border
     radius: Theme.radiusXl
     implicitHeight: Theme.navHeight
 
@@ -22,11 +22,10 @@ Rectangle {
         spacing: Theme.spaceSm
 
         Ctrl.GIconButton {
-            text: "🗖"
+            iconName: "maximize2"
             size: Theme.iconButtonMd
+            tooltip: "Switch to Normal Mode"
             onClicked: root.switchToNormal()
-            ToolTip.visible: hovered
-            ToolTip.text: "Switch to Normal Mode"
         }
 
         Item { Layout.fillWidth: true }

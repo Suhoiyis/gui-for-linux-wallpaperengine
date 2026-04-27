@@ -5,17 +5,25 @@ import "../Theme.js" as Theme
 TextField {
     id: root
 
-    color: Theme.textPrimary
-    placeholderTextColor: Theme.textMuted
+    property bool hasError: false
+    property string errorText: ""
+
+    color: root.enabled ? Theme.fg : Theme.fgSubtle
+    placeholderTextColor: Theme.fgSubtle
     font.pixelSize: Theme.fontSizeMd
     padding: Theme.spaceSm
 
     background: Rectangle {
         radius: Theme.radiusMd
-        color: Theme.inputBg
+        color: root.enabled ? Theme.input : Theme.elevated
         border.width: 1
-        border.color: root.activeFocus ? Theme.accent : Theme.inputBorder
+        border.color: {
+            if (!root.enabled) return Theme.border
+            if (root.hasError) return Theme.destructive
+            if (root.activeFocus) return Theme.ring
+            return Theme.border
+        }
 
-        Behavior on border.color { ColorAnimation { duration: Theme.animNormal } }
+        Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
     }
 }

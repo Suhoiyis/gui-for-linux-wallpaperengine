@@ -8,14 +8,14 @@ ItemDelegate {
     contentItem: Text {
         text: root.text
         font.pixelSize: Theme.fontSizeMd
-        color: root.highlighted ? Theme.windowBg : Theme.textPrimary
+        color: root.highlighted ? Theme.bg : Theme.fg
         verticalAlignment: Text.AlignVCenter
     }
 
     background: Rectangle {
         radius: Theme.radiusSm
         color: root.highlighted ? Theme.accent :
-               (root.hovered ? Theme.cardBorderHover : "transparent")
+               (root.hovered ? Theme.borderHover : "transparent")
 
         Behavior on color { ColorAnimation { duration: Theme.animNormal } }
     }

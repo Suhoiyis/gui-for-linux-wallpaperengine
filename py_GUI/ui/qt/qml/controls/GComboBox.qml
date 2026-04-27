@@ -6,19 +6,26 @@ import "../Theme.js" as Theme
 ComboBox {
     id: root
 
+    property bool hasError: false
+
     background: Rectangle {
         radius: Theme.radiusMd
-        color: Theme.inputBg
+        color: root.enabled ? Theme.input : Theme.elevated
         border.width: 1
-        border.color: root.activeFocus ? Theme.accent : Theme.inputBorder
+        border.color: {
+            if (!root.enabled) return Theme.border
+            if (root.hasError) return Theme.destructive
+            if (root.activeFocus) return Theme.ring
+            return Theme.border
+        }
 
-        Behavior on border.color { ColorAnimation { duration: Theme.animNormal } }
+        Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
     }
 
     contentItem: Text {
         text: root.displayText
         font.pixelSize: Theme.fontSizeMd
-        color: Theme.textPrimary
+        color: root.enabled ? Theme.fg : Theme.fgSubtle
         leftPadding: Theme.spaceSm
         rightPadding: Theme.spaceSm
         verticalAlignment: Text.AlignVCenter
@@ -42,9 +49,9 @@ ComboBox {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.panelBg
+            color: Theme.overlay
             border.width: 1
-            border.color: Theme.panelBorder
+            border.color: Theme.border
         }
     }
 
@@ -53,13 +60,13 @@ ComboBox {
         contentItem: Text {
             text: root.model[index]
             font.pixelSize: Theme.fontSizeMd
-            color: highlighted ? Theme.windowBg : Theme.textPrimary
+            color: highlighted ? Theme.accentFg : Theme.fg
             verticalAlignment: Text.AlignVCenter
         }
         highlighted: root.highlightedIndex === index
         background: Rectangle {
             radius: Theme.radiusSm
-            color: highlighted ? Theme.accent : (hovered ? Theme.cardBorderHover : "transparent")
+            color: highlighted ? Theme.accent : (hovered ? Theme.overlay : "transparent")
         }
     }
 }

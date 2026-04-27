@@ -19,34 +19,34 @@ Menu {
     signal workshopRequested()
 
     MenuItem {
-        text: "▶ Apply Wallpaper"
+        text: "Apply Wallpaper"
         onTriggered: root.applyRequested()
     }
     MenuItem {
-        text: "⏹ Stop Wallpaper"
+        text: "Stop Wallpaper"
         onTriggered: root.stopRequested()
     }
     MenuSeparator {}
     MenuItem {
-        text: "📁 Open Folder"
+        text: "Open Folder"
         onTriggered: root.openFolderRequested()
     }
     MenuItem {
-        text: "🌐 Workshop"
+        text: "Workshop"
         onTriggered: root.workshopRequested()
     }
     MenuItem {
-        text: "📋 Copy ID"
+        text: "Copy ID"
         onTriggered: root.copyIdRequested()
     }
     MenuSeparator {}
     MenuItem {
-        text: "✏ Edit Nickname"
+        text: "Edit Nickname"
         onTriggered: root.editNicknameRequested()
     }
     Menu {
         id: addToPlaylistMenu
-        title: "➕ Add to Playlist"
+        title: "Add to Playlist"
         Instantiator {
             model: root.playlists
             onObjectAdded: function(index, object) {
@@ -63,7 +63,7 @@ Menu {
     }
     MenuSeparator {}
     MenuItem {
-        text: "🗑 Delete Wallpaper"
+        text: "Delete Wallpaper"
         // color: "#f7768e" // QtQuick Controls Menu doesn't support color directly on MenuItem easily without custom delegate, but we can use rich text or just text
         onTriggered: root.deleteRequested()
     }

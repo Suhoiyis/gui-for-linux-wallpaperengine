@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../controls" as Ctrl
+import "../effects" as Effects
 import "../Theme.js" as Theme
 
 Rectangle {
@@ -15,17 +16,22 @@ Rectangle {
 
     signal searchChanged(string value)
     signal sortSelected(string value)
-    signal refreshRequested()
-    signal randomRequested()
-    signal screenshotRequested()
-    signal historyRequested()
     signal selectionModeToggled()
 
     radius: Theme.radiusXl
-    color: Theme.panelBg
+    color: Theme.elevated
     border.width: 1
-    border.color: Theme.panelBorder
-    implicitHeight: 66
+    border.color: Theme.border
+    implicitHeight: Theme.navHeight
+
+    Effects.GDropShadow {
+        shadowWidth: root.width
+        shadowHeight: root.height
+        radius: root.radius
+        color: Theme.withAlpha("#000000", 0.08)
+        spread: 2
+        verticalOffset: 1
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -37,25 +43,26 @@ Rectangle {
             Layout.fillWidth: true
             spacing: Theme.spaceXs
 
-            Label {
+            Text {
                 text: "CURRENTLY USING"
-                color: Theme.accent
+                color: Theme.brand
                 font.pixelSize: Theme.fontSizeXs
-                font.bold: true
+                font.weight: Theme.fontWeightMedium
+                font.letterSpacing: Theme.trackingWider
             }
 
-            Label {
+            Text {
                 text: root.currentTitle && root.currentTitle.length > 0 ? root.currentTitle : "None"
-                color: Theme.textPrimary
+                color: Theme.fg
                 font.pixelSize: Theme.fontSizeMd
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
         }
 
-        Label {
+        Text {
             text: root.totalCount + " wallpapers"
-            color: Theme.textSecondary
+            color: Theme.fgSubtle
             font.pixelSize: Theme.fontSizeSm
         }
 
@@ -73,40 +80,11 @@ Rectangle {
             }
         }
 
-        Ctrl.GTextField {
-            id: searchField
-            placeholderText: "Search wallpapers"
-            text: root.searchText
-            implicitWidth: 220
-
-            onTextEdited: {
-                root.searchChanged(text)
-            }
-        }
-
-        StatefulButton {
-            text: "Refresh"
-            onClicked: root.refreshRequested()
-        }
-
-        Ctrl.GButton {
-            text: "Random"
-            onClicked: root.randomRequested()
-        }
-
-        Ctrl.GButton {
-            text: "Screenshot"
-            onClicked: root.screenshotRequested()
-        }
-
-        Ctrl.GButton {
-            text: "History"
-            onClicked: root.historyRequested()
-        }
-
         Ctrl.GButton {
             text: root.selectionMode ? "Cancel Select" : "Select"
-            highlighted: root.selectionMode
+            iconName: root.selectionMode ? "x" : "check"
+            variant: root.selectionMode ? "destructive" : "outline"
+            sizeVariant: "sm"
             onClicked: root.selectionModeToggled()
         }
     }

@@ -81,22 +81,6 @@ Item {
             onSearchChanged: function(value) {
                 root.searchQueryChanged(value)
             }
-            onRefreshRequested: {
-                root.refreshRequested()
-            }
-            onRandomRequested: {
-                if (root.backend) root.backend.applyRandomWallpaper()
-            }
-            onScreenshotRequested: {
-                if (!root.backend) return
-                var targetId = root.backend.selectedId || ""
-                if (targetId.length > 0) {
-                    root.backend.takeScreenshot(targetId)
-                }
-            }
-            onHistoryRequested: {
-                root.historyDialogOpen = true
-            }
             onSelectionModeToggled: {
                 root.selectionMode = !root.selectionMode
                 if (!root.selectionMode) {

@@ -13,13 +13,16 @@ ApplicationWindow {
     height: 800
     title: "LWG Qt Quick PoC"
 
-    color: Theme.windowBg
+    color: Theme.bg
 
     property string sortBy: "name"
     property string searchText: ""
     property bool playlistFloatingOpen: false
     property string currentPage: "library"
     property var backendRef: Backend
+    property string layoutMode: window.width < Theme.breakpointCompact ? "compact"
+                               : window.width < Theme.breakpointNormal ? "normal"
+                               : "wide"
     property bool showAboutDialog: false
     property bool showUpdateDialog: false
     property bool showWelcomeDialog: false
@@ -49,6 +52,7 @@ ApplicationWindow {
             onPageChanged: function(page) {
                 window.currentPage = page
             }
+            onCommandPaletteRequested: commandPalette.open()
             onAppMenuHistoryRequested: window.showHistoryDialog = true
             onAppMenuAboutRequested: window.showAboutDialog = true
             onAppMenuUpdateRequested: {
@@ -69,6 +73,7 @@ ApplicationWindow {
         }
 
         StackLayout {
+            id: pageStack
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: {
@@ -79,10 +84,14 @@ ApplicationWindow {
             }
 
             Comp.LibraryPage {
+                id: libraryPage
                 backend: window.backendRef
                 sortBy: window.sortBy
                 searchText: window.searchText
                 playlistFloatingOpen: window.playlistFloatingOpen
+
+                opacity: pageStack.currentIndex === 0 ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
 
                 onSortSelected: function(value) {
                     window.sortBy = value
@@ -99,15 +108,28 @@ ApplicationWindow {
             }
 
             Comp.PerformancePage {
+                id: performancePage
                 backend: window.backendRef
+
+                opacity: pageStack.currentIndex === 1 ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
             }
 
             Comp.SettingsPage {
+                id: settingsPage
                 backend: window.backendRef
+
+                opacity: pageStack.currentIndex === 2 ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
             }
 
             Comp.CompactPage {
+                id: compactPage
                 backend: window.backendRef
+
+                opacity: pageStack.currentIndex === 3 ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
+
                 onSwitchToNormal: function() {
                     window.currentPage = "library"
                 }
@@ -126,7 +148,7 @@ ApplicationWindow {
                     : (window.backendRef && window.backendRef.selectedId
                        ? "Selected: " + window.backendRef.selectedId
                        : "Click a wallpaper to select")
-                color: Theme.textSecondary
+                color: Theme.fgMuted
             }
         }
     }
@@ -200,13 +222,13 @@ ApplicationWindow {
         onClosed: window.showQuitConfirm = false
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.panelBg
+            color: Theme.elevated
             border.width: 1
-            border.color: Theme.panelBorder
+            border.color: Theme.border
         }
         contentItem: Label {
             text: "This will stop wallpapers and close the app."
-            color: Theme.textPrimary
+            color: Theme.fg
             wrapMode: Text.WordWrap
         }
     }

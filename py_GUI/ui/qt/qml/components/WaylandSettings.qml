@@ -10,10 +10,10 @@ Frame {
     property var backend
 
     background: Rectangle {
-        color: Theme.panelBg
+        color: Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
     padding: Theme.spaceMd
 
@@ -30,7 +30,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Pause Only When Active"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 9.5 }
+            Label { text: "Pause Only When Active"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 9.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.waylandOnlyActive : false
                 onToggled: if (root.backend) root.backend.setWaylandOnlyActive(checked)
@@ -42,7 +42,7 @@ Frame {
             spacing: Theme.spaceXs
             Label {
                 text: "Ignore Application IDs"
-                color: Theme.textPrimary
+                color: Theme.fg
             }
             Ctrl.GTextArea {
                 id: appidsArea

@@ -15,9 +15,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.panelBg
+        color: Theme.elevated
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
 
     ColumnLayout {
@@ -26,7 +26,7 @@ Dialog {
 
         Label {
             text: "LINUX WALLPAPER ENGINE GUI"
-            color: Theme.textPrimary
+            color: Theme.fg
             font.pixelSize: Theme.fontSize3xl
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
@@ -34,7 +34,7 @@ Dialog {
 
         Label {
             text: "Qt Quick Edition"
-            color: Theme.textSecondary
+            color: Theme.fgMuted
             Layout.alignment: Qt.AlignHCenter
         }
 
@@ -43,7 +43,7 @@ Dialog {
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             text: "A modern wallpaper manager for linux-wallpaperengine, migrated to Qt Quick."
-            color: Theme.textBody
+            color: Theme.fg
         }
 
         Item { Layout.fillHeight: true }

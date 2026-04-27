@@ -140,7 +140,7 @@ Item {
         anchors.centerIn: parent
         visible: !gridView.count
         text: "No wallpapers found"
-        color: Theme.textSecondary
+        color: Theme.fgMuted
     }
 
     Dialog {
@@ -152,9 +152,9 @@ Item {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.panelBg
+            color: Theme.elevated
             border.width: 1
-            border.color: Theme.panelBorder
+            border.color: Theme.border
         }
 
         onOpened: {

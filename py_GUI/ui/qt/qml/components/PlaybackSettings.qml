@@ -10,10 +10,10 @@ Frame {
     property var backend
 
     background: Rectangle {
-        color: Theme.panelBg
+        color: Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
     padding: Theme.spaceMd
 
@@ -32,7 +32,7 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Target FPS"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 8.5
             }
             Ctrl.GSlider {
@@ -46,7 +46,7 @@ Frame {
             }
             Label {
                 text: String(Math.round(fpsSlider.value))
-                color: Theme.textSecondary
+                color: Theme.fgMuted
                 Layout.preferredWidth: Theme.spaceXl * 1.8
             }
         }
@@ -55,7 +55,7 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Scaling"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 8.5
             }
             Ctrl.GComboBox {
@@ -75,7 +75,7 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Clamping"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 8.5
             }
             Ctrl.GComboBox {
@@ -93,7 +93,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Parallax"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "Disable Parallax"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.disableParallax : false
                 onToggled: if (root.backend) root.backend.setDisableParallax(checked)
@@ -102,7 +102,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Particles"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "Disable Particles"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.disableParticles : false
                 onToggled: if (root.backend) root.backend.setDisableParticles(checked)
@@ -111,7 +111,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "No Fullscreen Pause"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "No Fullscreen Pause"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.noFullscreenPause : false
                 onToggled: if (root.backend) root.backend.setNoFullscreenPause(checked)
@@ -120,7 +120,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Mouse Interaction"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "Disable Mouse Interaction"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.disableMouse : false
                 onToggled: if (root.backend) root.backend.setDisableMouse(checked)

@@ -18,7 +18,7 @@ Rectangle {
 
     color: Theme.rowSelected
     border.width: 1
-    border.color: Theme.cardBorder
+    border.color: Theme.border
     radius: Theme.radiusLg
     implicitHeight: 48
 
@@ -30,7 +30,7 @@ Rectangle {
 
         Label {
             text: root.selectedCount + " selected"
-            color: Theme.textPrimary
+            color: Theme.fg
             font.bold: true
         }
 

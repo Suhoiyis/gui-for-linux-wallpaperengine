@@ -10,10 +10,10 @@ Frame {
     property var backend
 
     background: Rectangle {
-        color: Theme.panelBg
+        color: Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
     padding: Theme.spaceMd
 
@@ -30,7 +30,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Workshop Path"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Workshop Path"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GTextField {
                 id: workshopField
                 Layout.fillWidth: true
@@ -45,7 +45,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Assets Directory"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Assets Directory"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GTextField {
                 id: assetsField
                 Layout.fillWidth: true
@@ -59,7 +59,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Target Resolution"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Target Resolution"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GComboBox {
                 id: resolutionCombo
                 Layout.fillWidth: true
@@ -81,7 +81,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Screenshot Delay (s)"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Screenshot Delay (s)"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSpinBox {
                 from: 0
                 to: 300
@@ -93,7 +93,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Prefer Xvfb"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Prefer Xvfb"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.preferXvfb : true
                 onToggled: if (root.backend) root.backend.setPreferXvfb(checked)
@@ -102,7 +102,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Start Hidden"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Start Hidden"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.startHidden : false
                 onToggled: if (root.backend) root.backend.setStartHidden(checked)
@@ -111,7 +111,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Auto Restore"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Auto Restore"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.autoRestore : false
                 onToggled: if (root.backend) root.backend.setAutoRestore(checked)

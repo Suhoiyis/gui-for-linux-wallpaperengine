@@ -20,7 +20,7 @@ Item {
         visible: root.totalPages > 1
 
         Ctrl.GIconButton {
-            text: "◀"
+            iconName: "chevronRight"
             size: Theme.iconButtonSm
             enabled: root.currentPage > 1
             onClicked: root.pageChangedByUser(root.currentPage - 1)
@@ -28,7 +28,7 @@ Item {
 
         Label {
             text: "Page " + root.currentPage + " / " + root.totalPages
-            color: Theme.textSecondary
+            color: Theme.fgMuted
         }
 
         Ctrl.GTextField {
@@ -47,7 +47,7 @@ Item {
         }
 
         Ctrl.GIconButton {
-            text: "▶"
+            iconName: "chevronDown"
             size: Theme.iconButtonSm
             enabled: root.currentPage < root.totalPages
             onClicked: root.pageChangedByUser(root.currentPage + 1)

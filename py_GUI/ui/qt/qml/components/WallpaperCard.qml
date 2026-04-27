@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import "../controls" as Ctrl
+import "../effects" as Effects
 import "../Theme.js" as Theme
 
 Item {
@@ -22,27 +24,31 @@ Item {
     layer.enabled: true
     layer.smooth: true
 
+    // Drop shadow as sibling before card (so it renders behind)
+    Effects.GDropShadow {
+        visible: root.isSelected
+        shadowWidth: cardContainer.width
+        shadowHeight: cardContainer.height
+        radius: cardContainer.radius
+        color: Theme.brand20
+        spread: 6
+        verticalOffset: 2
+        x: cardContainer.x
+        y: cardContainer.y + (mouseArea.containsMouse ? -2 : 0)
+    }
+
     Rectangle {
         id: cardContainer
         anchors.fill: parent
         radius: Theme.radius3xl
 
-        color: Theme.cardBg
+        color: Theme.surface
 
-        border.width: Theme.cardBorderWidth
-        border.color: root.isSelected ? Theme.cardBorderActive : (mouseArea.containsMouse ? Theme.cardBorderHover : Theme.cardBorder)
-
-        scale: mouseArea.containsMouse ? 1.01 : 1.0
-        y: mouseArea.containsMouse ? -2 : 0
+        border.width: root.isSelected ? 2 : 1
+        border.color: root.isSelected ? Theme.brand : (mouseArea.containsMouse ? Theme.borderHover : Theme.border)
 
         Behavior on border.color {
             ColorAnimation { duration: Theme.animNormal }
-        }
-        Behavior on scale {
-            NumberAnimation { duration: Theme.animNormal; easing.type: Easing.OutCubic }
-        }
-        Behavior on y {
-            NumberAnimation { duration: Theme.animNormal; easing.type: Easing.OutCubic }
         }
 
         MouseArea {
@@ -76,6 +82,7 @@ Item {
                 Image {
                     id: previewImage
                     anchors.fill: parent
+                    anchors.margins: root.isSelected ? 2 : 1
                     source: root.wp.preview || ""
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
@@ -83,19 +90,21 @@ Item {
                     sourceSize.width: 320
                     sourceSize.height: 320
 
-                    BusyIndicator {
-                        anchors.centerIn: parent
-                        running: previewImage.status === Image.Loading
+                    Effects.GShimmer {
+                        anchors.fill: parent
+                        active: previewImage.status === Image.Loading
+                        visible: previewImage.status === Image.Loading
+                        radius: 0
                     }
 
                     Rectangle {
                         anchors.fill: parent
-                        color: Theme.errorBg
+                        color: Theme.elevated
                         visible: previewImage.status === Image.Error || !previewImage.source
                         Text {
                             anchors.centerIn: parent
                             text: "No Preview"
-                            color: Theme.errorText
+                            color: Theme.fgSubtle
                             font.pixelSize: Theme.fontSizeMd
                         }
                     }
@@ -111,13 +120,14 @@ Item {
                         when: mouseArea.containsMouse
                         PropertyChanges {
                             target: previewImage
-                            scale: 1.08
+                            scale: 1.10
                         }
                     }
                 ]
             }
         }
 
+        // Selection checkbox
         Rectangle {
             visible: root.selectionMode
             anchors.top: parent.top
@@ -126,28 +136,30 @@ Item {
             width: 22
             height: 22
             radius: 11
-            color: root.selectionChecked ? Theme.accent : Theme.windowBg
+            color: root.selectionChecked ? Theme.brand : Theme.surface
             border.width: 1
-            border.color: Theme.cardBorderHover
+            border.color: root.selectionChecked ? Theme.brand : Theme.borderHover
 
-            Label {
+            Ctrl.GIcon {
+                visible: root.selectionChecked
+                name: "check"
+                size: 12
+                color: Theme.brandFg
                 anchors.centerIn: parent
-                text: root.selectionChecked ? "✓" : ""
-                color: Theme.windowBg
-                font.bold: true
-                font.pixelSize: Theme.fontSizeMd
             }
         }
 
+        // Selection overlay
         Rectangle {
             visible: root.selectionMode && root.selectionChecked
             anchors.fill: parent
             radius: Theme.radius3xl
             color: Theme.selectionOverlay
-            border.width: 1
-            border.color: Theme.accent
+            border.width: 2
+            border.color: Theme.brand
         }
 
+        // Favorite button
         Rectangle {
             id: favoriteButton
             visible: root.showIcons && !root.selectionMode
@@ -158,20 +170,20 @@ Item {
             height: Theme.iconButtonSm
             radius: Theme.radius2xl
 
-            color: root.isFavorite ? Theme.favoriteGoldBg : Theme.windowBg
+            color: root.isFavorite ? Theme.favoriteGoldBg : Theme.withAlpha("#000000", 0.40)
             border.width: 1
-            border.color: root.isFavorite ? Theme.favoriteGold : Theme.inputBorder
+            border.color: root.isFavorite ? Theme.favoriteGold : Theme.borderHover
             opacity: mouseArea.containsMouse || root.isFavorite ? 1 : 0
 
             Behavior on opacity {
                 NumberAnimation { duration: Theme.animFast }
             }
 
-            Text {
+            Ctrl.GIcon {
+                name: "star"
+                size: 14
+                color: root.isFavorite ? Theme.favoriteGold : Theme.fg
                 anchors.centerIn: parent
-                text: root.isFavorite ? "★" : "☆"
-                color: root.isFavorite ? Theme.favoriteGold : Theme.textPrimary
-                font.pixelSize: Theme.fontSizeLg
             }
 
             MouseArea {
@@ -183,35 +195,36 @@ Item {
             }
         }
 
+        // Type badge
         Rectangle {
             id: typeBadge
             visible: root.showIcons
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.margins: Theme.spaceSm
-            width: typeLabel.implicitWidth + Theme.spaceMd
-            height: Theme.spaceXl
+            width: typeIcon.size + Theme.spaceSm * 2
+            height: typeIcon.size + Theme.spaceSm * 2
             radius: Theme.radiusSm
 
-            color: Theme.inputBg
-            border.width: 1
-            border.color: Theme.inputBorder
+            color: Theme.withAlpha("#000000", 0.40)
             opacity: 0.92
 
-            Text {
-                id: typeLabel
-                anchors.centerIn: parent
-                text: {
+            Ctrl.GIcon {
+                id: typeIcon
+                name: {
                     var t = (root.wp.type || "").toLowerCase()
-                    if (t === "video") return "🎬"
-                    if (t === "web") return "🌐"
-                    if (t === "scene") return "🖥️"
-                    return "🖼️"
+                    if (t === "video") return "video"
+                    if (t === "web") return "globe"
+                    if (t === "scene") return "monitor"
+                    return "image"
                 }
-                font.pixelSize: Theme.fontSizeMd
+                size: Theme.fontSizeMd
+                color: Theme.fg
+                anchors.centerIn: parent
             }
         }
 
+        // Title gradient overlay
         Rectangle {
             id: titleBar
             visible: root.showTitle
@@ -224,8 +237,8 @@ Item {
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0.0; color: "transparent" }
-                GradientStop { position: 0.25; color: "#55000000" }
-                GradientStop { position: 1.0; color: "#d9000000" }
+                GradientStop { position: 0.25; color: Theme.withAlpha("#000000", 0.33) }
+                GradientStop { position: 1.0; color: Theme.withAlpha("#000000", 0.85) }
             }
 
             clip: true
@@ -236,39 +249,20 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.margins: Theme.spaceSm
                 text: root.wp.title || "Unknown"
-                color: Theme.textPrimary
+                color: Theme.fg
                 font.pixelSize: Theme.fontSizeMd
                 font.bold: true
                 elide: Text.ElideRight
             }
         }
 
-        Rectangle {
-            anchors.fill: parent
-            radius: Theme.radius3xl
-            color: "transparent"
-            border.width: root.isSelected ? 3 : 0
-            border.color: Theme.accent
-
-            Rectangle {
-                anchors.fill: parent
-                radius: Theme.radius3xl
-                color: "transparent"
-                border.width: root.isSelected ? 1 : 0
-                border.color: "#4da6ff66"
-            }
-
-            Behavior on border.width {
-                NumberAnimation { duration: Theme.animFast }
-            }
-        }
-
+        // Hover outline
         Rectangle {
             anchors.fill: parent
             radius: Theme.radius3xl
             color: "transparent"
             border.width: 1
-            border.color: "#ffffff10"
+            border.color: Theme.withAlpha("#ffffff", 0.06)
             visible: mouseArea.containsMouse && !root.isSelected
         }
     }

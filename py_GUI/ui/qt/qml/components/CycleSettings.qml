@@ -10,10 +10,10 @@ Frame {
     property var backend
 
     background: Rectangle {
-        color: Theme.panelBg
+        color: Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
     padding: Theme.spaceMd
 
@@ -32,7 +32,7 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Enable Cycle"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GSwitch {
@@ -57,7 +57,7 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Interval (minutes)"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GSpinBox {
@@ -85,7 +85,7 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Order"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GComboBox {
@@ -117,7 +117,7 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Playlist"
-                color: Theme.textPrimary
+                color: Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GComboBox {

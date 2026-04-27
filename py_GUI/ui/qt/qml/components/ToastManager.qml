@@ -1,8 +1,9 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "../Theme.js" as Theme
 import "../controls" as Ctrl
+import "../effects" as Effects
+import "../Theme.js" as Theme
 
 Item {
     id: root
@@ -25,14 +26,15 @@ Item {
         onTriggered: root.visibleToast = false
     }
 
-    Rectangle {
+    Effects.GBackdropBlur {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Theme.spaceXl
         radius: Theme.radiusLg
-        color: "#2f344bdd"
+        tintColor: Theme.overlay
+        tintOpacity: 0.95
         border.width: 1
-        border.color: Theme.textMuted
+        border.color: Theme.border
         visible: root.visibleToast
         opacity: root.visibleToast ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.animToast } }
@@ -40,20 +42,33 @@ Item {
         implicitWidth: Math.max(180, toastText.implicitWidth + Theme.space2xl)
         implicitHeight: toastText.implicitHeight + Theme.spaceMd
 
+        y: root.visibleToast ? 0 : 8
+        Behavior on y { NumberAnimation { duration: Theme.animToast; easing.type: Easing.OutCubic } }
+
+        // Shadow for toast
+        Effects.GDropShadow {
+            shadowWidth: parent.width
+            shadowHeight: parent.height
+            radius: Theme.radiusLg
+            color: Theme.withAlpha("#000000", 0.15)
+            spread: 4
+            verticalOffset: 2
+        }
+
         RowLayout {
             anchors.centerIn: parent
             spacing: Theme.spaceSm
 
-            Label {
+            Text {
                 id: toastText
                 Layout.fillWidth: true
                 text: root.message
-                color: Theme.textPrimary
+                color: Theme.fg
                 font.pixelSize: Theme.fontSizeMd
             }
 
             Ctrl.GIconButton {
-                text: "×"
+                iconName: "x"
                 size: Theme.iconButtonSm
                 onClicked: root.visibleToast = false
             }

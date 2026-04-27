@@ -12,13 +12,50 @@ Dialog {
     modal: true
     title: "Favorite Manager"
     width: 560
-    height: 440
+    height: 480
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.panelBg
+        color: Theme.elevated
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
+    }
+
+    // Custom header
+    header: Rectangle {
+        height: 60
+        color: "transparent"
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Theme.spaceLg
+            anchors.rightMargin: Theme.spaceLg
+            spacing: Theme.spaceSm
+
+            Ctrl.GIcon {
+                name: "star"
+                size: Theme.fontSizeXl
+                color: Theme.favoriteGold
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                Label {
+                    text: "Favorite Manager"
+                    color: Theme.fg
+                    font.pixelSize: Theme.fontSizeLg
+                    font.bold: true
+                }
+
+                Label {
+                    text: (root.rows.length) + " favorite" + (root.rows.length !== 1 ? "s" : "")
+                    color: Theme.fgMuted
+                    font.pixelSize: Theme.fontSizeXs
+                }
+            }
+        }
     }
 
     function rebuildRows() {
@@ -48,12 +85,15 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spaceSm
+        spacing: Theme.spaceMd
 
+        // Toolbar
         RowLayout {
             Layout.fillWidth: true
             Ctrl.GButton {
                 text: "Select All"
+                variant: "ghost"
+                sizeVariant: "sm"
                 onClicked: {
                     var arr = root.rows.slice()
                     for (var i = 0; i < arr.length; i++) arr[i].selected = true
@@ -62,6 +102,8 @@ Dialog {
             }
             Ctrl.GButton {
                 text: "Deselect All"
+                variant: "ghost"
+                sizeVariant: "sm"
                 onClicked: {
                     var arr = root.rows.slice()
                     for (var i = 0; i < arr.length; i++) arr[i].selected = false
@@ -70,7 +112,10 @@ Dialog {
             }
             Item { Layout.fillWidth: true }
             Ctrl.GButton {
-                text: "Remove Selected"
+                text: "Remove Selected" + (selectedCount() > 0 ? " (" + selectedCount() + ")" : "")
+                variant: "destructive"
+                sizeVariant: "sm"
+                enabled: selectedCount() > 0
                 onClicked: {
                     if (root.backend) {
                         for (var i = 0; i < root.rows.length; i++) {
@@ -82,56 +127,120 @@ Dialog {
             }
         }
 
-        ListView {
+        // List with rounded border
+        Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            model: root.rows
+            radius: Theme.radiusLg
+            color: Theme.surface
+            border.width: 1
+            border.color: Theme.border
 
-            delegate: Rectangle {
-                required property var modelData
-                width: ListView.view.width
-                height: 50
-                color: modelData.selected ? Theme.rowSelected : Theme.panelBg
-                border.width: 1
-                border.color: Theme.panelBorder
-                radius: Theme.radiusMd
+            ListView {
+                anchors.fill: parent
+                anchors.margins: 1
+                clip: true
+                model: root.rows
+                spacing: Theme.spaceXs
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Theme.spaceSm
-                    anchors.rightMargin: Theme.spaceSm
-                    spacing: Theme.spaceSm
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    width: ListView.view.width - Theme.spaceMd * 2
+                    x: Theme.spaceMd
+                    height: 56
+                    radius: Theme.radiusMd
+                    color: modelData.selected ? Theme.withAlpha(Theme.favoriteGold, 0.1) : "transparent"
+                    border.width: modelData.selected ? 1 : 0
+                    border.color: Theme.withAlpha(Theme.favoriteGold, 0.5)
 
-                    CheckBox {
-                        checked: modelData.selected
-                        onToggled: {
-                            var arr = root.rows.slice()
-                            arr[index].selected = checked
-                            root.rows = arr
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.spaceSm
+                        anchors.rightMargin: Theme.spaceSm
+                        spacing: Theme.spaceSm
+
+                        CheckBox {
+                            checked: modelData.selected
+                            onToggled: {
+                                var arr = root.rows.slice()
+                                arr[index].selected = checked
+                                root.rows = arr
+                            }
+                        }
+
+                        Rectangle {
+                            width: 36
+                            height: 36
+                            radius: Theme.radiusSm
+                            color: Theme.elevated
+
+                            Ctrl.GIcon {
+                                name: "image"
+                                size: Theme.fontSizeMd
+                                color: Theme.fgMuted
+                                anchors.centerIn: parent
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Label {
+                                text: modelData.title
+                                color: Theme.fg
+                                font.pixelSize: Theme.fontSizeSm
+                                font.weight: Theme.fontWeightMedium
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+
+                            Label {
+                                text: "ID: " + modelData.wallpaperId
+                                color: Theme.fgMuted
+                                font.pixelSize: Theme.fontSizeXs
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Ctrl.GIcon {
+                            name: "star"
+                            size: Theme.fontSizeMd
+                            color: Theme.favoriteGold
                         }
                     }
+                }
 
-                    Label {
-                        text: modelData.title
-                        color: Theme.textBody
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
-
-                    Label {
-                        text: "★"
-                        color: Theme.favoriteGold
-                        font.pixelSize: Theme.fontSize2xl
-                    }
+                // Empty state
+                Label {
+                    anchors.centerIn: parent
+                    visible: parent.count === 0
+                    text: "No favorites yet"
+                    color: Theme.fgMuted
+                    font.pixelSize: Theme.fontSizeMd
                 }
             }
         }
 
+        // Footer
         RowLayout {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
-            Ctrl.GButton { text: "Close"; onClicked: root.close() }
+            Ctrl.GButton {
+                text: "Close"
+                variant: "outline"
+                onClicked: root.close()
+            }
         }
+    }
+
+    function selectedCount() {
+        var count = 0
+        for (var i = 0; i < root.rows.length; i++) {
+            if (root.rows[i].selected) count++
+        }
+        return count
     }
 }

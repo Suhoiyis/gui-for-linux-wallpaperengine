@@ -9,9 +9,9 @@ SpinBox {
 
     background: Rectangle {
         radius: Theme.radiusMd
-        color: Theme.inputBg
+        color: Theme.input
         border.width: 1
-        border.color: root.activeFocus ? Theme.accent : Theme.inputBorder
+        border.color: root.activeFocus ? Theme.accent : Theme.border
 
         Behavior on border.color { ColorAnimation { duration: Theme.animNormal } }
     }
@@ -19,7 +19,7 @@ SpinBox {
     contentItem: TextInput {
         text: root.value
         font.pixelSize: Theme.fontSizeMd
-        color: Theme.textPrimary
+        color: Theme.fg
         horizontalAlignment: Qt.AlignHCenter
         verticalAlignment: Qt.AlignVCenter
         readOnly: !root.editable
@@ -32,14 +32,14 @@ SpinBox {
         height: root.height / 2
         width: height
         radius: Theme.radiusSm
-        color: root.up.hovered ? Theme.cardBorderHover : Theme.panelBg
+        color: root.up.hovered ? Theme.borderHover : Theme.elevated
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
 
         Text {
             text: "+"
             font.pixelSize: Theme.fontSizeMd
-            color: Theme.textPrimary
+            color: Theme.fg
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
@@ -51,14 +51,14 @@ SpinBox {
         height: root.height / 2
         width: height
         radius: Theme.radiusSm
-        color: root.down.hovered ? Theme.cardBorderHover : Theme.panelBg
+        color: root.down.hovered ? Theme.borderHover : Theme.elevated
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
 
         Text {
             text: "-"
             font.pixelSize: Theme.fontSizeMd
-            color: Theme.textPrimary
+            color: Theme.fg
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }

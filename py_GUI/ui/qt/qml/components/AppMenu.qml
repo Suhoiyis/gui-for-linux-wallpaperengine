@@ -18,7 +18,7 @@ Item {
 
     Ctrl.GIconButton {
         anchors.fill: parent
-        text: "☰"
+        iconName: "list"
         size: Theme.navButtonSize
         onClicked: menu.popup()
     }

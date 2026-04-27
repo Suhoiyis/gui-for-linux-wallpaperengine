@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../Theme.js" as Theme
+import "../controls" as Ctrl
 
 Item {
     id: root
@@ -12,7 +13,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.windowBg
+        color: Theme.bg
 
         ColumnLayout {
             anchors.fill: parent
@@ -28,14 +29,15 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 contentWidth: availableWidth
+                clip: true
 
                 ColumnLayout {
                     width: parent.width
-                    spacing: Theme.spaceXl
+                    spacing: Theme.spaceMd
 
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Theme.spaceXl
+                        Layout.preferredHeight: Theme.spaceMd
                     }
 
                     CompactPreview {
@@ -70,23 +72,37 @@ Item {
                             if (!root.backend || index < 0 || index >= root.backend.wallpapers.length) return
                             root.backend.selectWallpaper(root.backend.wallpapers[index].id)
                         }
-                        onApplyRequested: function() {
-                            if (root.backend && root.backend.selectedId) {
-                                root.backend.applyWallpaper(root.backend.selectedId)
-                            }
-                        }
                         onCopyIdRequested: function() {
                             if (root.backend && root.backend.selectedId) {
                                 root.backend.copyTextToClipboard(root.backend.selectedId)
                             }
                         }
                     }
+
+                    // Apply Button - styled like Tauri
+                    Ctrl.GButton {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 280
+                        text: "Apply Wallpaper"
+                        iconName: "play"
+                        enabled: root.backend && root.backend.selectedId
+                        onClicked: {
+                            if (root.backend && root.backend.selectedId) {
+                                root.backend.applyWallpaper(root.backend.selectedId)
+                            }
+                        }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                    }
                 }
             }
 
             CompactCarousel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 120
+                Layout.preferredHeight: 100
                 wallpapers: root.backend ? root.backend.wallpapers : []
                 selectedId: root.backend ? root.backend.selectedId : ""
                 onSelectRequested: function(wallpaperId) {

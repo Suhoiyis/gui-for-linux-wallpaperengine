@@ -30,7 +30,7 @@ Item {
                 else ctx.lineTo(x, y)
             }
             ctx.strokeStyle = root.lineColor
-            ctx.lineWidth = Theme.cardBorderWidth
+            ctx.lineWidth = 1.5
             ctx.stroke()
 
             ctx.lineTo(width, height)

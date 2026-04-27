@@ -16,22 +16,22 @@ Item {
     signal applyRequested()
     signal copyIdRequested()
 
-    implicitWidth: 300
-    implicitHeight: 400
+    implicitWidth: 320
+    implicitHeight: 360
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spaceLg
+        spacing: Theme.spaceMd
 
-        // Preview Image
+        // Preview Image - styled like WallpaperCard
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
             width: 200
             height: 200
-            radius: Theme.radius3xl
-            color: Theme.cardBg
-            border.width: Theme.cardBorderWidth
-            border.color: Theme.cardBorder
+            radius: Theme.radius2xl
+            color: Theme.surface
+            border.width: 1
+            border.color: Theme.border
             clip: true
 
             Image {
@@ -40,26 +40,40 @@ Item {
                 source: root.wallpaper && root.wallpaper.preview ? root.wallpaper.preview : ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-
-                sourceSize.width: 320
-                sourceSize.height: 320
-
-                BusyIndicator {
-                    anchors.centerIn: parent
-                    running: previewImage.status === Image.Loading
-                }
+                sourceSize.width: 400
+                sourceSize.height: 400
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Theme.errorBg
+                    color: Theme.elevated
                     visible: previewImage.status === Image.Error || !previewImage.source
-                    Text {
+
+                    Column {
                         anchors.centerIn: parent
-                        text: "No Preview"
-                        color: Theme.errorText
-                        font.pixelSize: Theme.fontSizeMd
+                        spacing: Theme.spaceSm
+
+                        Ctrl.GIcon {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            name: "image"
+                            size: Theme.fontSize2xl
+                            color: Theme.fgSubtle
+                        }
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "No Preview"
+                            color: Theme.fgSubtle
+                            font.pixelSize: Theme.fontSizeSm
+                        }
                     }
                 }
+            }
+
+            // Loading indicator
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: previewImage.status === Image.Loading
+                visible: running
             }
         }
 
@@ -70,39 +84,57 @@ Item {
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
-                Layout.maximumWidth: 280
+                Layout.maximumWidth: 300
                 text: root.wallpaper && root.wallpaper.title ? root.wallpaper.title : "Select Wallpaper"
-                color: Theme.textPrimary
-                font.pixelSize: Theme.fontSizeXl
+                color: Theme.fg
+                font.pixelSize: Theme.fontSizeLg
                 font.bold: true
                 elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
+                maximumLineCount: 2
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
 
+            // ID badge with copy
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
-                width: idRow.implicitWidth + Theme.spaceLg
-                height: Theme.space2xl
-                radius: Theme.radiusXl
-                color: Theme.inputBg
+                height: 24
+                radius: Theme.radiusPill
+                color: Theme.input
                 border.width: 1
-                border.color: Theme.panelBorder
+                border.color: Theme.border
 
                 RowLayout {
-                    id: idRow
                     anchors.centerIn: parent
+                    anchors.leftMargin: Theme.spaceSm
+                    anchors.rightMargin: Theme.spaceSm
                     spacing: Theme.spaceXs
 
                     Label {
                         text: root.wallpaper && root.wallpaper.id ? root.wallpaper.id : "---"
-                        color: Theme.textSecondary
+                        color: Theme.fgMuted
                         font.pixelSize: Theme.fontSizeXs
                     }
 
+                    Ctrl.GIcon {
+                        name: "copy"
+                        size: Theme.fontSizeXs
+                        color: Theme.fgSubtle
+                    }
+                }
+
+                implicitWidth: idLayout.implicitWidth + Theme.spaceMd
+
+                RowLayout {
+                    id: idLayout
+                    visible: false
                     Label {
-                        text: "📋"
-                        color: Theme.textSecondary
+                        text: root.wallpaper && root.wallpaper.id ? root.wallpaper.id : "---"
                         font.pixelSize: Theme.fontSizeXs
+                    }
+                    Ctrl.GIcon {
+                        name: "copy"
+                        size: Theme.fontSizeXs
                     }
                 }
 
@@ -110,43 +142,71 @@ Item {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.copyIdRequested()
+                    onEntered: parent.color = Theme.elevated
+                    onExited: parent.color = Theme.input
                 }
             }
         }
 
-        // Navigation
+        // Navigation - rounded buttons like Tauri
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: Theme.spaceMd
+            spacing: Theme.spaceSm
 
-            Ctrl.GIconButton {
-                text: "◀"
-                size: Theme.iconButtonSm
-                onClicked: root.navigate(-1)
+            // Previous button
+            Rectangle {
+                width: 32
+                height: 32
+                radius: 16
+                color: navLeftMouse.containsMouse ? Theme.elevated : Theme.input
+                border.width: 1
+                border.color: Theme.border
+
+                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                Ctrl.GIcon {
+                    anchors.centerIn: parent
+                    name: "chevronRight"
+                    size: Theme.fontSizeMd
+                    color: Theme.fgMuted
+                    rotation: 180
+                }
+
+                MouseArea {
+                    id: navLeftMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.navigate(-1)
+                }
             }
 
+            // Page input
             Rectangle {
                 width: 80
-                height: Theme.iconButtonSm
-                radius: Theme.radiusSm
-                color: Theme.inputBg
+                height: 32
+                radius: Theme.radiusMd
+                color: Theme.input
                 border.width: 1
-                border.color: Theme.panelBorder
+                border.color: Theme.border
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: Theme.spaceXs
                     spacing: 2
 
-                    Ctrl.GTextField {
+                    TextInput {
                         id: pageInput
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         text: root.currentIndex.toString()
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.fontSizeMd
+                        color: Theme.fg
+                        font.pixelSize: Theme.fontSizeSm
                         horizontalAlignment: Text.AlignHCenter
-                        background: Item {}
+                        verticalAlignment: Text.AlignVCenter
+                        selectByMouse: true
+                        validator: IntValidator { bottom: 1; top: root.totalCount }
+
                         onEditingFinished: {
                             var val = parseInt(text)
                             if (!isNaN(val) && val >= 1 && val <= root.totalCount) {
@@ -155,30 +215,47 @@ Item {
                                 text = root.currentIndex.toString()
                             }
                         }
+
+                        Keys.onReturnPressed: {
+                            focus = false
+                        }
                     }
 
                     Label {
                         text: "/ " + root.totalCount
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.fontSizeMd
+                        color: Theme.fgMuted
+                        font.pixelSize: Theme.fontSizeSm
                     }
                 }
             }
 
-            Ctrl.GIconButton {
-                text: "▶"
-                size: Theme.iconButtonSm
-                onClicked: root.navigate(1)
-            }
-        }
+            // Next button
+            Rectangle {
+                width: 32
+                height: 32
+                radius: 16
+                color: navRightMouse.containsMouse ? Theme.elevated : Theme.input
+                border.width: 1
+                border.color: Theme.border
 
-        // Apply Button
-        Ctrl.GPillButton {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: Theme.spaceXl * 10
-            Layout.preferredHeight: Theme.navHeight - Theme.spaceXs
-            text: "Apply Wallpaper"
-            onClicked: root.applyRequested()
+                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                Ctrl.GIcon {
+                    anchors.centerIn: parent
+                    name: "chevronDown"
+                    size: Theme.fontSizeMd
+                    color: Theme.fgMuted
+                    rotation: -90
+                }
+
+                MouseArea {
+                    id: navRightMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.navigate(1)
+                }
+            }
         }
     }
 }

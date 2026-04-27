@@ -16,9 +16,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.panelBg
+        color: Theme.elevated
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
 
     function rebuildRows() {
@@ -87,9 +87,9 @@ Dialog {
                 required property var modelData
                 width: ListView.view.width
                 height: 54
-                color: modelData.selected ? Theme.rowSelected : Theme.panelBg
+                color: modelData.selected ? Theme.rowSelected : Theme.elevated
                 border.width: 1
-                border.color: Theme.panelBorder
+                border.color: Theme.border
                 radius: Theme.radiusMd
 
                 RowLayout {
@@ -109,7 +109,7 @@ Dialog {
 
                     Label {
                         text: modelData.title
-                        color: Theme.textBody
+                        color: Theme.fg
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                     }

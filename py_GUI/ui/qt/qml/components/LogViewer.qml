@@ -11,10 +11,10 @@ Frame {
     property string filterSource: "All"
 
     background: Rectangle {
-        color: Theme.panelBg
+        color: Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
     padding: Theme.spaceMd
 
@@ -70,10 +70,10 @@ Frame {
                     anchors.rightMargin: Theme.spaceSm
                     spacing: Theme.spaceSm
 
-                    Label { text: modelData.timestamp || ""; color: Theme.textSecondary; Layout.preferredWidth: Theme.spaceXl * 6.5; elide: Text.ElideRight }
-                    Label { text: modelData.level || ""; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 3.5 }
+                    Label { text: modelData.timestamp || ""; color: Theme.fgMuted; Layout.preferredWidth: Theme.spaceXl * 6.5; elide: Text.ElideRight }
+                    Label { text: modelData.level || ""; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 3.5 }
                     Label { text: modelData.source || ""; color: Theme.accent; Layout.preferredWidth: Theme.spaceXl * 4.5 }
-                    Label { text: modelData.message || ""; color: Theme.textBody; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Label { text: modelData.message || ""; color: Theme.fg; Layout.fillWidth: true; elide: Text.ElideRight }
                 }
             }
         }

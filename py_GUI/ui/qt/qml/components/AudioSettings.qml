@@ -10,10 +10,10 @@ Frame {
     property var backend
 
     background: Rectangle {
-        color: Theme.panelBg
+        color: Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.panelBorder
+        border.color: Theme.border
     }
     padding: Theme.spaceMd
 
@@ -30,7 +30,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Mute Audio"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "Mute Audio"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 id: muteSwitch
                 checked: root.backend ? root.backend.silence : true
@@ -41,7 +41,7 @@ Frame {
         RowLayout {
             Layout.fillWidth: true
             visible: !muteSwitch.checked
-            Label { text: "Master Volume"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "Master Volume"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSlider {
                 id: volumeSlider
                 Layout.fillWidth: true
@@ -53,14 +53,14 @@ Frame {
             }
             Label {
                 text: String(Math.round(volumeSlider.value)) + "%"
-                color: Theme.textSecondary
+                color: Theme.fgMuted
                 Layout.preferredWidth: Theme.spaceXl * 2.3
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Disable Auto Mute"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "Disable Auto Mute"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.noAutomute : false
                 onToggled: if (root.backend) root.backend.setNoAutomute(checked)
@@ -69,7 +69,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "No Audio Processing"; color: Theme.textPrimary; Layout.preferredWidth: Theme.spaceXl * 8.5 }
+            Label { text: "No Audio Processing"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.noAudioProcessing : false
                 onToggled: if (root.backend) root.backend.setNoAudioProcessing(checked)
