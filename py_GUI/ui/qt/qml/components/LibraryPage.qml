@@ -121,6 +121,26 @@ Item {
                 root.selectionMode = false
                 root.selectedForPlaylist = []
             }
+            onCreatePlaylistFromSelectionRequested: {
+                if (!root.backend || root.selectedForPlaylist.length === 0) return
+                var name = "Playlist " + (root.backend.playlists.length + 1)
+                root.backend.createPlaylist(name)
+                var playlists = root.backend.playlists
+                var newId = ""
+                for (var i = 0; i < playlists.length; i++) {
+                    if (playlists[i].name === name) {
+                        newId = playlists[i].id
+                        break
+                    }
+                }
+                if (newId.length > 0) {
+                    for (var j = 0; j < root.selectedForPlaylist.length; j++) {
+                        root.backend.addToPlaylist(newId, root.selectedForPlaylist[j])
+                    }
+                }
+                root.selectionMode = false
+                root.selectedForPlaylist = []
+            }
         }
 
         Rectangle {
@@ -236,6 +256,12 @@ Item {
                     }
                     onSelectionToggled: function(wallpaperId) {
                         root.toggleSelection(wallpaperId)
+                    }
+                    onConfigurePathRequested: {
+                        window.currentPage = "settings"
+                    }
+                    onBrowseAllRequested: {
+                        if (root.backend) root.backend.clearActivePlaylist()
                     }
                 }
 

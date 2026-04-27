@@ -15,6 +15,7 @@ Rectangle {
     signal deselectRequested()
     signal cancelRequested()
     signal addToPlaylistRequested(string playlistId)
+    signal createPlaylistFromSelectionRequested()
 
     color: Theme.rowSelected
     border.width: 1
@@ -62,6 +63,13 @@ Rectangle {
                     root.addToPlaylistRequested(playlistCombo.model[playlistCombo.currentIndex].id)
                 }
             }
+        }
+
+        Ctrl.GButton {
+            text: "Create Playlist"
+            variant: "brand"
+            enabled: root.selectedCount > 0
+            onClicked: root.createPlaylistFromSelectionRequested()
         }
 
         Ctrl.GButton {

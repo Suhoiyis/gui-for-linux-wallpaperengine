@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../Theme.js" as Theme
 import "../controls" as Ctrl
+import "." as Comp
 
 Item {
     id: root
@@ -31,6 +32,8 @@ Item {
     signal copyIdRequested(string wallpaperId)
     signal workshopRequested(string wallpaperId)
     signal selectionToggled(string wallpaperId)
+    signal configurePathRequested()
+    signal browseAllRequested()
 
     GridView {
         id: gridView
@@ -136,11 +139,37 @@ Item {
         onWorkshopRequested: root.workshopRequested(wallpaperId)
     }
 
-    Label {
+    // Empty state: search no results
+    Comp.GEmptyState {
         anchors.centerIn: parent
-        visible: !gridView.count
-        text: "No wallpapers found"
-        color: Theme.fgMuted
+        visible: !gridView.count && root.searchText.length > 0
+        iconName: "search"
+        title: "No Results Found"
+        description: "No wallpapers match \"" + root.searchText + "\".\nTry different keywords or check your spelling."
+    }
+
+    // Empty state: empty playlist / favorites
+    Comp.GEmptyState {
+        anchors.centerIn: parent
+        visible: !gridView.count && root.searchText.length === 0 && root.wallpapers.length > 0 && root.activePlaylistId.length > 0
+        iconName: root.activePlaylistId === "favorites" ? "star" : "list"
+        title: root.activePlaylistId === "favorites" ? "No Favorites Yet" : "This Playlist is Empty"
+        description: root.activePlaylistId === "favorites"
+            ? "You haven't added any wallpapers to your favorites.\nClick the star icon on any wallpaper to add it."
+            : "This playlist doesn't have any wallpapers yet."
+        actionText: root.activePlaylistId === "favorites" ? "Browse Wallpapers" : "Browse & Add Wallpapers"
+        onActionTriggered: root.browseAllRequested()
+    }
+
+    // Empty state: no wallpapers at all
+    Comp.GEmptyState {
+        anchors.centerIn: parent
+        visible: !gridView.count && root.searchText.length === 0 && root.wallpapers.length === 0
+        iconName: "search"
+        title: "No Wallpapers Found"
+        description: "The wallpaper library appears to be empty."
+        actionText: "Configure Library Path"
+        onActionTriggered: root.configurePathRequested()
     }
 
     Dialog {
