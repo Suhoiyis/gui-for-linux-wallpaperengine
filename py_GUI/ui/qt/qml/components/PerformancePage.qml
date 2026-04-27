@@ -480,6 +480,205 @@ Item {
                         }
                     }
                 }
+
+                // Separator
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Theme.border
+                }
+
+                // Screenshot History section
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spaceMd
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceSm
+
+                        Ctrl.GIcon {
+                            name: "camera"
+                            size: Theme.fontSizeMd
+                            color: Theme.accent
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Text {
+                                text: "Screenshot History"
+                                color: Theme.fg
+                                font.pixelSize: Theme.fontSizeLg
+                                font.weight: Theme.fontWeightBold
+                            }
+
+                            Text {
+                                text: "Recent screenshot captures."
+                                color: Theme.fgMuted
+                                font.pixelSize: Theme.fontSizeSm
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Ctrl.GButton {
+                            text: "Clear"
+                            variant: "outline"
+                            size: "sm"
+                            enabled: screenshotList.count > 0
+                            onClicked: {
+                                if (root.backend) root.backend.clearScreenshotHistory()
+                            }
+                        }
+                    }
+
+                    // Screenshot records list
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: screenshotColumn.implicitHeight + Theme.spaceMd * 2
+                        radius: Theme.radiusLg
+                        color: Theme.surface
+                        border.width: 1
+                        border.color: Theme.border
+                        visible: screenshotList.count > 0
+
+                        ColumnLayout {
+                            id: screenshotColumn
+                            anchors.fill: parent
+                            anchors.margins: Theme.spaceMd
+                            spacing: 0
+
+                            Repeater {
+                                id: screenshotList
+                                model: root.backend ? root.backend.screenshotHistory : []
+
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    height: 56
+                                    color: index % 2 === 0 ? "transparent" : Theme.withAlpha(Theme.elevated, 0.30)
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: Theme.spaceSm
+                                        anchors.rightMargin: Theme.spaceSm
+                                        spacing: Theme.spaceMd
+
+                                        // Thumbnail
+                                        Rectangle {
+                                            width: 40
+                                            height: 40
+                                            radius: Theme.radiusSm
+                                            color: Theme.elevated
+                                            clip: true
+
+                                            Image {
+                                                anchors.fill: parent
+                                                source: modelData.preview || ""
+                                                fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                                visible: modelData.preview
+                                            }
+
+                                            Ctrl.GIcon {
+                                                anchors.centerIn: parent
+                                                name: "camera"
+                                                size: Theme.fontSizeSm
+                                                color: Theme.fgMuted
+                                                visible: !modelData.preview
+                                            }
+                                        }
+
+                                        // Title
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: modelData.title || "Unknown Wallpaper"
+                                            color: Theme.fg
+                                            font.pixelSize: Theme.fontSizeMd
+                                            font.weight: Theme.fontWeightBold
+                                            elide: Text.ElideRight
+                                        }
+
+                                        // Duration
+                                        RowLayout {
+                                            spacing: Theme.spaceXs
+
+                                            Ctrl.GIcon {
+                                                name: "clock"
+                                                size: Theme.fontSizeXs
+                                                color: Theme.fgMuted
+                                            }
+
+                                            Text {
+                                                text: Number(modelData.duration || 0).toFixed(1) + "s"
+                                                color: Theme.fgMuted
+                                                font.pixelSize: Theme.fontSizeSm
+                                                font.family: "monospace"
+                                            }
+                                        }
+
+                                        // Action buttons
+                                        Ctrl.GIconButton {
+                                            name: "folder"
+                                            size: "sm"
+                                            onClicked: {
+                                                if (root.backend) root.backend.openFolder(modelData.outputPath)
+                                            }
+                                        }
+
+                                        Ctrl.GIconButton {
+                                            name: "image"
+                                            size: "sm"
+                                            onClicked: {
+                                                if (root.backend) root.backend.openExternalUrl(Qt.resolvedUrl(modelData.outputPath))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Empty screenshot state
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 160
+                        radius: Theme.radiusLg
+                        color: Theme.surface
+                        border.width: 1
+                        border.color: Theme.withAlpha(Theme.border, 0.50)
+                        visible: screenshotList.count === 0
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: Theme.spaceMd
+
+                            Ctrl.GIcon {
+                                name: "camera"
+                                size: Theme.fontSize2xl
+                                color: Theme.fgSubtle
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+
+                            Text {
+                                text: "No Screenshot Records"
+                                color: Theme.fgMuted
+                                font.pixelSize: Theme.fontSizeMd
+                                font.weight: Theme.fontWeightBold
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+
+                            Text {
+                                text: "You have no screenshot records to display."
+                                color: Theme.fgSubtle
+                                font.pixelSize: Theme.fontSizeSm
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+                        }
+                    }
+                }
             }
         }
     }
