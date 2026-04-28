@@ -1,6 +1,6 @@
 // ThemeBridge.qml — Dynamic color proxy that resolves Theme.js palette based on mode
 import QtQuick
-import "Theme.js" as Theme
+import "../Theme.js" as Theme
 
 QtObject {
     id: bridge
