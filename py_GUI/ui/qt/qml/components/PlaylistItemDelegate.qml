@@ -77,7 +77,7 @@ Item {
                 onEntered: if (!isActive) parent.color = Theme.withAlpha(Theme.elevated, 0.5)
                 onExited: if (!isActive) parent.color = "transparent"
                 drag.target: root.draggable ? parent : undefined
-                drag.axis: Drag.Y
+                drag.axis: Drag.YAxis
             }
 
             states: State {
@@ -189,6 +189,7 @@ Item {
             }
 
             Rectangle {
+                id: overflowRect
                 visible: wpIds.length > root.maxThumbs
                 width: 32
                 height: 32
@@ -210,7 +211,7 @@ Item {
 
                 Image {
                     anchors.fill: parent
-                    source: overflowThumbUrl
+                    source: overflowRect.overflowThumbUrl
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     cache: true

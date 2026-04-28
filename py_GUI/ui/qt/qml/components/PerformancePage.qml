@@ -436,7 +436,7 @@ Item {
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: Theme.spaceMd
-                                    visible: modelData.cpuHistory && modelData.cpuHistory.length > 0
+                                    visible: modelData.cpuHistory !== undefined && modelData.cpuHistory !== null && modelData.cpuHistory.length > 0
 
                                     Rectangle {
                                         Layout.fillWidth: true
@@ -621,7 +621,7 @@ Item {
 
                                         // Action buttons
                                         Ctrl.GIconButton {
-                                            name: "folder"
+                                            iconName: "folder"
                                             size: Theme.iconButtonSm
                                             onClicked: {
                                                 if (root.backend) root.backend.openFolder(modelData.outputPath)
@@ -629,7 +629,7 @@ Item {
                                         }
 
                                         Ctrl.GIconButton {
-                                            name: "image"
+                                            iconName: "image"
                                             size: Theme.iconButtonSm
                                             onClicked: {
                                                 if (root.backend) root.backend.openExternalUrl(Qt.resolvedUrl(modelData.outputPath))
