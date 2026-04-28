@@ -12,6 +12,8 @@ ColumnLayout {
     property string description: ""
     property string actionText: ""
     signal actionTriggered()
+    property var themeBridge
+    property var tb: themeBridge || null
 
     spacing: Theme.spaceMd
     Layout.alignment: Qt.AlignHCenter
@@ -19,13 +21,13 @@ ColumnLayout {
     Ctrl.GIcon {
         name: root.iconName
         size: Theme.fontSize2xl
-        color: Theme.fgSubtle
+        color: tb ? tb.cFgSubtle : Theme.fgSubtle
         Layout.alignment: Qt.AlignHCenter
     }
 
     Text {
         text: root.title
-        color: Theme.fgMuted
+        color: tb ? tb.cFgMuted : Theme.fgMuted
         font.pixelSize: Theme.fontSizeMd
         font.weight: Theme.fontWeightBold
         Layout.alignment: Qt.AlignHCenter
@@ -33,7 +35,7 @@ ColumnLayout {
 
     Text {
         text: root.description
-        color: Theme.fgSubtle
+        color: tb ? tb.cFgSubtle : Theme.fgSubtle
         font.pixelSize: Theme.fontSizeSm
         Layout.alignment: Qt.AlignHCenter
         wrapMode: Text.WordWrap

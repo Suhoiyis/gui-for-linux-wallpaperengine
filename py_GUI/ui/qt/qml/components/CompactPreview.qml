@@ -7,6 +7,9 @@ import "../controls" as Ctrl
 Item {
     id: root
 
+    property var themeBridge
+    property var tb: themeBridge || null
+
     property var wallpaper: ({})
     property int totalCount: 0
     property int currentIndex: 0
@@ -29,9 +32,9 @@ Item {
             width: 200
             height: 200
             radius: Theme.radius2xl
-            color: Theme.surface
+            color: tb ? tb.cSurface : Theme.surface
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
             clip: true
 
             Image {
@@ -45,7 +48,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Theme.elevated
+                    color: tb ? tb.cElevated : Theme.elevated
                     visible: previewImage.status === Image.Error || !previewImage.source
 
                     Column {
@@ -56,13 +59,13 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             name: "image"
                             size: Theme.fontSize2xl
-                            color: Theme.fgSubtle
+                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                         }
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: "No Preview"
-                            color: Theme.fgSubtle
+                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                             font.pixelSize: Theme.fontSizeSm
                         }
                     }
@@ -86,7 +89,7 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: 300
                 text: root.wallpaper && root.wallpaper.title ? root.wallpaper.title : "Select Wallpaper"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 font.pixelSize: Theme.fontSizeLg
                 font.bold: true
                 elide: Text.ElideRight
@@ -100,9 +103,9 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 height: 24
                 radius: Theme.radiusPill
-                color: Theme.input
+                color: tb ? tb.cInput : Theme.input
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 RowLayout {
                     anchors.centerIn: parent
@@ -112,14 +115,14 @@ Item {
 
                     Label {
                         text: root.wallpaper && root.wallpaper.id ? root.wallpaper.id : "---"
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                         font.pixelSize: Theme.fontSizeXs
                     }
 
                     Ctrl.GIcon {
                         name: "copy"
                         size: Theme.fontSizeXs
-                        color: Theme.fgSubtle
+                        color: tb ? tb.cFgSubtle : Theme.fgSubtle
                     }
                 }
 
@@ -142,8 +145,8 @@ Item {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.copyIdRequested()
-                    onEntered: parent.color = Theme.elevated
-                    onExited: parent.color = Theme.input
+                    onEntered: parent.color = tb ? tb.cElevated : Theme.elevated
+                    onExited: parent.color = tb ? tb.cInput : Theme.input
                 }
             }
         }
@@ -158,9 +161,9 @@ Item {
                 width: 32
                 height: 32
                 radius: 16
-                color: navLeftMouse.containsMouse ? Theme.elevated : Theme.input
+                color: navLeftMouse.containsMouse ? (tb ? tb.cElevated : Theme.elevated) : (tb ? tb.cInput : Theme.input)
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -168,7 +171,7 @@ Item {
                     anchors.centerIn: parent
                     name: "chevronRight"
                     size: Theme.fontSizeMd
-                    color: Theme.fgMuted
+                    color: tb ? tb.cFgMuted : Theme.fgMuted
                     rotation: 180
                 }
 
@@ -186,9 +189,9 @@ Item {
                 width: 80
                 height: 32
                 radius: Theme.radiusMd
-                color: Theme.input
+                color: tb ? tb.cInput : Theme.input
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 RowLayout {
                     anchors.fill: parent
@@ -200,7 +203,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         text: root.currentIndex.toString()
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         font.pixelSize: Theme.fontSizeSm
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -223,7 +226,7 @@ Item {
 
                     Label {
                         text: "/ " + root.totalCount
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                         font.pixelSize: Theme.fontSizeSm
                     }
                 }
@@ -234,9 +237,9 @@ Item {
                 width: 32
                 height: 32
                 radius: 16
-                color: navRightMouse.containsMouse ? Theme.elevated : Theme.input
+                color: navRightMouse.containsMouse ? (tb ? tb.cElevated : Theme.elevated) : (tb ? tb.cInput : Theme.input)
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -244,7 +247,7 @@ Item {
                     anchors.centerIn: parent
                     name: "chevronDown"
                     size: Theme.fontSizeMd
-                    color: Theme.fgMuted
+                    color: tb ? tb.cFgMuted : Theme.fgMuted
                     rotation: -90
                 }
 

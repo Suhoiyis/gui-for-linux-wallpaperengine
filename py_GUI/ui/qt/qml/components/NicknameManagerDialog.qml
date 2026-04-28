@@ -9,6 +9,8 @@ Dialog {
 
     property var backend
     property var rows: []
+    property var themeBridge
+    property var tb: themeBridge || null
     modal: true
     title: "Nickname Manager"
     width: 560
@@ -16,9 +18,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     function rebuildRows() {
@@ -87,9 +89,9 @@ Dialog {
                 required property var modelData
                 width: ListView.view.width
                 height: 54
-                color: modelData.selected ? Theme.rowSelected : Theme.elevated
+                color: modelData.selected ? (tb ? tb.cRowSelected : Theme.rowSelected) : (tb ? tb.cElevated : Theme.elevated)
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
                 radius: Theme.radiusMd
 
                 RowLayout {
@@ -109,7 +111,7 @@ Dialog {
 
                     Label {
                         text: modelData.title
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                     }

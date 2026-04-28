@@ -10,10 +10,14 @@ Item {
     id: root
 
     property var backend
+    property var themeBridge
     property int settingsTabIndex: 0
     property bool showNicknameManager: false
     property bool showFavoriteManager: false
     property string highlightField: ""
+
+    // Local color alias — uses themeBridge when available, falls back to dark Theme
+    property var tb: themeBridge || null
 
     // Auto-clear highlight after 3s
     Timer {
@@ -47,10 +51,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.bg
+        color: tb ? tb.cBg : Theme.bg
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
 
         RowLayout {
             anchors.fill: parent
@@ -59,9 +63,9 @@ Item {
             // === LEFT SIDEBAR ===
             Rectangle {
                 Layout.preferredWidth: 256
-                color: Theme.surface
+                color: tb ? tb.cSurface : Theme.surface
                 border.width: 0
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -78,12 +82,12 @@ Item {
                         Ctrl.GIcon {
                             name: "settings"
                             size: Theme.fontSize2xl
-                            color: Theme.fg
+                            color: tb ? tb.cFg : Theme.fg
                         }
 
                         Text {
                             text: "Settings"
-                            color: Theme.fg
+                            color: tb ? tb.cFg : Theme.fg
                             font.pixelSize: Theme.fontSize2xl
                             font.weight: Theme.fontWeightBold
                         }
@@ -109,7 +113,7 @@ Item {
                                 Layout.fillWidth: true
                                 height: 56
                                 radius: Theme.radiusMd
-                                color: root.settingsTabIndex === modelData.tab ? Theme.elevated : "transparent"
+                                color: root.settingsTabIndex === modelData.tab ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
                                 border.width: 0
 
                                 // Active indicator bar
@@ -120,7 +124,7 @@ Item {
                                     width: 3
                                     height: parent.height * 0.4
                                     radius: 1.5
-                                    color: Theme.brand
+                                    color: tb ? tb.cBrand : Theme.brand
                                 }
 
                                 RowLayout {
@@ -131,14 +135,14 @@ Item {
 
                                     Rectangle {
                                         radius: Theme.radiusSm
-                                        color: root.settingsTabIndex === modelData.tab ? Theme.brand : Theme.overlay
+                                        color: root.settingsTabIndex === modelData.tab ? (tb ? tb.cBrand : Theme.brand) : (tb ? tb.cOverlay : Theme.overlay)
                                         width: 32
                                         height: 32
 
                                         Ctrl.GIcon {
                                             name: modelData.icon
                                             size: Theme.fontSizeSm
-                                            color: root.settingsTabIndex === modelData.tab ? Theme.brandFg : Theme.fgMuted
+                                            color: root.settingsTabIndex === modelData.tab ? (tb ? tb.cBrandFg : Theme.brandFg) : (tb ? tb.cFgMuted : Theme.fgMuted)
                                             anchors.centerIn: parent
                                         }
                                     }
@@ -149,14 +153,14 @@ Item {
 
                                         Text {
                                             text: modelData.label
-                                            color: root.settingsTabIndex === modelData.tab ? Theme.fg : Theme.fgMuted
+                                            color: root.settingsTabIndex === modelData.tab ? (tb ? tb.cFg : Theme.fg) : (tb ? tb.cFgMuted : Theme.fgMuted)
                                             font.pixelSize: Theme.fontSizeSm
                                             font.weight: root.settingsTabIndex === modelData.tab ? Theme.fontWeightMedium : Theme.fontWeightNormal
                                         }
 
                                         Text {
                                             text: modelData.desc
-                                            color: Theme.fgSubtle
+                                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                                             font.pixelSize: Theme.fontSizeXs
                                         }
                                     }
@@ -174,9 +178,9 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 120
-                        color: Theme.withAlpha(Theme.bg, 0.5)
+                        color: tb ? Theme.withAlpha(tb.cBg, 0.5) : Theme.withAlpha(Theme.bg, 0.5)
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -225,7 +229,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                color: Theme.bg
+                color: tb ? tb.cBg : Theme.bg
 
                 StackLayout {
                     anchors.fill: parent
@@ -241,10 +245,12 @@ Item {
                             Comp.PlaybackSettings {
                                 Layout.fillWidth: true
                                 backend: root.backend
+                                themeBridge: root.themeBridge
                             }
                             Comp.CycleSettings {
                                 Layout.fillWidth: true
                                 backend: root.backend
+                                themeBridge: root.themeBridge
                             }
                         }
                     }
@@ -255,6 +261,7 @@ Item {
                         Comp.AudioSettings {
                             width: parent.width
                             backend: root.backend
+                            themeBridge: root.themeBridge
                         }
                     }
 
@@ -264,6 +271,7 @@ Item {
                         Comp.WaylandSettings {
                             width: parent.width
                             backend: root.backend
+                            themeBridge: root.themeBridge
                         }
                     }
 
@@ -276,10 +284,12 @@ Item {
                             Comp.SystemSettings {
                                 Layout.fillWidth: true
                                 backend: root.backend
+                                themeBridge: root.themeBridge
                             }
                             Comp.LogViewer {
                                 Layout.fillWidth: true
                                 backend: root.backend
+                                themeBridge: root.themeBridge
                             }
                             RowLayout {
                                 Layout.fillWidth: true
@@ -306,12 +316,14 @@ Item {
 
     Comp.NicknameManagerDialog {
         backend: root.backend
+        themeBridge: root.themeBridge
         visible: root.showNicknameManager
         onClosed: root.showNicknameManager = false
     }
 
     Comp.FavoriteManagerDialog {
         backend: root.backend
+        themeBridge: root.themeBridge
         visible: root.showFavoriteManager
         onClosed: root.showFavoriteManager = false
     }

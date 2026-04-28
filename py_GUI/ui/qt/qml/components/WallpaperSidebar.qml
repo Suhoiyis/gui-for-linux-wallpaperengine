@@ -9,12 +9,15 @@ Rectangle {
     id: root
 
     property var backend
+    property var themeBridge
     property var wallpaper: ({})
     property bool hasWallpaper: !!(wallpaper && wallpaper.id && String(wallpaper.id).length > 0)
     property string originalTitle: ""
 
     property bool nicknameDialogOpen: false
     property bool descriptionExpanded: false
+
+    property var tb: themeBridge || null
 
     function stripBBCode(text) {
         if (!text) return ""
@@ -38,9 +41,9 @@ Rectangle {
     signal favoriteToggled(string wallpaperId)
     signal nicknameEditRequested(string wallpaperId, string nickname)
 
-    color: Theme.surface
+    color: tb ? tb.cSurface : Theme.surface
     border.width: 1
-    border.color: Theme.border
+    border.color: tb ? tb.cBorder : Theme.border
 
     ColumnLayout {
         anchors.fill: parent
@@ -68,9 +71,9 @@ Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: width
                         radius: Theme.radius2xl
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
                         clip: true
 
                         Image {
@@ -83,10 +86,10 @@ Rectangle {
                         // Empty state with dashed border
                         Rectangle {
                             anchors.fill: parent
-                            color: Theme.elevated
+                            color: tb ? tb.cElevated : Theme.elevated
                             visible: !root.hasWallpaper
                             border.width: 2
-                            border.color: Theme.border
+                            border.color: tb ? tb.cBorder : Theme.border
 
                             Column {
                                 anchors.centerIn: parent
@@ -99,13 +102,13 @@ Rectangle {
                                     radius: Theme.radiusLg
                                     color: "transparent"
                                     border.width: 2
-                                    border.color: Theme.fgSubtle
+                                    border.color: tb ? tb.cFgSubtle : Theme.fgSubtle
                                 }
 
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: "Select a wallpaper to view details"
-                                    color: Theme.fgSubtle
+                                    color: tb ? tb.cFgSubtle : Theme.fgSubtle
                                     font.pixelSize: Theme.fontSizeSm
                                 }
                             }
@@ -123,7 +126,7 @@ Rectangle {
 
                             Text {
                                 text: root.hasWallpaper ? (root.wallpaper.title || "Unknown") : "None"
-                                color: Theme.fg
+                                color: tb ? tb.cFg : Theme.fg
                                 font.pixelSize: Theme.fontSizeLg
                                 font.bold: true
                                 elide: Text.ElideRight
@@ -153,7 +156,7 @@ Rectangle {
                         Text {
                             visible: root.hasWallpaper && root.originalTitle.length > 0 && root.originalTitle !== (root.wallpaper.title || "")
                             text: root.originalTitle
-                            color: Theme.fgSubtle
+                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                             font.pixelSize: Theme.fontSizeSm
                             elide: Text.ElideRight
                             Layout.fillWidth: true
@@ -192,16 +195,16 @@ Rectangle {
                             Rectangle {
                                 height: 20
                                 radius: Theme.radiusSm
-                                color: Theme.withAlpha(Theme.favoriteGold, 0.2)
+                                color: Theme.withAlpha(tb ? tb.cFavoriteGold : Theme.favoriteGold, 0.2)
                                 border.width: 1
-                                border.color: Theme.withAlpha(Theme.favoriteGold, 0.3)
+                                border.color: Theme.withAlpha(tb ? tb.cFavoriteGold : Theme.favoriteGold, 0.3)
 
                                 Text {
                                     anchors.centerIn: parent
                                     anchors.leftMargin: Theme.spaceSm
                                     anchors.rightMargin: Theme.spaceSm
                                     text: root.hasWallpaper ? (root.wallpaper.id || "") : ""
-                                    color: Theme.favoriteGold
+                                    color: tb ? tb.cFavoriteGold : Theme.favoriteGold
                                     font.pixelSize: Theme.fontSizeXs
                                     font.family: "monospace"
                                 }
@@ -228,16 +231,16 @@ Rectangle {
                             Rectangle {
                                 height: 20
                                 radius: Theme.radiusSm
-                                color: Theme.withAlpha(Theme.destructive, 0.2)
+                                color: Theme.withAlpha(tb ? tb.cDestructive : Theme.destructive, 0.2)
                                 border.width: 1
-                                border.color: Theme.withAlpha(Theme.destructive, 0.3)
+                                border.color: Theme.withAlpha(tb ? tb.cDestructive : Theme.destructive, 0.3)
 
                                 Text {
                                     anchors.centerIn: parent
                                     anchors.leftMargin: Theme.spaceSm
                                     anchors.rightMargin: Theme.spaceSm
                                     text: root.hasWallpaper ? (root.wallpaper.size || "0 MB") : "0 MB"
-                                    color: Theme.destructive
+                                    color: tb ? tb.cDestructive : Theme.destructive
                                     font.pixelSize: Theme.fontSizeXs
                                 }
 
@@ -259,7 +262,7 @@ Rectangle {
 
                             Text {
                                 text: "Tags"
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 font.pixelSize: Theme.fontSizeXs
                                 font.bold: true
                                 font.letterSpacing: Theme.trackingWide
@@ -281,14 +284,14 @@ Rectangle {
                                         radius: Theme.radiusSm
                                         color: "transparent"
                                         border.width: 1
-                                        border.color: Theme.border
+                                        border.color: tb ? tb.cBorder : Theme.border
 
                                         Text {
                                             anchors.centerIn: parent
                                             anchors.leftMargin: Theme.spaceSm
                                             anchors.rightMargin: Theme.spaceSm
                                             text: modelData.trim()
-                                            color: Theme.fgMuted
+                                            color: tb ? tb.cFgMuted : Theme.fgMuted
                                             font.pixelSize: Theme.fontSizeXs
                                         }
 
@@ -321,7 +324,7 @@ Rectangle {
 
                                     Text {
                                         text: "Description"
-                                        color: Theme.fgMuted
+                                        color: tb ? tb.cFgMuted : Theme.fgMuted
                                         font.pixelSize: Theme.fontSizeXs
                                         font.bold: true
                                         font.letterSpacing: Theme.trackingWide
@@ -331,7 +334,7 @@ Rectangle {
                                     Ctrl.GIcon {
                                         name: root.descriptionExpanded ? "chevronDown" : "chevronRight"
                                         size: Theme.fontSizeMd
-                                        color: Theme.fgMuted
+                                        color: tb ? tb.cFgMuted : Theme.fgMuted
                                     }
                                 }
 
@@ -352,7 +355,7 @@ Rectangle {
                                     anchors.fill: parent
                                     anchors.margins: Theme.spaceSm
                                     text: root.hasWallpaper ? root.stripBBCode(root.wallpaper.description || "") : "No description"
-                                    color: Theme.fgMuted
+                                    color: tb ? tb.cFgMuted : Theme.fgMuted
                                     font.pixelSize: Theme.fontSizeSm
                                     wrapMode: Text.WordWrap
                                 }
@@ -367,9 +370,9 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 64
-            color: Theme.withAlpha(Theme.bg, 0.8)
+            color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.8)
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
 
             RowLayout {
                 anchors.fill: parent
@@ -395,9 +398,9 @@ Rectangle {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
         }
 
         readonly property var okButton: standardButton(Dialog.Ok)

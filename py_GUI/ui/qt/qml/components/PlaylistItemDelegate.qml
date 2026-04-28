@@ -7,6 +7,9 @@ import "../controls" as Ctrl
 Item {
     id: root
 
+    property var themeBridge
+    property var tb: themeBridge || null
+
     required property var playlistData
     required property string activePlaylistId
     required property var wallpapers
@@ -30,14 +33,14 @@ Item {
         visible: root.isSpecial
         anchors.fill: parent
         radius: Theme.radiusMd
-        color: activePlaylistId.length === 0 ? Theme.brand : "transparent"
+        color: activePlaylistId.length === 0 ? (tb ? tb.cBrand : Theme.brand) : "transparent"
 
         Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
         Text {
             anchors.centerIn: parent
             text: "All Wallpapers"
-            color: activePlaylistId.length === 0 ? Theme.brandFg : Theme.fgMuted
+            color: activePlaylistId.length === 0 ? (tb ? tb.cBrandFg : Theme.brandFg) : (tb ? tb.cFgMuted : Theme.fgMuted)
             font.pixelSize: Theme.fontSizeSm
             font.weight: activePlaylistId.length === 0 ? Theme.fontWeightMedium : Theme.fontWeightNormal
         }
@@ -46,7 +49,7 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: root.activePlaylistChanged("")
-            onEntered: if (activePlaylistId.length > 0) parent.color = Theme.withAlpha(Theme.brand, 0.3)
+            onEntered: if (activePlaylistId.length > 0) parent.color = Theme.withAlpha(tb ? tb.cBrand : Theme.brand, 0.3)
             onExited: if (activePlaylistId.length > 0) parent.color = "transparent"
         }
     }
@@ -61,7 +64,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: root.rowH
             radius: Theme.radiusMd
-            color: isActive ? Theme.elevated : "transparent"
+            color: isActive ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
             Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
             Drag.active: dragMouse.drag.active && root.draggable
@@ -74,7 +77,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 onClicked: root.activePlaylistChanged(playlistData.id)
-                onEntered: if (!isActive) parent.color = Theme.withAlpha(Theme.elevated, 0.5)
+                onEntered: if (!isActive) parent.color = Theme.withAlpha(tb ? tb.cElevated : Theme.elevated, 0.5)
                 onExited: if (!isActive) parent.color = "transparent"
                 drag.target: root.draggable ? parent : undefined
                 drag.axis: Drag.YAxis
@@ -110,7 +113,7 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: playlistData.name || "Unnamed"
-                    color: isActive ? Theme.fg : Theme.fgMuted
+                    color: isActive ? (tb ? tb.cFg : Theme.fg) : (tb ? tb.cFgMuted : Theme.fgMuted)
                     font.pixelSize: Theme.fontSizeSm
                     font.weight: isActive ? Theme.fontWeightMedium : Theme.fontWeightNormal
                     elide: Text.ElideRight
@@ -120,13 +123,13 @@ Item {
                     width: badgeText.width + 8
                     height: 18
                     radius: Theme.radiusSm
-                    color: Theme.overlay
+                    color: tb ? tb.cOverlay : Theme.overlay
 
                     Text {
                         id: badgeText
                         anchors.centerIn: parent
                         text: wpIds.length
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                         font.pixelSize: Theme.fontSizeXs
                     }
                 }
@@ -157,7 +160,7 @@ Item {
                     width: 32
                     height: 32
                     radius: Theme.radiusSm
-                    color: Theme.overlay
+                    color: tb ? tb.cOverlay : Theme.overlay
                     clip: true
 
                     property string previewUrl: {
@@ -182,7 +185,7 @@ Item {
                         anchors.centerIn: parent
                         visible: previewUrl.length === 0
                         text: root.getInitialFn(modelData)
-                        color: Theme.fgSubtle
+                        color: tb ? tb.cFgSubtle : Theme.fgSubtle
                         font.pixelSize: Theme.fontSizeXs
                     }
                 }
@@ -194,7 +197,7 @@ Item {
                 width: 32
                 height: 32
                 radius: Theme.radiusSm
-                color: Theme.withAlpha(Theme.overlay, 0.8)
+                color: Theme.withAlpha(tb ? tb.cOverlay : Theme.overlay, 0.8)
 
                 property string overflowThumbUrl: {
                     var ids = wpIds
@@ -222,7 +225,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.radiusSm
-                    color: Theme.withAlpha(Theme.bg, 0.6)
+                    color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.6)
 
                     Text {
                         anchors.centerIn: parent
@@ -238,7 +241,7 @@ Item {
         Text {
             visible: expanded && wpIds.length === 0
             text: "No wallpapers in this playlist"
-            color: Theme.fgSubtle
+            color: tb ? tb.cFgSubtle : Theme.fgSubtle
             font.pixelSize: Theme.fontSizeXs
         }
     }

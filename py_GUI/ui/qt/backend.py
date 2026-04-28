@@ -135,6 +135,7 @@ class Backend(QObject):
     screenshotHistoryChanged = Signal()
     highlightSettingFieldChanged = Signal()
     screenshotHintActiveChanged = Signal()
+    themeModeChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -180,6 +181,7 @@ class Backend(QObject):
         self._cycle_timer: QTimer | None = None
         self._highlight_setting_field: str = ""
         self._screenshot_hint_active: bool = False
+        self._theme_mode: str = str(self.config.get("themeMode", "dark") or "dark")
         self._ensure_perf_bridge()
         self._init_cycle_timer()
 
@@ -572,6 +574,10 @@ class Backend(QObject):
     @Property(bool, notify=screenshotHintActiveChanged)
     def screenshotHintActive(self) -> bool:
         return self._screenshot_hint_active
+
+    @Property(str, notify=themeModeChanged)
+    def themeMode(self) -> str:
+        return self._theme_mode
 
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
@@ -1111,6 +1117,16 @@ class Backend(QObject):
     def setScreenshotHintActive(self, active: bool) -> None:
         self._screenshot_hint_active = bool(active)
         self.screenshotHintActiveChanged.emit()
+
+    @Slot(str)
+    def setThemeMode(self, mode: str) -> None:
+        valid = {"dark", "light", "system"}
+        m = str(mode or "dark").strip()
+        if m not in valid:
+            m = "dark"
+        self._theme_mode = m
+        self.config.set("themeMode", m)
+        self.themeModeChanged.emit()
 
     @Slot(result="QVariantMap")
     def checkForUpdates(self) -> dict[str, object]:

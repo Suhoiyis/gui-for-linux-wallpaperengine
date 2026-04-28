@@ -11,6 +11,8 @@ Item {
     property int totalPages: 1
 
     signal pageChangedByUser(int page)
+    property var themeBridge
+    property var tb: themeBridge || null
 
     implicitHeight: root.totalPages > 1 ? 44 : 0
 
@@ -28,7 +30,7 @@ Item {
 
         Label {
             text: "Page " + root.currentPage + " / " + root.totalPages
-            color: Theme.fgMuted
+            color: tb ? tb.cFgMuted : Theme.fgMuted
         }
 
         Ctrl.GTextField {

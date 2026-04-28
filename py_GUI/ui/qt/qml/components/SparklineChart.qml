@@ -5,9 +5,11 @@ Item {
     id: root
 
     property var values: []
-    property color lineColor: Theme.accent
+    property color lineColor: tb ? tb.cAccent : Theme.accent
     property color fillColor: "#7aa2f722"
     property real maxValue: 100
+    property var themeBridge
+    property var tb: themeBridge || null
 
     Canvas {
         id: chart

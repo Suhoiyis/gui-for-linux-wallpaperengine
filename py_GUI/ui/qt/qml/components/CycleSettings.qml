@@ -8,12 +8,14 @@ Frame {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
 
     background: Rectangle {
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
     padding: Theme.spaceMd
 
@@ -23,7 +25,7 @@ Frame {
 
         Label {
             text: "Automation"
-            color: Theme.textSection
+            color: tb ? tb.cTextSection : Theme.textSection
             font.pixelSize: Theme.fontSizeMd
             font.bold: true
         }
@@ -32,7 +34,7 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Enable Cycle"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GSwitch {
@@ -40,6 +42,7 @@ Frame {
                 checked: root.backend ? root.backend.cycleEnabled : false
                 onToggled: {
                     if (root.backend) root.backend.setCycleEnabled(checked)
+                    if (root.backend) root.backend.saveSettings()
                 }
                 Connections {
                     target: root.backend
@@ -57,7 +60,7 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Interval (minutes)"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GSpinBox {
@@ -68,6 +71,7 @@ Frame {
                 editable: true
                 onValueModified: {
                     if (root.backend) root.backend.setCycleInterval(value)
+                    if (root.backend) root.backend.saveSettings()
                 }
                 Connections {
                     target: root.backend
@@ -85,7 +89,7 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Order"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GComboBox {
@@ -99,6 +103,7 @@ Frame {
                 }
                 onActivated: {
                     if (root.backend) root.backend.setCycleOrder(currentText)
+                    if (root.backend) root.backend.saveSettings()
                 }
                 Connections {
                     target: root.backend
@@ -117,7 +122,7 @@ Frame {
             opacity: enabled ? 1.0 : 0.5
             Label {
                 text: "Playlist"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GComboBox {
@@ -148,6 +153,7 @@ Frame {
                     if (root.backend) {
                         var selectedId = model[currentIndex].id
                         root.backend.setCyclePlaylistId(selectedId)
+                        root.backend.saveSettings()
                     }
                 }
                 Connections {

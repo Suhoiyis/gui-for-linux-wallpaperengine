@@ -15,6 +15,9 @@ Rectangle {
     property string currentPage: "library"
     property bool screenshotHintActive: false
 
+    property var themeBridge
+    property var tb: themeBridge || null
+
     signal selectedScreenChangedByUser(string screen)
     signal linkedModeChangedByUser(bool linked)
     signal pageChanged(string page)
@@ -25,9 +28,9 @@ Rectangle {
     signal appMenuQuitRequested()
     signal commandPaletteRequested()
 
-    color: Theme.surface
+    color: tb ? tb.cSurface : Theme.surface
     border.width: 1
-    border.color: Theme.border
+    border.color: tb ? tb.cBorder : Theme.border
     radius: Theme.radiusXl
     height: Theme.navHeight
 
@@ -59,9 +62,9 @@ Rectangle {
         // Tab group: Library / Monitor / Settings
         Rectangle {
             radius: Theme.radiusMd
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
             implicitHeight: Theme.navHeight - Theme.spaceMd * 2
 
             RowLayout {
@@ -99,9 +102,9 @@ Rectangle {
             Layout.minimumWidth: 200
             Layout.maximumWidth: 300
             radius: Theme.radiusMd
-            color: Theme.input
+            color: tb ? tb.cInput : Theme.input
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
             implicitHeight: Theme.navHeight - Theme.spaceMd * 2
 
             RowLayout {
@@ -113,12 +116,12 @@ Rectangle {
                 Ctrl.GIcon {
                     name: "search"
                     size: Theme.fontSizeMd
-                    color: Theme.fgSubtle
+                    color: tb ? tb.cFgSubtle : Theme.fgSubtle
                 }
 
                 Text {
                     text: "Search..."
-                    color: Theme.fgSubtle
+                    color: tb ? tb.cFgSubtle : Theme.fgSubtle
                     font.pixelSize: Theme.fontSizeSm
                     Layout.fillWidth: true
                     verticalAlignment: Text.AlignVCenter
@@ -126,16 +129,16 @@ Rectangle {
 
                 Rectangle {
                     radius: Theme.radiusSm
-                    color: Theme.elevated
+                    color: tb ? tb.cElevated : Theme.elevated
                     border.width: 1
-                    border.color: Theme.border
+                    border.color: tb ? tb.cBorder : Theme.border
                     implicitHeight: 18
                     implicitWidth: 40
 
                     Text {
                         anchors.centerIn: parent
                         text: "Ctrl+K"
-                        color: Theme.fgSubtle
+                        color: tb ? tb.cFgSubtle : Theme.fgSubtle
                         font.pixelSize: Theme.fontSizeXs - 2
                     }
                 }
@@ -151,9 +154,9 @@ Rectangle {
 
         Rectangle {
             radius: Theme.radiusMd
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
             implicitHeight: Theme.navHeight - Theme.spaceMd * 2
 
             RowLayout {
@@ -191,7 +194,7 @@ Rectangle {
                 Rectangle {
                     width: 1
                     height: 16
-                    color: Theme.border
+                    color: tb ? tb.cBorder : Theme.border
                 }
 
                 // Stop button
@@ -218,7 +221,7 @@ Rectangle {
                     radius: width / 2
                     color: "transparent"
                     border.width: root.screenshotHintActive ? 3 : 0
-                    border.color: Theme.brand
+                    border.color: tb ? tb.cBrand : Theme.brand
                     opacity: root.screenshotHintActive ? 0.8 : 0
 
                     SequentialAnimation on opacity {
@@ -251,7 +254,7 @@ Rectangle {
                 Rectangle {
                     width: 1
                     height: 16
-                    color: Theme.border
+                    color: tb ? tb.cBorder : Theme.border
                 }
 
                 AppMenu {

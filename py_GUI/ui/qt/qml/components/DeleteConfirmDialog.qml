@@ -10,6 +10,8 @@ Dialog {
     property string wallpaperId: ""
     property string wallpaperTitle: ""
     property string wallpaperPath: ""
+    property var themeBridge
+    property var tb: themeBridge || null
 
     signal confirmDelete(string wallpaperId, string wallpaperPath)
 
@@ -30,14 +32,14 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
 
         Rectangle {
             width: parent.width
             height: 3
-            color: Theme.destructive
+            color: tb ? tb.cDestructive : Theme.destructive
             radius: Theme.radiusXl
         }
     }
@@ -52,7 +54,7 @@ Dialog {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             text: "This action cannot be undone. This will permanently delete \"" + (root.wallpaperTitle || root.wallpaperId) + "\" from disk."
-            color: Theme.fg
+            color: tb ? tb.cFg : Theme.fg
         }
     }
 }

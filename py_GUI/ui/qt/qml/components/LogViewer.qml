@@ -9,12 +9,14 @@ Frame {
 
     property var backend
     property string filterSource: "All"
+    property var themeBridge
+    property var tb: themeBridge || null
 
     background: Rectangle {
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
     padding: Theme.spaceMd
 
@@ -26,7 +28,7 @@ Frame {
             Layout.fillWidth: true
             Label {
                 text: "Logs"
-                color: Theme.textSection
+                color: tb ? tb.cTextSection : Theme.textSection
                 font.pixelSize: Theme.fontSizeMd
                 font.bold: true
             }
@@ -62,7 +64,7 @@ Frame {
                 required property int index
                 width: ListView.view.width
                 height: 32
-                color: index % 2 === 0 ? Theme.rowEven : Theme.rowOdd
+                color: index % 2 === 0 ? (tb ? tb.cRowEven : Theme.rowEven) : (tb ? tb.cRowOdd : Theme.rowOdd)
 
                 RowLayout {
                     anchors.fill: parent
@@ -70,10 +72,10 @@ Frame {
                     anchors.rightMargin: Theme.spaceSm
                     spacing: Theme.spaceSm
 
-                    Label { text: modelData.timestamp || ""; color: Theme.fgMuted; Layout.preferredWidth: Theme.spaceXl * 6.5; elide: Text.ElideRight }
-                    Label { text: modelData.level || ""; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 3.5 }
-                    Label { text: modelData.source || ""; color: Theme.accent; Layout.preferredWidth: Theme.spaceXl * 4.5 }
-                    Label { text: modelData.message || ""; color: Theme.fg; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Label { text: modelData.timestamp || ""; color: tb ? tb.cFgMuted : Theme.fgMuted; Layout.preferredWidth: Theme.spaceXl * 6.5; elide: Text.ElideRight }
+                    Label { text: modelData.level || ""; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 3.5 }
+                    Label { text: modelData.source || ""; color: tb ? tb.cAccent : Theme.accent; Layout.preferredWidth: Theme.spaceXl * 4.5 }
+                    Label { text: modelData.message || ""; color: tb ? tb.cFg : Theme.fg; Layout.fillWidth: true; elide: Text.ElideRight }
                 }
             }
         }

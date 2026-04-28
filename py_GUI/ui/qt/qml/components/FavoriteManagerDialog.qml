@@ -9,6 +9,8 @@ Dialog {
 
     property var backend
     property var rows: []
+    property var themeBridge
+    property var tb: themeBridge || null
     modal: true
     title: "Favorite Manager"
     width: 560
@@ -16,9 +18,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     // Custom header
@@ -35,7 +37,7 @@ Dialog {
             Ctrl.GIcon {
                 name: "star"
                 size: Theme.fontSizeXl
-                color: Theme.favoriteGold
+                color: tb ? tb.cFavoriteGold : Theme.favoriteGold
             }
 
             ColumnLayout {
@@ -44,14 +46,14 @@ Dialog {
 
                 Label {
                     text: "Favorite Manager"
-                    color: Theme.fg
+                    color: tb ? tb.cFg : Theme.fg
                     font.pixelSize: Theme.fontSizeLg
                     font.bold: true
                 }
 
                 Label {
                     text: (root.rows.length) + " favorite" + (root.rows.length !== 1 ? "s" : "")
-                    color: Theme.fgMuted
+                    color: tb ? tb.cFgMuted : Theme.fgMuted
                     font.pixelSize: Theme.fontSizeXs
                 }
             }
@@ -132,9 +134,9 @@ Dialog {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: Theme.radiusLg
-            color: Theme.surface
+            color: tb ? tb.cSurface : Theme.surface
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
 
             ListView {
                 anchors.fill: parent
@@ -150,9 +152,9 @@ Dialog {
                     x: Theme.spaceMd
                     height: 56
                     radius: Theme.radiusMd
-                    color: modelData.selected ? Theme.withAlpha(Theme.favoriteGold, 0.1) : "transparent"
+                    color: modelData.selected ? Theme.withAlpha(tb ? tb.cFavoriteGold : Theme.favoriteGold, 0.1) : "transparent"
                     border.width: modelData.selected ? 1 : 0
-                    border.color: Theme.withAlpha(Theme.favoriteGold, 0.5)
+                    border.color: Theme.withAlpha(tb ? tb.cFavoriteGold : Theme.favoriteGold, 0.5)
 
                     RowLayout {
                         anchors.fill: parent
@@ -173,12 +175,12 @@ Dialog {
                             width: 36
                             height: 36
                             radius: Theme.radiusSm
-                            color: Theme.elevated
+                            color: tb ? tb.cElevated : Theme.elevated
 
                             Ctrl.GIcon {
                                 name: "image"
                                 size: Theme.fontSizeMd
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 anchors.centerIn: parent
                             }
                         }
@@ -189,7 +191,7 @@ Dialog {
 
                             Label {
                                 text: modelData.title
-                                color: Theme.fg
+                                color: tb ? tb.cFg : Theme.fg
                                 font.pixelSize: Theme.fontSizeSm
                                 font.weight: Theme.fontWeightMedium
                                 Layout.fillWidth: true
@@ -198,7 +200,7 @@ Dialog {
 
                             Label {
                                 text: "ID: " + modelData.wallpaperId
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 font.pixelSize: Theme.fontSizeXs
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight
@@ -208,7 +210,7 @@ Dialog {
                         Ctrl.GIcon {
                             name: "star"
                             size: Theme.fontSizeMd
-                            color: Theme.favoriteGold
+                            color: tb ? tb.cFavoriteGold : Theme.favoriteGold
                         }
                     }
                 }
@@ -218,7 +220,7 @@ Dialog {
                     anchors.centerIn: parent
                     visible: parent.count === 0
                     text: "No favorites yet"
-                    color: Theme.fgMuted
+                    color: tb ? tb.cFgMuted : Theme.fgMuted
                     font.pixelSize: Theme.fontSizeMd
                 }
             }

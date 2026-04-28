@@ -8,12 +8,14 @@ Frame {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
 
     background: Rectangle {
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
     padding: Theme.spaceMd
 
@@ -23,14 +25,14 @@ Frame {
 
         Label {
             text: "System & Tools"
-            color: Theme.textSection
+            color: tb ? tb.cTextSection : Theme.textSection
             font.pixelSize: Theme.fontSizeMd
             font.bold: true
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Workshop Path"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Workshop Path"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GTextField {
                 id: workshopField
                 Layout.fillWidth: true
@@ -39,13 +41,18 @@ Frame {
             }
             Ctrl.GPillButton {
                 text: "Save"
-                onClicked: if (root.backend) root.backend.setWorkshopPath(workshopField.text)
+                onClicked: {
+                    if (root.backend) {
+                        root.backend.setWorkshopPath(workshopField.text)
+                        root.backend.saveSettings()
+                    }
+                }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Assets Directory"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Assets Directory"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GTextField {
                 id: assetsField
                 Layout.fillWidth: true
@@ -53,13 +60,18 @@ Frame {
             }
             Ctrl.GPillButton {
                 text: "Save"
-                onClicked: if (root.backend) root.backend.setAssetsPath(assetsField.text)
+                onClicked: {
+                    if (root.backend) {
+                        root.backend.setAssetsPath(assetsField.text)
+                        root.backend.saveSettings()
+                    }
+                }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Target Resolution"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Target Resolution"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GComboBox {
                 id: resolutionCombo
                 Layout.fillWidth: true
@@ -81,7 +93,7 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Screenshot Delay (s)"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Screenshot Delay (s)"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSpinBox {
                 from: 0
                 to: 300
@@ -93,28 +105,37 @@ Frame {
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Prefer Xvfb"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Prefer Xvfb"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.preferXvfb : true
-                onToggled: if (root.backend) root.backend.setPreferXvfb(checked)
+                onToggled: {
+                    if (root.backend) root.backend.setPreferXvfb(checked)
+                    if (root.backend) root.backend.saveSettings()
+                }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Start Hidden"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Start Hidden"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.startHidden : false
-                onToggled: if (root.backend) root.backend.setStartHidden(checked)
+                onToggled: {
+                    if (root.backend) root.backend.setStartHidden(checked)
+                    if (root.backend) root.backend.saveSettings()
+                }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Auto Restore"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
+            Label { text: "Auto Restore"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.autoRestore : false
-                onToggled: if (root.backend) root.backend.setAutoRestore(checked)
+                onToggled: {
+                    if (root.backend) root.backend.setAutoRestore(checked)
+                    if (root.backend) root.backend.saveSettings()
+                }
             }
         }
     }

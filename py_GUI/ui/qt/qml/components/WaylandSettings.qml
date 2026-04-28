@@ -8,12 +8,14 @@ Frame {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
 
     background: Rectangle {
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
     padding: Theme.spaceMd
 
@@ -23,17 +25,20 @@ Frame {
 
         Label {
             text: "Wayland Tweaks"
-            color: Theme.textSection
+            color: tb ? tb.cTextSection : Theme.textSection
             font.pixelSize: Theme.fontSizeMd
             font.bold: true
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Pause Only When Active"; color: Theme.fg; Layout.preferredWidth: Theme.spaceXl * 9.5 }
+            Label { text: "Pause Only When Active"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 9.5 }
             Ctrl.GSwitch {
                 checked: root.backend ? root.backend.waylandOnlyActive : false
-                onToggled: if (root.backend) root.backend.setWaylandOnlyActive(checked)
+                onToggled: {
+                    if (root.backend) root.backend.setWaylandOnlyActive(checked)
+                    if (root.backend) root.backend.saveSettings()
+                }
             }
         }
 
@@ -42,7 +47,7 @@ Frame {
             spacing: Theme.spaceXs
             Label {
                 text: "Ignore Application IDs"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
             }
             Ctrl.GTextArea {
                 id: appidsArea

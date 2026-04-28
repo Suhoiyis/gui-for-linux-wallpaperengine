@@ -11,6 +11,8 @@ Dialog {
     property string latestVersion: "unknown"
     property string downloadUrl: ""
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
 
     modal: true
     title: "Update Available"
@@ -19,9 +21,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     // Custom header
@@ -38,12 +40,12 @@ Dialog {
             Ctrl.GIcon {
                 name: "download"
                 size: Theme.fontSizeXl
-                color: Theme.brand
+                color: tb ? tb.cBrand : Theme.brand
             }
 
             Label {
                 text: "Update Available"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 font.pixelSize: Theme.fontSizeLg
                 font.bold: true
             }
@@ -59,9 +61,9 @@ Dialog {
             Layout.fillWidth: true
             height: 80
             radius: Theme.radiusLg
-            color: Theme.surface
+            color: tb ? tb.cSurface : Theme.surface
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
 
             ColumnLayout {
                 anchors.fill: parent
@@ -72,12 +74,12 @@ Dialog {
                     spacing: Theme.spaceSm
                     Label {
                         text: "Current:"
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                         font.pixelSize: Theme.fontSizeSm
                     }
                     Label {
                         text: "v" + root.currentVersion
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         font.pixelSize: Theme.fontSizeSm
                     }
                 }
@@ -86,12 +88,12 @@ Dialog {
                     spacing: Theme.spaceSm
                     Label {
                         text: "Latest:"
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                         font.pixelSize: Theme.fontSizeSm
                     }
                     Label {
                         text: "v" + root.latestVersion
-                        color: Theme.brand
+                        color: tb ? tb.cBrand : Theme.brand
                         font.pixelSize: Theme.fontSizeSm
                         font.bold: true
                     }
@@ -102,7 +104,7 @@ Dialog {
         Label {
             Layout.fillWidth: true
             text: "A new version is available. Download the latest release for new features and bug fixes."
-            color: Theme.fg
+            color: tb ? tb.cFg : Theme.fg
             font.pixelSize: Theme.fontSizeSm
             wrapMode: Text.WordWrap
         }

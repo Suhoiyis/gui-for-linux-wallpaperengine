@@ -13,15 +13,17 @@ Rectangle {
     property string sortBy: "name"
     property string searchText: ""
     property bool selectionMode: false
+    property var themeBridge
+    property var tb: themeBridge || null
 
     signal searchChanged(string value)
     signal sortSelected(string value)
     signal selectionModeToggled()
 
     radius: Theme.radiusXl
-    color: Theme.elevated
+    color: tb ? tb.cElevated : Theme.elevated
     border.width: 1
-    border.color: Theme.border
+    border.color: tb ? tb.cBorder : Theme.border
     implicitHeight: Theme.navHeight
 
     Effects.GDropShadow {
@@ -45,7 +47,7 @@ Rectangle {
 
             Text {
                 text: "CURRENTLY USING"
-                color: Theme.brand
+                color: tb ? tb.cBrand : Theme.brand
                 font.pixelSize: Theme.fontSizeXs
                 font.weight: Theme.fontWeightMedium
                 font.letterSpacing: Theme.trackingWider
@@ -53,7 +55,7 @@ Rectangle {
 
             Text {
                 text: root.currentTitle && root.currentTitle.length > 0 ? root.currentTitle : "None"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 font.pixelSize: Theme.fontSizeMd
                 elide: Text.ElideRight
                 Layout.fillWidth: true
@@ -62,7 +64,7 @@ Rectangle {
 
         Text {
             text: root.totalCount + " wallpapers"
-            color: Theme.fgSubtle
+            color: tb ? tb.cFgSubtle : Theme.fgSubtle
             font.pixelSize: Theme.fontSizeSm
         }
 

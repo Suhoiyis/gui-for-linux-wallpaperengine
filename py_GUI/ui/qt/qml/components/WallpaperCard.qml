@@ -14,6 +14,8 @@ Item {
     property bool showIcons: true
     property bool selectionMode: false
     property bool selectionChecked: false
+    property var themeBridge
+    property var tb: themeBridge || null
 
     signal selected()
     signal applyRequested()
@@ -30,7 +32,7 @@ Item {
         shadowWidth: cardContainer.width
         shadowHeight: cardContainer.height
         radius: cardContainer.radius
-        color: Theme.brand20
+        color: tb ? tb.cBrand20 : Theme.brand20
         spread: 6
         verticalOffset: 2
         x: cardContainer.x
@@ -42,10 +44,10 @@ Item {
         anchors.fill: parent
         radius: Theme.radius3xl
 
-        color: Theme.surface
+        color: tb ? tb.cSurface : Theme.surface
 
         border.width: root.isSelected ? 2 : 1
-        border.color: root.isSelected ? Theme.brand : (mouseArea.containsMouse ? Theme.borderHover : Theme.border)
+        border.color: root.isSelected ? (tb ? tb.cBrand : Theme.brand) : (mouseArea.containsMouse ? (tb ? tb.cBorderHover : Theme.borderHover) : (tb ? tb.cBorder : Theme.border))
 
         Behavior on border.color {
             ColorAnimation { duration: Theme.animNormal }
@@ -99,12 +101,12 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: Theme.elevated
+                        color: tb ? tb.cElevated : Theme.elevated
                         visible: previewImage.status === Image.Error || !previewImage.source
                         Text {
                             anchors.centerIn: parent
                             text: "No Preview"
-                            color: Theme.fgSubtle
+                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                             font.pixelSize: Theme.fontSizeMd
                         }
                     }
@@ -136,15 +138,15 @@ Item {
             width: 22
             height: 22
             radius: 11
-            color: root.selectionChecked ? Theme.brand : Theme.surface
+            color: root.selectionChecked ? (tb ? tb.cBrand : Theme.brand) : (tb ? tb.cSurface : Theme.surface)
             border.width: 1
-            border.color: root.selectionChecked ? Theme.brand : Theme.borderHover
+            border.color: root.selectionChecked ? (tb ? tb.cBrand : Theme.brand) : (tb ? tb.cBorderHover : Theme.borderHover)
 
             Ctrl.GIcon {
                 visible: root.selectionChecked
                 name: "check"
                 size: 12
-                color: Theme.brandFg
+                color: tb ? tb.cBrandFg : Theme.brandFg
                 anchors.centerIn: parent
             }
         }
@@ -154,9 +156,9 @@ Item {
             visible: root.selectionMode && root.selectionChecked
             anchors.fill: parent
             radius: Theme.radius3xl
-            color: Theme.selectionOverlay
+            color: tb ? tb.cSelectionOverlay : Theme.selectionOverlay
             border.width: 2
-            border.color: Theme.brand
+            border.color: tb ? tb.cBrand : Theme.brand
         }
 
         // Favorite button
@@ -170,9 +172,9 @@ Item {
             height: Theme.iconButtonSm
             radius: Theme.radius2xl
 
-            color: root.isFavorite ? Theme.favoriteGoldBg : Theme.withAlpha("#000000", 0.40)
+            color: root.isFavorite ? (tb ? tb.cFavoriteGoldBg : Theme.favoriteGoldBg) : Theme.withAlpha("#000000", 0.40)
             border.width: 1
-            border.color: root.isFavorite ? Theme.favoriteGold : Theme.borderHover
+            border.color: root.isFavorite ? (tb ? tb.cFavoriteGold : Theme.favoriteGold) : (tb ? tb.cBorderHover : Theme.borderHover)
             opacity: mouseArea.containsMouse || root.isFavorite ? 1 : 0
 
             Behavior on opacity {
@@ -182,7 +184,7 @@ Item {
             Ctrl.GIcon {
                 name: "star"
                 size: 14
-                color: root.isFavorite ? Theme.favoriteGold : Theme.fg
+                color: root.isFavorite ? (tb ? tb.cFavoriteGold : Theme.favoriteGold) : (tb ? tb.cFg : Theme.fg)
                 anchors.centerIn: parent
             }
 
@@ -219,7 +221,7 @@ Item {
                     return "image"
                 }
                 size: Theme.fontSizeMd
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 anchors.centerIn: parent
             }
         }
@@ -249,7 +251,7 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.margins: Theme.spaceSm
                 text: root.wp.title || "Unknown"
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 font.pixelSize: Theme.fontSizeMd
                 font.bold: true
                 elide: Text.ElideRight

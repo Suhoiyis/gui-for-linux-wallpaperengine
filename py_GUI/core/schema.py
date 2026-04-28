@@ -37,6 +37,7 @@ class ConfigData(TypedDict, total=False):
     cyclePlaylistId: str | None
     playlistSidebarOpen: bool
     onboarding_completed: bool
+    themeMode: str
 
 
 class StateData(TypedDict, total=False):
@@ -90,6 +91,7 @@ DEFAULT_CONFIG: ConfigData = {
     "cyclePlaylistId": None,
     "playlistSidebarOpen": True,
     "onboarding_completed": False,
+    "themeMode": "dark",
 }
 
 for _runtime_key in (

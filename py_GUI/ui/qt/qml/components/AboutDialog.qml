@@ -8,6 +8,8 @@ Dialog {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
     modal: true
     title: "About"
     width: 460
@@ -15,9 +17,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     ColumnLayout {
@@ -26,7 +28,7 @@ Dialog {
 
         Label {
             text: "LINUX WALLPAPER ENGINE GUI"
-            color: Theme.fg
+            color: tb ? tb.cFg : Theme.fg
             font.pixelSize: Theme.fontSize3xl
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
@@ -34,7 +36,7 @@ Dialog {
 
         Label {
             text: "Qt Quick Edition"
-            color: Theme.fgMuted
+            color: tb ? tb.cFgMuted : Theme.fgMuted
             Layout.alignment: Qt.AlignHCenter
         }
 
@@ -43,7 +45,7 @@ Dialog {
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             text: "A modern wallpaper manager for linux-wallpaperengine, migrated to Qt Quick."
-            color: Theme.fg
+            color: tb ? tb.cFg : Theme.fg
         }
 
         Item { Layout.fillHeight: true }

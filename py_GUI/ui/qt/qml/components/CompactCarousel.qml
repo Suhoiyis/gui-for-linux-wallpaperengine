@@ -9,12 +9,14 @@ Rectangle {
 
     property var wallpapers: []
     property string selectedId: ""
+    property var themeBridge
+    property var tb: themeBridge || null
 
     signal selectRequested(string wallpaperId)
 
-    color: Theme.surface
+    color: tb ? tb.cSurface : Theme.surface
     border.width: 1
-    border.color: Theme.border
+    border.color: tb ? tb.cBorder : Theme.border
 
     RowLayout {
         anchors.fill: parent
@@ -24,7 +26,7 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: 32
             Layout.fillHeight: true
-            color: prevMouse.containsMouse ? Theme.elevated : "transparent"
+            color: prevMouse.containsMouse ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
 
             Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -32,7 +34,7 @@ Rectangle {
                 anchors.centerIn: parent
                 name: "chevronRight"
                 size: Theme.fontSizeMd
-                color: Theme.fgMuted
+                color: tb ? tb.cFgMuted : Theme.fgMuted
                 rotation: 180
             }
 
@@ -78,9 +80,9 @@ Rectangle {
                     width: 72
                     height: 72
                     radius: Theme.radiusMd
-                    color: Theme.elevated
+                    color: tb ? tb.cElevated : Theme.elevated
                     border.width: root.selectedId === modelData.id ? 2 : 0
-                    border.color: Theme.brand
+                    border.color: tb ? tb.cBrand : Theme.brand
                     opacity: root.selectedId === modelData.id ? 1.0 : 0.7
 
                     Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
@@ -121,7 +123,7 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: 32
             Layout.fillHeight: true
-            color: nextMouse.containsMouse ? Theme.elevated : "transparent"
+            color: nextMouse.containsMouse ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
 
             Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -129,7 +131,7 @@ Rectangle {
                 anchors.centerIn: parent
                 name: "chevronDown"
                 size: Theme.fontSizeMd
-                color: Theme.fgMuted
+                color: tb ? tb.cFgMuted : Theme.fgMuted
                 rotation: -90
             }
 

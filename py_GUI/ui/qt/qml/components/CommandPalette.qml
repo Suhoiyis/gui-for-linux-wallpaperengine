@@ -8,6 +8,8 @@ Popup {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
     modal: true
     focus: true
     width: 760
@@ -17,9 +19,9 @@ Popup {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.bg
+        color: tb ? tb.cBg : Theme.bg
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     property string query: ""

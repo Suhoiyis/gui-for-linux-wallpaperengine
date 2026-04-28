@@ -18,6 +18,8 @@ Item {
     property string sortBy: "name"
     property string activePlaylistId: ""
     property var playlists: []
+    property var themeBridge
+    property var tb: themeBridge || null
     property bool selectionMode: false
     property var selectedForPlaylist: []
 
@@ -100,6 +102,8 @@ Item {
             width: gridView.cellWidth - root.cellGap
             height: gridView.cellHeight - root.cellGap
 
+            themeBridge: root.themeBridge
+
             wp: modelData
             showTitle: root.showTitle
             showIcons: root.showIcons
@@ -144,6 +148,7 @@ Item {
     Comp.GEmptyState {
         anchors.centerIn: parent
         visible: !gridView.count && root.searchText.length > 0
+        themeBridge: root.themeBridge
         iconName: "search"
         title: "No Results Found"
         description: "No wallpapers match \"" + root.searchText + "\".\nTry different keywords or check your spelling."
@@ -153,6 +158,7 @@ Item {
     Comp.GEmptyState {
         anchors.centerIn: parent
         visible: !gridView.count && root.searchText.length === 0 && root.wallpapers.length > 0 && root.activePlaylistId.length > 0
+        themeBridge: root.themeBridge
         iconName: root.activePlaylistId === "favorites" ? "star" : "list"
         title: root.activePlaylistId === "favorites" ? "No Favorites Yet" : "This Playlist is Empty"
         description: root.activePlaylistId === "favorites"
@@ -166,6 +172,7 @@ Item {
     Comp.GEmptyState {
         anchors.centerIn: parent
         visible: !gridView.count && root.searchText.length === 0 && root.wallpapers.length === 0
+        themeBridge: root.themeBridge
         iconName: "search"
         title: "No Wallpapers Found"
         description: "The wallpaper library appears to be empty."
@@ -182,9 +189,9 @@ Item {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
         }
 
         onOpened: {

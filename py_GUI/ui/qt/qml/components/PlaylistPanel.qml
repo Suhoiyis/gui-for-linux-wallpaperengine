@@ -7,6 +7,9 @@ import "../controls" as Ctrl
 Item {
     id: root
 
+    property var themeBridge
+    property var tb: themeBridge || null
+
     property var playlists: []
     property string activePlaylistId: ""
     property var favoriteIds: []
@@ -93,9 +96,9 @@ Item {
         width: Theme.navButtonSize + Theme.spaceMd
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: Theme.surface
+        color: tb ? tb.cSurface : Theme.surface
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
 
         ColumnLayout {
             anchors.fill: parent
@@ -119,7 +122,7 @@ Item {
                         width: 36
                         height: 36
                         radius: Theme.radiusMd
-                        color: root.activePlaylistId.length === 0 ? Theme.elevated : "transparent"
+                        color: root.activePlaylistId.length === 0 ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
 
                         Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -127,7 +130,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: root.activePlaylistId.length === 0 ? 0 : 4
                             radius: root.activePlaylistId.length === 0 ? Theme.radiusMd : Theme.radiusSm
-                            color: root.activePlaylistId.length === 0 ? Theme.brand : "transparent"
+                            color: root.activePlaylistId.length === 0 ? (tb ? tb.cBrand : Theme.brand) : "transparent"
                             opacity: root.activePlaylistId.length === 0 ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
                         }
@@ -136,14 +139,14 @@ Item {
                             anchors.centerIn: parent
                             name: "list"
                             size: Theme.fontSizeMd
-                            color: root.activePlaylistId.length === 0 ? Theme.brandFg : Theme.fgMuted
+                            color: root.activePlaylistId.length === 0 ? (tb ? tb.cBrandFg : Theme.brandFg) : (tb ? tb.cFgMuted : Theme.fgMuted)
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: root.activePlaylistCleared()
-                            onEntered: if (root.activePlaylistId.length > 0) parent.color = Theme.withAlpha(Theme.elevated, 0.5)
+                            onEntered: if (root.activePlaylistId.length > 0) parent.color = Theme.withAlpha(tb ? tb.cElevated : Theme.elevated, 0.5)
                             onExited: if (root.activePlaylistId.length > 0) parent.color = "transparent"
                         }
                     }
@@ -153,7 +156,7 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         width: 32
                         height: 1
-                        color: Theme.border
+                        color: tb ? tb.cBorder : Theme.border
                     }
 
                     // Favorites button
@@ -162,7 +165,7 @@ Item {
                         width: 36
                         height: 36
                         radius: Theme.radiusMd
-                        color: root.activePlaylistId === "favorites" ? Theme.elevated : "transparent"
+                        color: root.activePlaylistId === "favorites" ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
 
                         Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -170,7 +173,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: root.activePlaylistId === "favorites" ? 0 : 4
                             radius: root.activePlaylistId === "favorites" ? Theme.radiusMd : Theme.radiusSm
-                            color: root.activePlaylistId === "favorites" ? Theme.brand : "transparent"
+                            color: root.activePlaylistId === "favorites" ? (tb ? tb.cBrand : Theme.brand) : "transparent"
                             opacity: root.activePlaylistId === "favorites" ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
                         }
@@ -180,8 +183,8 @@ Item {
                             name: "star"
                             size: Theme.fontSizeMd
                             color: {
-                                if (root.activePlaylistId === "favorites") return Theme.favoriteGold
-                                return Theme.fgMuted
+                                if (root.activePlaylistId === "favorites") return tb ? tb.cFavoriteGold : Theme.favoriteGold
+                                return tb ? tb.cFgMuted : Theme.fgMuted
                             }
                         }
 
@@ -189,7 +192,7 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: root.activePlaylistChanged("favorites")
-                            onEntered: if (root.activePlaylistId !== "favorites") parent.color = Theme.withAlpha(Theme.elevated, 0.5)
+                            onEntered: if (root.activePlaylistId !== "favorites") parent.color = Theme.withAlpha(tb ? tb.cElevated : Theme.elevated, 0.5)
                             onExited: if (root.activePlaylistId !== "favorites") parent.color = "transparent"
                         }
                     }
@@ -203,7 +206,7 @@ Item {
                             width: 36
                             height: 36
                             radius: Theme.radiusMd
-                            color: root.activePlaylistId === modelData.id ? Theme.elevated : "transparent"
+                            color: root.activePlaylistId === modelData.id ? (tb ? tb.cElevated : Theme.elevated) : "transparent"
 
                             Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
@@ -211,7 +214,7 @@ Item {
                                 anchors.fill: parent
                                 anchors.margins: root.activePlaylistId === modelData.id ? 0 : 4
                                 radius: root.activePlaylistId === modelData.id ? Theme.radiusMd : Theme.radiusSm
-                                color: root.activePlaylistId === modelData.id ? Theme.brand : "transparent"
+                                color: root.activePlaylistId === modelData.id ? (tb ? tb.cBrand : Theme.brand) : "transparent"
                                 opacity: root.activePlaylistId === modelData.id ? 1 : 0
                                 Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
                             }
@@ -238,7 +241,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 onClicked: root.activePlaylistChanged(modelData.id)
-                                onEntered: if (root.activePlaylistId !== modelData.id) parent.color = Theme.withAlpha(Theme.elevated, 0.5)
+                                onEntered: if (root.activePlaylistId !== modelData.id) parent.color = Theme.withAlpha(tb ? tb.cElevated : Theme.elevated, 0.5)
                                 onExited: if (root.activePlaylistId !== modelData.id) parent.color = "transparent"
                             }
                         }
@@ -252,9 +255,9 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
-                color: Theme.withAlpha(Theme.bg, 0.5)
+                color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.5)
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 Rectangle {
                     anchors.centerIn: parent
@@ -267,14 +270,14 @@ Item {
                         anchors.centerIn: parent
                         name: "plus"
                         size: Theme.fontSizeMd
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: root.createDialogOpen = true
-                        onEntered: parent.color = Theme.elevated
+                        onEntered: parent.color = tb ? tb.cElevated : Theme.elevated
                         onExited: parent.color = "transparent"
                     }
                 }
@@ -306,9 +309,9 @@ Item {
         width: 220
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: Theme.surface
+        color: tb ? tb.cSurface : Theme.surface
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
         z: 20
 
         HoverHandler {
@@ -332,7 +335,7 @@ Item {
                 Layout.preferredHeight: 52
                 color: "transparent"
                 border.width: 0
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 RowLayout {
                     anchors.fill: parent
@@ -343,12 +346,12 @@ Item {
                     Ctrl.GIcon {
                         name: "list"
                         size: Theme.fontSizeMd
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                     }
 
                     Label {
                         text: "Playlists"
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         font.pixelSize: Theme.fontSizeSm
                         font.bold: true
                         Layout.fillWidth: true
@@ -367,7 +370,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: Theme.border
+                color: tb ? tb.cBorder : Theme.border
             }
 
             ScrollView {
@@ -393,6 +396,7 @@ Item {
                         PlaylistItemDelegate {
                             id: plItem
                             anchors.fill: parent
+                            themeBridge: root.tb
                             playlistData: modelData
                             activePlaylistId: root.activePlaylistId
                             wallpapers: root.wallpapers
@@ -413,9 +417,9 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
-                color: Theme.withAlpha(Theme.bg, 0.5)
+                color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.5)
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 RowLayout {
                     anchors.fill: parent
@@ -442,9 +446,9 @@ Item {
         width: 220
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: Theme.surface
+        color: tb ? tb.cSurface : Theme.surface
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
 
         ColumnLayout {
             anchors.fill: parent
@@ -456,7 +460,7 @@ Item {
                 Layout.preferredHeight: 52
                 color: "transparent"
                 border.width: 0
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 RowLayout {
                     anchors.fill: parent
@@ -467,12 +471,12 @@ Item {
                     Ctrl.GIcon {
                         name: "list"
                         size: Theme.fontSizeMd
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                     }
 
                     Label {
                         text: "Playlists"
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         font.pixelSize: Theme.fontSizeSm
                         font.bold: true
                         Layout.fillWidth: true
@@ -491,7 +495,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: Theme.border
+                color: tb ? tb.cBorder : Theme.border
             }
 
             ScrollView {
@@ -517,6 +521,7 @@ Item {
                         PlaylistItemDelegate {
                             id: lkItem
                             anchors.fill: parent
+                            themeBridge: root.tb
                             playlistData: modelData
                             activePlaylistId: root.activePlaylistId
                             wallpapers: root.wallpapers
@@ -562,9 +567,9 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
-                color: Theme.withAlpha(Theme.bg, 0.5)
+                color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.5)
                 border.width: 1
-                border.color: Theme.border
+                border.color: tb ? tb.cBorder : Theme.border
 
                 RowLayout {
                     anchors.fill: parent
@@ -595,9 +600,9 @@ Item {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
         }
 
         readonly property var okButton: standardButton(Dialog.Ok)
@@ -648,9 +653,9 @@ Item {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
         }
 
         readonly property var okButton: standardButton(Dialog.Ok)
@@ -701,9 +706,9 @@ Item {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
         }
 
         onAccepted: {

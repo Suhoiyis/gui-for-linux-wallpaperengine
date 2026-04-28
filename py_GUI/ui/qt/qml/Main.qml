@@ -13,7 +13,13 @@ ApplicationWindow {
     height: 800
     title: "LWG Qt Quick PoC"
 
-    color: Theme.bg
+    color: themeBridge.cBg
+
+    // Theme bridge — resolves colors based on themeMode
+    Comp.ThemeBridge {
+        id: themeBridge
+        mode: window.backendRef ? window.backendRef.themeMode : "dark"
+    }
 
     property string sortBy: "name"
     property string searchText: ""
@@ -42,6 +48,7 @@ ApplicationWindow {
             linkedMode: window.backendRef ? window.backendRef.linkedMode : false
             currentPage: window.currentPage
             backend: window.backendRef
+            themeBridge: themeBridge
             screenshotHintActive: window.backendRef ? window.backendRef.screenshotHintActive : false
 
             onSelectedScreenChangedByUser: function(screen) {
@@ -87,6 +94,7 @@ ApplicationWindow {
             Comp.LibraryPage {
                 id: libraryPage
                 backend: window.backendRef
+                themeBridge: themeBridge
                 sortBy: window.sortBy
                 searchText: window.searchText
                 playlistFloatingOpen: window.playlistFloatingOpen
@@ -111,6 +119,7 @@ ApplicationWindow {
             Comp.PerformancePage {
                 id: performancePage
                 backend: window.backendRef
+                themeBridge: themeBridge
 
                 opacity: pageStack.currentIndex === 1 ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
@@ -119,6 +128,7 @@ ApplicationWindow {
             Comp.SettingsPage {
                 id: settingsPage
                 backend: window.backendRef
+                themeBridge: themeBridge
                 highlightField: window.backendRef ? window.backendRef.highlightSettingField : ""
 
                 opacity: pageStack.currentIndex === 2 ? 1 : 0
@@ -128,6 +138,7 @@ ApplicationWindow {
             Comp.CompactPage {
                 id: compactPage
                 backend: window.backendRef
+                themeBridge: themeBridge
 
                 opacity: pageStack.currentIndex === 3 ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
@@ -141,7 +152,7 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             height: 40
-            color: Theme.statusBarBg
+            color: themeBridge.cStatusBarBg
 
             Label {
                 anchors.centerIn: parent
@@ -150,7 +161,7 @@ ApplicationWindow {
                     : (window.backendRef && window.backendRef.selectedId
                        ? "Selected: " + window.backendRef.selectedId
                        : "Click a wallpaper to select")
-                color: Theme.fgMuted
+                color: themeBridge.cFgMuted
             }
         }
     }
@@ -196,6 +207,7 @@ ApplicationWindow {
 
     Comp.AboutDialog {
         backend: window.backendRef
+        themeBridge: themeBridge
         visible: window.showAboutDialog
         onClosed: window.showAboutDialog = false
     }
@@ -203,6 +215,7 @@ ApplicationWindow {
     Comp.UpdateDialog {
         id: updateDialog
         backend: window.backendRef
+        themeBridge: themeBridge
         currentVersion: window.backendRef ? window.backendRef.appVersion : "unknown"
         latestVersion: window.backendRef ? window.backendRef.appVersion : "unknown"
         downloadUrl: "https://github.com/Suhoiyis/gui-for-linux-wallpaperengine/releases"
@@ -212,6 +225,7 @@ ApplicationWindow {
 
     Comp.WelcomeDialog {
         backend: window.backendRef
+        themeBridge: themeBridge
         requiredMode: window.backendRef ? !window.backendRef.onboardingCompleted : false
         visible: window.showWelcomeDialog || (window.backendRef ? !window.backendRef.onboardingCompleted : false)
         onClosed: window.showWelcomeDialog = false
@@ -219,6 +233,7 @@ ApplicationWindow {
 
     Comp.HistoryDialog {
         backend: window.backendRef
+        themeBridge: themeBridge
         visible: window.showHistoryDialog
         onClosed: window.showHistoryDialog = false
     }
@@ -226,6 +241,7 @@ ApplicationWindow {
     Comp.CommandPalette {
         id: commandPalette
         backend: window.backendRef
+        themeBridge: themeBridge
         function pageChangedByPalette(page) {
             window.currentPage = page
         }
@@ -243,13 +259,13 @@ ApplicationWindow {
         onClosed: window.showQuitConfirm = false
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.elevated
+            color: themeBridge.cElevated
             border.width: 1
-            border.color: Theme.border
+            border.color: themeBridge.cBorder
         }
         contentItem: Label {
             text: "This will stop wallpapers and close the app."
-            color: Theme.fg
+            color: themeBridge.cFg
             wrapMode: Text.WordWrap
         }
     }

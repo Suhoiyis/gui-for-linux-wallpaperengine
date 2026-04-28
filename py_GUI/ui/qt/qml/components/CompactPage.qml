@@ -8,12 +8,14 @@ Item {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
 
     signal switchToNormal()
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.bg
+        color: tb ? tb.cBg : Theme.bg
 
         ColumnLayout {
             anchors.fill: parent
@@ -22,6 +24,7 @@ Item {
             CompactNavbar {
                 Layout.fillWidth: true
                 Layout.margins: Theme.spaceSm
+                themeBridge: root.themeBridge
                 onSwitchToNormal: root.switchToNormal()
             }
 
@@ -42,6 +45,7 @@ Item {
 
                     CompactPreview {
                         Layout.alignment: Qt.AlignHCenter
+                        themeBridge: root.themeBridge
                         wallpaper: root.backend ? root.backend.selectedWallpaper : ({})
                         totalCount: root.backend ? root.backend.wallpapers.length : 0
                         currentIndex: {
@@ -103,6 +107,7 @@ Item {
             CompactCarousel {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 100
+                themeBridge: root.themeBridge
                 wallpapers: root.backend ? root.backend.wallpapers : []
                 selectedId: root.backend ? root.backend.selectedId : ""
                 onSelectRequested: function(wallpaperId) {

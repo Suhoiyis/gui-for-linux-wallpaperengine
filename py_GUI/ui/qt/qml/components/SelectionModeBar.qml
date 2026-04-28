@@ -16,10 +16,12 @@ Rectangle {
     signal cancelRequested()
     signal addToPlaylistRequested(string playlistId)
     signal createPlaylistFromSelectionRequested()
+    property var themeBridge
+    property var tb: themeBridge || null
 
-    color: Theme.rowSelected
+    color: tb ? tb.cRowSelected : Theme.rowSelected
     border.width: 1
-    border.color: Theme.border
+    border.color: tb ? tb.cBorder : Theme.border
     radius: Theme.radiusLg
     implicitHeight: 48
 
@@ -31,7 +33,7 @@ Rectangle {
 
         Label {
             text: root.selectedCount + " selected"
-            color: Theme.fg
+            color: tb ? tb.cFg : Theme.fg
             font.bold: true
         }
 

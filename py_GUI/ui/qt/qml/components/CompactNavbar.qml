@@ -8,10 +8,12 @@ Rectangle {
     id: root
 
     signal switchToNormal()
+    property var themeBridge
+    property var tb: themeBridge || null
 
-    color: Theme.surface
+    color: tb ? tb.cSurface : Theme.surface
     border.width: 1
-    border.color: Theme.border
+    border.color: tb ? tb.cBorder : Theme.border
     radius: Theme.radiusXl
     implicitHeight: Theme.navHeight
 

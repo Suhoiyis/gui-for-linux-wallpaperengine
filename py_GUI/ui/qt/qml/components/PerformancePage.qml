@@ -9,10 +9,12 @@ Item {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.bg
+        color: tb ? tb.cBg : Theme.bg
 
         ScrollView {
             anchors.fill: parent
@@ -31,14 +33,14 @@ Item {
 
                     Text {
                         text: "System Monitor"
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         font.pixelSize: Theme.fontSize2xl
                         font.weight: Theme.fontWeightBold
                     }
 
                     Text {
                         text: "Real-time resource usage of wallpaper components."
-                        color: Theme.fgMuted
+                        color: tb ? tb.cFgMuted : Theme.fgMuted
                         font.pixelSize: Theme.fontSizeSm
                     }
                 }
@@ -53,9 +55,9 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 180
                         radius: Theme.radiusLg
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -86,13 +88,13 @@ Item {
 
                                     Text {
                                         text: "Total CPU"
-                                        color: Theme.fgMuted
+                                        color: tb ? tb.cFgMuted : Theme.fgMuted
                                         font.pixelSize: Theme.fontSizeSm
                                     }
 
                                     Text {
                                         text: root.backend ? String(root.backend.performanceTotal.cpu_fmt || "0%") : "0%"
-                                        color: Theme.fg
+                                        color: tb ? tb.cFg : Theme.fg
                                         font.pixelSize: Theme.fontSizeXl
                                         font.weight: Theme.fontWeightBold
                                     }
@@ -120,9 +122,9 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 180
                         radius: Theme.radiusLg
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -153,13 +155,13 @@ Item {
 
                                     Text {
                                         text: "Total Memory"
-                                        color: Theme.fgMuted
+                                        color: tb ? tb.cFgMuted : Theme.fgMuted
                                         font.pixelSize: Theme.fontSizeSm
                                     }
 
                                     Text {
                                         text: root.backend ? String(root.backend.performanceTotal.memory_fmt || "0 MB") : "0 MB"
-                                        color: Theme.fg
+                                        color: tb ? tb.cFg : Theme.fg
                                         font.pixelSize: Theme.fontSizeXl
                                         font.weight: Theme.fontWeightBold
                                     }
@@ -190,9 +192,9 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 180
                         radius: Theme.radiusLg
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -223,13 +225,13 @@ Item {
 
                                     Text {
                                         text: "Active Threads"
-                                        color: Theme.fgMuted
+                                        color: tb ? tb.cFgMuted : Theme.fgMuted
                                         font.pixelSize: Theme.fontSizeSm
                                     }
 
                                     Text {
                                         text: root.backend ? String(root.backend.performanceTotal.threads || 0) : "0"
-                                        color: Theme.fg
+                                        color: tb ? tb.cFg : Theme.fg
                                         font.pixelSize: Theme.fontSizeXl
                                         font.weight: Theme.fontWeightBold
                                     }
@@ -272,7 +274,7 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: Theme.border
+                    color: tb ? tb.cBorder : Theme.border
                 }
 
                 // Process details section
@@ -282,7 +284,7 @@ Item {
 
                     Text {
                         text: "Process Details"
-                        color: Theme.fg
+                        color: tb ? tb.cFg : Theme.fg
                         font.pixelSize: Theme.fontSizeLg
                         font.weight: Theme.fontWeightBold
                     }
@@ -294,9 +296,9 @@ Item {
                             Layout.fillWidth: true
                             implicitHeight: processColumn.implicitHeight + Theme.spaceMd * 2
                             radius: Theme.radiusLg
-                            color: Theme.surface
+                            color: tb ? tb.cSurface : Theme.surface
                             border.width: 1
-                            border.color: Theme.border
+                            border.color: tb ? tb.cBorder : Theme.border
 
                             ColumnLayout {
                                 id: processColumn
@@ -313,13 +315,13 @@ Item {
                                         width: 48
                                         height: 48
                                         radius: Theme.radiusMd
-                                        color: Theme.elevated
+                                        color: tb ? tb.cElevated : Theme.elevated
 
                                         Ctrl.GIcon {
                                             anchors.centerIn: parent
                                             name: modelData.category === "backend" ? "zap" : "monitor"
                                             size: Theme.fontSizeLg
-                                            color: modelData.category === "backend" ? "#eab308" : Theme.brand
+                                            color: modelData.category === "backend" ? "#eab308" : (tb ? tb.cBrand : Theme.brand)
                                         }
                                     }
 
@@ -333,7 +335,7 @@ Item {
 
                                             Text {
                                                 text: modelData.name || "Process"
-                                                color: Theme.fg
+                                                color: tb ? tb.cFg : Theme.fg
                                                 font.pixelSize: Theme.fontSizeMd
                                                 font.weight: Theme.fontWeightBold
                                             }
@@ -341,16 +343,16 @@ Item {
                                             Rectangle {
                                                 height: 18
                                                 radius: Theme.radiusSm
-                                                color: Theme.input
+                                                color: tb ? tb.cInput : Theme.input
                                                 border.width: 1
-                                                border.color: Theme.border
+                                                border.color: tb ? tb.cBorder : Theme.border
 
                                                 Text {
                                                     anchors.centerIn: parent
                                                     anchors.leftMargin: Theme.spaceSm
                                                     anchors.rightMargin: Theme.spaceSm
                                                     text: "PID: " + String(modelData.pid || 0)
-                                                    color: Theme.fgMuted
+                                                    color: tb ? tb.cFgMuted : Theme.fgMuted
                                                     font.pixelSize: Theme.fontSizeXs
                                                     font.family: "monospace"
                                                 }
@@ -368,7 +370,7 @@ Item {
 
                                         Text {
                                             text: modelData.cmd || ""
-                                            color: Theme.fgSubtle
+                                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                                             font.pixelSize: Theme.fontSizeXs
                                             elide: Text.ElideRight
                                             Layout.fillWidth: true
@@ -385,8 +387,8 @@ Item {
                                                 text: String(modelData.cpu_fmt || "0%")
                                                 color: {
                                                     var cpu = parseFloat(modelData.cpu || 0)
-                                                    if (cpu > 20) return Theme.warning
-                                                    return Theme.success
+                                                    if (cpu > 20) return tb ? tb.cWarning : Theme.warning
+                                                    return tb ? tb.cSuccess : Theme.success
                                                 }
                                                 font.pixelSize: Theme.fontSizeSm
                                                 font.weight: Theme.fontWeightBold
@@ -394,7 +396,7 @@ Item {
                                             }
                                             Text {
                                                 text: "CPU"
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                                 font.pixelSize: Theme.fontSizeXs - 2
                                             }
                                         }
@@ -403,14 +405,14 @@ Item {
                                             spacing: 0
                                             Text {
                                                 text: String(modelData.memory_fmt || "0 MB")
-                                                color: Theme.accent
+                                                color: tb ? tb.cAccent : Theme.accent
                                                 font.pixelSize: Theme.fontSizeSm
                                                 font.weight: Theme.fontWeightBold
                                                 font.family: "monospace"
                                             }
                                             Text {
                                                 text: "MEM"
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                                 font.pixelSize: Theme.fontSizeXs - 2
                                             }
                                         }
@@ -419,13 +421,13 @@ Item {
                                             spacing: 0
                                             Text {
                                                 text: String(modelData.status || "-")
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                                 font.pixelSize: Theme.fontSizeSm
                                                 font.family: "monospace"
                                             }
                                             Text {
                                                 text: "STATUS"
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                                 font.pixelSize: Theme.fontSizeXs - 2
                                             }
                                         }
@@ -441,7 +443,7 @@ Item {
                                     Rectangle {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: 50
-                                        color: Theme.input
+                                        color: tb ? tb.cInput : Theme.input
                                         radius: Theme.radiusMd
 
                                         SparklineChart {
@@ -449,8 +451,8 @@ Item {
                                             anchors.margins: Theme.spaceSm
                                             lineColor: {
                                                 var cpu = parseFloat(modelData.cpu || 0)
-                                                if (cpu > 20) return Theme.warning
-                                                return Theme.success
+                                                if (cpu > 20) return tb ? tb.cWarning : Theme.warning
+                                                return tb ? tb.cSuccess : Theme.success
                                             }
                                             fillColor: "transparent"
                                             values: modelData.cpuHistory || []
@@ -467,15 +469,15 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 100
                         visible: (root.backend ? root.backend.performanceProcesses.length : 0) === 0
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         radius: Theme.radiusLg
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
 
                         Text {
                             anchors.centerIn: parent
                             text: "No active monitored processes"
-                            color: Theme.fgSubtle
+                            color: tb ? tb.cFgSubtle : Theme.fgSubtle
                             font.pixelSize: Theme.fontSizeSm
                         }
                     }
@@ -485,7 +487,7 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: Theme.border
+                    color: tb ? tb.cBorder : Theme.border
                 }
 
                 // Screenshot History section
@@ -500,7 +502,7 @@ Item {
                         Ctrl.GIcon {
                             name: "camera"
                             size: Theme.fontSizeMd
-                            color: Theme.accent
+                            color: tb ? tb.cAccent : Theme.accent
                         }
 
                         ColumnLayout {
@@ -509,14 +511,14 @@ Item {
 
                             Text {
                                 text: "Screenshot History"
-                                color: Theme.fg
+                                color: tb ? tb.cFg : Theme.fg
                                 font.pixelSize: Theme.fontSizeLg
                                 font.weight: Theme.fontWeightBold
                             }
 
                             Text {
                                 text: "Recent screenshot captures."
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 font.pixelSize: Theme.fontSizeSm
                             }
                         }
@@ -539,9 +541,9 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: screenshotColumn.implicitHeight + Theme.spaceMd * 2
                         radius: Theme.radiusLg
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         border.width: 1
-                        border.color: Theme.border
+                        border.color: tb ? tb.cBorder : Theme.border
                         visible: screenshotList.count > 0
 
                         ColumnLayout {
@@ -558,7 +560,7 @@ Item {
                                     required property var modelData
                                     Layout.fillWidth: true
                                     height: 56
-                                    color: index % 2 === 0 ? "transparent" : Theme.withAlpha(Theme.elevated, 0.30)
+                                    color: index % 2 === 0 ? "transparent" : Theme.withAlpha(tb ? tb.cElevated : Theme.elevated, 0.30)
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -571,7 +573,7 @@ Item {
                                             width: 40
                                             height: 40
                                             radius: Theme.radiusSm
-                                            color: Theme.elevated
+                                            color: tb ? tb.cElevated : Theme.elevated
                                             clip: true
 
                                             Image {
@@ -586,7 +588,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 name: "camera"
                                                 size: Theme.fontSizeSm
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                                 visible: !modelData.preview
                                             }
                                         }
@@ -595,7 +597,7 @@ Item {
                                         Text {
                                             Layout.fillWidth: true
                                             text: modelData.title || "Unknown Wallpaper"
-                                            color: Theme.fg
+                                            color: tb ? tb.cFg : Theme.fg
                                             font.pixelSize: Theme.fontSizeMd
                                             font.weight: Theme.fontWeightBold
                                             elide: Text.ElideRight
@@ -608,12 +610,12 @@ Item {
                                             Ctrl.GIcon {
                                                 name: "clock"
                                                 size: Theme.fontSizeXs
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                             }
 
                                             Text {
                                                 text: Number(modelData.duration || 0).toFixed(1) + "s"
-                                                color: Theme.fgMuted
+                                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                                 font.pixelSize: Theme.fontSizeSm
                                                 font.family: "monospace"
                                             }
@@ -646,9 +648,9 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 160
                         radius: Theme.radiusLg
-                        color: Theme.surface
+                        color: tb ? tb.cSurface : Theme.surface
                         border.width: 1
-                        border.color: Theme.withAlpha(Theme.border, 0.50)
+                        border.color: Theme.withAlpha(tb ? tb.cBorder : Theme.border, 0.50)
                         visible: screenshotList.count === 0
 
                         ColumnLayout {
@@ -658,13 +660,13 @@ Item {
                             Ctrl.GIcon {
                                 name: "camera"
                                 size: Theme.fontSize2xl
-                                color: Theme.fgSubtle
+                                color: tb ? tb.cFgSubtle : Theme.fgSubtle
                                 Layout.alignment: Qt.AlignHCenter
                             }
 
                             Text {
                                 text: "No Screenshot Records"
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 font.pixelSize: Theme.fontSizeMd
                                 font.weight: Theme.fontWeightBold
                                 Layout.alignment: Qt.AlignHCenter
@@ -672,7 +674,7 @@ Item {
 
                             Text {
                                 text: "You have no screenshot records to display."
-                                color: Theme.fgSubtle
+                                color: tb ? tb.cFgSubtle : Theme.fgSubtle
                                 font.pixelSize: Theme.fontSizeSm
                                 Layout.alignment: Qt.AlignHCenter
                             }

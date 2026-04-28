@@ -9,6 +9,8 @@ Item {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
     property string sortBy: "name"
     property string searchText: ""
     property bool playlistFloatingOpen: false
@@ -67,6 +69,8 @@ Item {
             Layout.rightMargin: Theme.spaceSm
             Layout.bottomMargin: Theme.spaceSm
 
+            themeBridge: root.themeBridge
+
             currentTitle: root.backend && root.backend.selectedId.length > 0
                 ? root.backend.selectedId
                 : "None"
@@ -95,6 +99,8 @@ Item {
             Layout.leftMargin: Theme.spaceSm
             Layout.rightMargin: Theme.spaceSm
             Layout.bottomMargin: Theme.spaceSm
+
+            themeBridge: root.themeBridge
 
             selectedCount: root.selectedForPlaylist.length
             totalCount: root.backend ? root.backend.wallpapers.length : 0
@@ -146,7 +152,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: Theme.divider
+            color: tb ? tb.cDivider : Theme.divider
         }
 
         Item {
@@ -163,6 +169,7 @@ Item {
                     SplitView.preferredWidth: panelState === "locked" ? 268 : 48
                     SplitView.minimumWidth: panelState === "locked" ? 260 : 48
                     SplitView.maximumWidth: panelState === "locked" ? 280 : 48
+                    themeBridge: root.themeBridge
 
                     playlists: root.backend ? root.backend.playlists : []
                     activePlaylistId: root.backend ? root.backend.activePlaylistId : ""
@@ -197,6 +204,7 @@ Item {
                 Comp.WallpaperGrid {
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 520
+                    themeBridge: root.themeBridge
 
                     wallpapers: root.currentGridWallpapers()
                     playlists: root.backend ? root.backend.playlists : []
@@ -278,6 +286,7 @@ Item {
                     SplitView.preferredWidth: Theme.sidebarWidth
                     SplitView.minimumWidth: 300
                     SplitView.maximumWidth: 520
+                    themeBridge: root.themeBridge
 
                     backend: root.backend
                     wallpaper: root.backend ? root.backend.selectedWallpaper : ({})
@@ -298,7 +307,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 visible: root.playlistFloatingOpen
-                color: Theme.overlayDim
+                color: tb ? tb.cOverlayDim : Theme.overlayDim
                 z: 15
 
                 MouseArea {
@@ -317,6 +326,8 @@ Item {
                 anchors.bottomMargin: Theme.spaceSm
                 width: 360
 
+                themeBridge: root.themeBridge
+
                 currentPage: root.currentPage
                 totalPages: root.totalPages()
 
@@ -330,6 +341,7 @@ Item {
     Comp.HistoryDialog {
         id: historyDialog
         backend: root.backend
+        themeBridge: root.themeBridge
         visible: root.historyDialogOpen
         onVisibleChanged: if (!visible) root.historyDialogOpen = false
         onClosed: root.historyDialogOpen = false
@@ -339,6 +351,7 @@ Item {
 
     Comp.DeleteConfirmDialog {
         id: deleteDialog
+        themeBridge: root.themeBridge
         visible: root.deleteDialogOpen
         wallpaperId: root.deleteWallpaperId
         wallpaperTitle: root.deleteWallpaperTitle

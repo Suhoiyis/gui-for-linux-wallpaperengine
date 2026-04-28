@@ -8,6 +8,8 @@ Dialog {
     id: root
 
     property var backend
+    property var themeBridge
+    property var tb: themeBridge || null
     modal: true
     title: "Play History"
     standardButtons: Dialog.Close
@@ -16,9 +18,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     // Custom header with icon
@@ -35,7 +37,7 @@ Dialog {
             Ctrl.GIcon {
                 name: "history"
                 size: Theme.fontSizeXl
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
             }
 
             ColumnLayout {
@@ -44,14 +46,14 @@ Dialog {
 
                 Label {
                     text: "Play History"
-                    color: Theme.fg
+                    color: tb ? tb.cFg : Theme.fg
                     font.pixelSize: Theme.fontSizeLg
                     font.bold: true
                 }
 
                 Label {
                     text: "Recently played wallpapers. Click Reuse to apply again."
-                    color: Theme.fgMuted
+                    color: tb ? tb.cFgMuted : Theme.fgMuted
                     font.pixelSize: Theme.fontSizeXs
                 }
             }
@@ -67,9 +69,9 @@ Dialog {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: Theme.radiusLg
-            color: Theme.surface
+            color: tb ? tb.cSurface : Theme.surface
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
 
             ListView {
                 anchors.fill: parent
@@ -82,7 +84,7 @@ Dialog {
                     required property int index
                     width: ListView.view.width
                     height: 64
-                    color: index % 2 === 0 ? Theme.surface : Theme.withAlpha(Theme.elevated, 0.5)
+                    color: index % 2 === 0 ? (tb ? tb.cSurface : Theme.surface) : Theme.withAlpha(tb ? tb.cElevated : Theme.elevated, 0.5)
 
                     RowLayout {
                         anchors.fill: parent
@@ -95,12 +97,12 @@ Dialog {
                             width: 40
                             height: 40
                             radius: Theme.radiusSm
-                            color: Theme.elevated
+                            color: tb ? tb.cElevated : Theme.elevated
 
                             Ctrl.GIcon {
                                 name: "image"
                                 size: Theme.fontSizeMd
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 anchors.centerIn: parent
                             }
                         }
@@ -111,7 +113,7 @@ Dialog {
 
                             Label {
                                 text: modelData.title || "Unknown"
-                                color: Theme.fg
+                                color: tb ? tb.cFg : Theme.fg
                                 font.pixelSize: Theme.fontSizeSm
                                 font.weight: Theme.fontWeightMedium
                                 Layout.fillWidth: true
@@ -120,7 +122,7 @@ Dialog {
 
                             Label {
                                 text: modelData.id || ""
-                                color: Theme.fgMuted
+                                color: tb ? tb.cFgMuted : Theme.fgMuted
                                 font.pixelSize: Theme.fontSizeXs
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight
@@ -148,7 +150,7 @@ Dialog {
                         anchors.right: parent.right
                         anchors.leftMargin: Theme.spaceMd
                         height: 1
-                        color: Theme.border
+                        color: tb ? tb.cBorder : Theme.border
                     }
                 }
 
@@ -157,7 +159,7 @@ Dialog {
                     anchors.centerIn: parent
                     visible: parent.count === 0
                     text: "No playback history yet"
-                    color: Theme.fgMuted
+                    color: tb ? tb.cFgMuted : Theme.fgMuted
                     font.pixelSize: Theme.fontSizeMd
                 }
             }

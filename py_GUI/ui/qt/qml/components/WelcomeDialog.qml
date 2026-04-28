@@ -10,6 +10,8 @@ Dialog {
     property var backend
     property bool requiredMode: false
     property int step: 0
+    property var themeBridge
+    property var tb: themeBridge || null
 
     modal: true
     width: 620
@@ -18,9 +20,9 @@ Dialog {
 
     background: Rectangle {
         radius: Theme.radiusXl
-        color: Theme.elevated
+        color: tb ? tb.cElevated : Theme.elevated
         border.width: 1
-        border.color: Theme.border
+        border.color: tb ? tb.cBorder : Theme.border
     }
 
     onOpened: step = 0
@@ -39,7 +41,7 @@ Dialog {
                     width: 8
                     height: 8
                     radius: 4
-                    color: root.step === index ? Theme.accent : Theme.border
+                    color: root.step === index ? (tb ? tb.cAccent : Theme.accent) : (tb ? tb.cBorder : Theme.border)
                 }
             }
         }
@@ -47,7 +49,7 @@ Dialog {
         Label {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
-            color: Theme.fg
+            color: tb ? tb.cFg : Theme.fg
             font.pixelSize: Theme.fontSize2xl
             font.bold: true
             text: {
@@ -63,13 +65,13 @@ Dialog {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: Theme.radiusLg
-            color: Theme.elevated
+            color: tb ? tb.cElevated : Theme.elevated
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
 
             Label {
                 anchors.centerIn: parent
-                color: Theme.fg
+                color: tb ? tb.cFg : Theme.fg
                 width: parent.width - Theme.spaceXl * 2
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
