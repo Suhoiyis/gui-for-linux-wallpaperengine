@@ -263,6 +263,10 @@ Item {
                     onBrowseAllRequested: {
                         if (root.backend) root.backend.clearActivePlaylist()
                     }
+                    onHighlightSettingRequested: function(fieldName) {
+                        if (root.backend) root.backend.setHighlightSettingField(fieldName)
+                        window.currentPage = "settings"
+                    }
                 }
 
                 Comp.WallpaperSidebar {

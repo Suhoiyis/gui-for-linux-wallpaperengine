@@ -676,6 +676,18 @@ Item {
                                 font.pixelSize: Theme.fontSizeSm
                                 Layout.alignment: Qt.AlignHCenter
                             }
+
+                            Ctrl.GButton {
+                                text: "Go Screenshot!"
+                                variant: "brand"
+                                Layout.alignment: Qt.AlignHCenter
+                                onClicked: {
+                                    if (root.backend) {
+                                        root.backend.setScreenshotHintActive(true)
+                                        window.currentPage = "library"
+                                    }
+                                }
+                            }
                         }
                     }
                 }

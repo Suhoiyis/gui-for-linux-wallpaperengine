@@ -13,6 +13,37 @@ Item {
     property int settingsTabIndex: 0
     property bool showNicknameManager: false
     property bool showFavoriteManager: false
+    property string highlightField: ""
+
+    // Auto-clear highlight after 3s
+    Timer {
+        id: highlightTimer
+        interval: 3000
+        repeat: false
+        onTriggered: root.highlightField = ""
+    }
+
+    onHighlightFieldChanged: {
+        if (highlightField.length > 0) {
+            highlightTimer.restart()
+            // Navigate to correct tab based on field name
+            if (highlightField === "fps" || highlightField === "scaling" || highlightField === "clamping"
+                || highlightField === "cycleEnabled" || highlightField === "cycleInterval"
+                || highlightField === "disableParallax" || highlightField === "disableMouse"
+                || highlightField === "noFullscreenPause" || highlightField === "disableParticles") {
+                root.settingsTabIndex = 0
+            } else if (highlightField === "volume" || highlightField === "silence"
+                       || highlightField === "noAutomute" || highlightField === "noAudioProcessing") {
+                root.settingsTabIndex = 1
+            } else if (highlightField === "waylandOnlyActive" || highlightField === "waylandIgnoreAppids") {
+                root.settingsTabIndex = 2
+            } else {
+                // workshopPath, assetsPath, screenshotDelay, screenshotRes, preferXvfb,
+                // startHidden, autoRestore, etc. → System & Tools tab
+                root.settingsTabIndex = 3
+            }
+        }
+    }
 
     Rectangle {
         anchors.fill: parent

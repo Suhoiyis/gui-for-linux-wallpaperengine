@@ -13,6 +13,7 @@ Rectangle {
     property string selectedScreen: ""
     property bool linkedMode: false
     property string currentPage: "library"
+    property bool screenshotHintActive: false
 
     signal selectedScreenChangedByUser(string screen)
     signal linkedModeChangedByUser(bool linked)
@@ -210,11 +211,35 @@ Rectangle {
                     onClicked: if (root.backend) root.backend.applyRandomWallpaper()
                 }
 
-                // Screenshot button
+                // Screenshot button with hint animation
+                Rectangle {
+                    width: 36
+                    height: 36
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: root.screenshotHintActive ? 3 : 0
+                    border.color: Theme.brand
+                    opacity: root.screenshotHintActive ? 0.8 : 0
+
+                    SequentialAnimation on opacity {
+                        running: root.screenshotHintActive
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 0.3; to: 1.0; duration: 600; easing.type: Easing.OutCubic }
+                        NumberAnimation { from: 1.0; to: 0.3; duration: 600; easing.type: Easing.InCubic }
+                    }
+
+                    SequentialAnimation on scale {
+                        running: root.screenshotHintActive
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 1.15; duration: 600; easing.type: Easing.OutCubic }
+                        NumberAnimation { from: 1.15; to: 1.0; duration: 600; easing.type: Easing.InCubic }
+                    }
+                }
+
                 Ctrl.GIconButton {
                     iconName: "camera"
                     size: 28
-                    tooltip: "Screenshot"
+                    tooltip: root.screenshotHintActive ? "Click me to screenshot!!" : "Screenshot"
                     onClicked: {
                         if (!root.backend) return
                         var targetId = root.backend.selectedId || ""

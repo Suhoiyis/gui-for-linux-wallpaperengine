@@ -42,6 +42,7 @@ ApplicationWindow {
             linkedMode: window.backendRef ? window.backendRef.linkedMode : false
             currentPage: window.currentPage
             backend: window.backendRef
+            screenshotHintActive: window.backendRef ? window.backendRef.screenshotHintActive : false
 
             onSelectedScreenChangedByUser: function(screen) {
                 if (window.backendRef) window.backendRef.setSelectedScreen(screen)
@@ -118,6 +119,7 @@ ApplicationWindow {
             Comp.SettingsPage {
                 id: settingsPage
                 backend: window.backendRef
+                highlightField: window.backendRef ? window.backendRef.highlightSettingField : ""
 
                 opacity: pageStack.currentIndex === 2 ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.pageTransitionMs; easing.type: Easing.OutCubic } }
@@ -171,6 +173,25 @@ ApplicationWindow {
     Shortcut {
         sequences: ["Ctrl+K", "Meta+K"]
         onActivated: commandPalette.open()
+    }
+
+    // Auto-clear screenshot hint after 3 seconds
+    Timer {
+        id: screenshotHintTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (window.backendRef) window.backendRef.setScreenshotHintActive(false)
+        }
+    }
+
+    Connections {
+        target: window.backendRef
+        function onScreenshotHintActiveChanged() {
+            if (window.backendRef && window.backendRef.screenshotHintActive) {
+                screenshotHintTimer.restart()
+            }
+        }
     }
 
     Comp.AboutDialog {

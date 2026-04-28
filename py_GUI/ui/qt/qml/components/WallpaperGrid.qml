@@ -34,6 +34,7 @@ Item {
     signal selectionToggled(string wallpaperId)
     signal configurePathRequested()
     signal browseAllRequested()
+    signal highlightSettingRequested(string fieldName)
 
     GridView {
         id: gridView
@@ -169,7 +170,7 @@ Item {
         title: "No Wallpapers Found"
         description: "The wallpaper library appears to be empty."
         actionText: "Configure Library Path"
-        onActionTriggered: root.configurePathRequested()
+        onActionTriggered: root.highlightSettingRequested("workshopPath")
     }
 
     Dialog {

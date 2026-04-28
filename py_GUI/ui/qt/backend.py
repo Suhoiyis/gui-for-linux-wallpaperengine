@@ -133,6 +133,8 @@ class Backend(QObject):
     historyChanged = Signal()
     appMetaChanged = Signal()
     screenshotHistoryChanged = Signal()
+    highlightSettingFieldChanged = Signal()
+    screenshotHintActiveChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -176,6 +178,8 @@ class Backend(QObject):
         self._performance_details: list[dict[str, object]] = []
         self._perf_callback_registered = False
         self._cycle_timer: QTimer | None = None
+        self._highlight_setting_field: str = ""
+        self._screenshot_hint_active: bool = False
         self._ensure_perf_bridge()
         self._init_cycle_timer()
 
@@ -560,6 +564,14 @@ class Backend(QObject):
                 }
             )
         return out
+
+    @Property(str, notify=highlightSettingFieldChanged)
+    def highlightSettingField(self) -> str:
+        return self._highlight_setting_field
+
+    @Property(bool, notify=screenshotHintActiveChanged)
+    def screenshotHintActive(self) -> bool:
+        return self._screenshot_hint_active
 
     @Slot(str)
     def selectWallpaper(self, wp_id: str) -> None:
@@ -1089,6 +1101,16 @@ class Backend(QObject):
         self.controller.restart_wallpapers()
         self.activeMonitorsChanged.emit()
         self._set_status("Wallpapers restarted with updated settings")
+
+    @Slot(str)
+    def setHighlightSettingField(self, field_name: str) -> None:
+        self._highlight_setting_field = str(field_name or "")
+        self.highlightSettingFieldChanged.emit()
+
+    @Slot(bool)
+    def setScreenshotHintActive(self, active: bool) -> None:
+        self._screenshot_hint_active = bool(active)
+        self.screenshotHintActiveChanged.emit()
 
     @Slot(result="QVariantMap")
     def checkForUpdates(self) -> dict[str, object]:
