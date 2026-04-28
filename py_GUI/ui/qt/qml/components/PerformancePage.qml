@@ -622,7 +622,7 @@ Item {
                                         // Action buttons
                                         Ctrl.GIconButton {
                                             name: "folder"
-                                            sizeVariant: "sm"
+                                            size: Theme.iconButtonSm
                                             onClicked: {
                                                 if (root.backend) root.backend.openFolder(modelData.outputPath)
                                             }
@@ -630,7 +630,7 @@ Item {
 
                                         Ctrl.GIconButton {
                                             name: "image"
-                                            sizeVariant: "sm"
+                                            size: Theme.iconButtonSm
                                             onClicked: {
                                                 if (root.backend) root.backend.openExternalUrl(Qt.resolvedUrl(modelData.outputPath))
                                             }
