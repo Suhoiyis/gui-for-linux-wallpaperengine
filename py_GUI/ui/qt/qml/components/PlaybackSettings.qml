@@ -17,6 +17,13 @@ Frame {
     }
     padding: Theme.spaceMd
 
+    Timer {
+        id: fpsDebounce
+        interval: 500
+        repeat: false
+        onTriggered: if (root.backend) root.backend.setFps(Math.round(fpsSlider.value))
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceSm
@@ -42,7 +49,7 @@ Frame {
                 to: 144
                 stepSize: 1
                 value: root.backend ? root.backend.fps : 30
-                onMoved: if (root.backend) root.backend.setFps(Math.round(value))
+                onMoved: fpsDebounce.restart()
             }
             Label {
                 text: String(Math.round(fpsSlider.value))

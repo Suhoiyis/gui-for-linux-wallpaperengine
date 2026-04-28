@@ -16,6 +16,24 @@ Rectangle {
     property bool nicknameDialogOpen: false
     property bool descriptionExpanded: false
 
+    function stripBBCode(text) {
+        if (!text) return ""
+        var out = text
+        out = out.replace(/\[url=([^\]]*)\]([^\[]*)\[\/url\]/gi, "$2 ($1)")
+        out = out.replace(/\[url\]([^\[]*)\[\/url\]/gi, "$1")
+        out = out.replace(/\[b\]([^]*?)\[\/b\]/gi, "$1")
+        out = out.replace(/\[i\]([^]*?)\[\/i\]/gi, "$1")
+        out = out.replace(/\[u\]([^]*?)\[\/u\]/gi, "$1")
+        out = out.replace(/\[s\]([^]*?)\[\/s\]/gi, "$1")
+        out = out.replace(/\[h[1-6]\]([^]*?)\[\/h[1-6]\]/gi, "$1")
+        out = out.replace(/\[color=[^\]]*\]([^]*?)\[\/color\]/gi, "$1")
+        out = out.replace(/\[size=[^\]]*\]([^]*?)\[\/size\]/gi, "$1")
+        out = out.replace(/\[img\][^\[]*\[\/img\]/gi, "")
+        out = out.replace(/\[\/?(?:b|i|u|s|url|img|h[1-6]|color|size|list|li|code|quote|spoiler|table|tr|td|hr)[^\]]*\]/gi, "")
+        out = out.replace(/\n{3,}/g, "\n\n")
+        return out.trim()
+    }
+
     signal applyRequested(string wallpaperId)
     signal favoriteToggled(string wallpaperId)
     signal nicknameEditRequested(string wallpaperId, string nickname)
@@ -290,7 +308,7 @@ Rectangle {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: Theme.spaceXs
-                            visible: root.hasWallpaper && (root.wallpaper.description || "").length > 0
+                            visible: root.hasWallpaper && root.stripBBCode(root.wallpaper.description || "").length > 0
 
                             Rectangle {
                                 Layout.fillWidth: true
@@ -333,7 +351,7 @@ Rectangle {
                                     id: descText
                                     anchors.fill: parent
                                     anchors.margins: Theme.spaceSm
-                                    text: root.hasWallpaper ? (root.wallpaper.description || "No description") : "No description"
+                                    text: root.hasWallpaper ? root.stripBBCode(root.wallpaper.description || "") : "No description"
                                     color: Theme.fgMuted
                                     font.pixelSize: Theme.fontSizeSm
                                     wrapMode: Text.WordWrap

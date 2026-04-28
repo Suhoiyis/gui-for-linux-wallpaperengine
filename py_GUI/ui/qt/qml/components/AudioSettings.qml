@@ -17,6 +17,13 @@ Frame {
     }
     padding: Theme.spaceMd
 
+    Timer {
+        id: volumeDebounce
+        interval: 500
+        repeat: false
+        onTriggered: if (root.backend) root.backend.setVolume(Math.round(volumeSlider.value))
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceSm
@@ -49,7 +56,7 @@ Frame {
                 to: 100
                 stepSize: 1
                 value: root.backend ? root.backend.volume : 0
-                onMoved: if (root.backend) root.backend.setVolume(Math.round(value))
+                onMoved: volumeDebounce.restart()
             }
             Label {
                 text: String(Math.round(volumeSlider.value)) + "%"
