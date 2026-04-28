@@ -10,6 +10,7 @@ Item {
     property var playlists: []
     property string activePlaylistId: ""
     property var favoriteIds: []
+    property var wallpapers: []
 
     property string panelState: "minimized" // minimized | floating | locked
     property bool createDialogOpen: false
@@ -24,6 +25,7 @@ Item {
     signal createPlaylistRequested(string playlistName)
     signal renamePlaylistRequested(string playlistId, string playlistName)
     signal deletePlaylistRequested(string playlistId)
+    signal reorderRequested(var orderedIds)
 
     function generateAvatarColor(name) {
         var colors = [
@@ -373,36 +375,35 @@ Item {
                 Layout.fillHeight: true
                 clip: true
 
-                Column {
+                ListView {
                     width: parent.width
                     spacing: Theme.spaceXs
-                    padding: Theme.spaceSm
+                    leftMargin: Theme.spaceSm
+                    rightMargin: Theme.spaceSm
 
-                    Ctrl.GButton {
-                        width: parent.width - Theme.spaceSm * 2
-                        x: Theme.spaceSm
-                        text: "All Wallpapers"
-                        variant: root.activePlaylistId.length === 0 ? "brand" : "ghost"
-                        onClicked: root.activePlaylistCleared()
-                    }
+                    model: [ { id: "", name: "All Wallpapers", special: true } ].concat(root.playlists)
 
-                    // Separator
-                    Rectangle {
-                        width: parent.width - Theme.spaceSm * 2
-                        x: Theme.spaceSm
-                        height: 1
-                        color: Theme.border
-                    }
+                    delegate: Item {
+                        required property var modelData
+                        width: ListView.width - Theme.spaceSm * 2
+                        height: modelData.special ? 36 : plItem.totalHeight
 
-                    Repeater {
-                        model: root.playlists
-                        delegate: Ctrl.GButton {
-                            required property var modelData
-                            width: parent.width - Theme.spaceSm * 2
-                            x: Theme.spaceSm
-                            text: modelData.name || "Unnamed"
-                            variant: root.activePlaylistId === modelData.id ? "brand" : "ghost"
-                            onClicked: root.activePlaylistChanged(modelData.id)
+                        property alias playlistItem: plItem
+
+                        PlaylistItemDelegate {
+                            id: plItem
+                            anchors.fill: parent
+                            playlistData: modelData
+                            activePlaylistId: root.activePlaylistId
+                            wallpapers: root.wallpapers
+                            generateAvatarColor: root.generateAvatarColor
+                            getInitialFn: root.getInitial
+                            isSpecial: modelData.special === true
+
+                            onActivePlaylistChanged: function(id) {
+                                if (id.length === 0) root.activePlaylistCleared()
+                                else root.activePlaylistChanged(id)
+                            }
                         }
                     }
                 }
@@ -498,36 +499,60 @@ Item {
                 Layout.fillHeight: true
                 clip: true
 
-                Column {
+                ListView {
                     width: parent.width
                     spacing: Theme.spaceXs
-                    padding: Theme.spaceSm
+                    leftMargin: Theme.spaceSm
+                    rightMargin: Theme.spaceSm
 
-                    Ctrl.GButton {
-                        width: parent.width - Theme.spaceSm * 2
-                        x: Theme.spaceSm
-                        text: "All Wallpapers"
-                        variant: root.activePlaylistId.length === 0 ? "brand" : "ghost"
-                        onClicked: root.activePlaylistCleared()
-                    }
+                    model: [ { id: "", name: "All Wallpapers", special: true } ].concat(root.playlists)
 
-                    // Separator
-                    Rectangle {
-                        width: parent.width - Theme.spaceSm * 2
-                        x: Theme.spaceSm
-                        height: 1
-                        color: Theme.border
-                    }
+                    delegate: Item {
+                        required property var modelData
+                        width: ListView.width - Theme.spaceSm * 2
+                        height: modelData.special ? 36 : lkItem.totalHeight
 
-                    Repeater {
-                        model: root.playlists
-                        delegate: Ctrl.GButton {
-                            required property var modelData
-                            width: parent.width - Theme.spaceSm * 2
-                            x: Theme.spaceSm
-                            text: modelData.name || "Unnamed"
-                            variant: root.activePlaylistId === modelData.id ? "brand" : "ghost"
-                            onClicked: root.activePlaylistChanged(modelData.id)
+                        property alias playlistItem: lkItem
+
+                        PlaylistItemDelegate {
+                            id: lkItem
+                            anchors.fill: parent
+                            playlistData: modelData
+                            activePlaylistId: root.activePlaylistId
+                            wallpapers: root.wallpapers
+                            generateAvatarColor: root.generateAvatarColor
+                            getInitialFn: root.getInitial
+                            isSpecial: modelData.special === true
+                            draggable: !modelData.special
+
+                            onActivePlaylistChanged: function(id) {
+                                if (id.length === 0) root.activePlaylistCleared()
+                                else root.activePlaylistChanged(id)
+                            }
+
+                            DropArea {
+                                anchors.fill: parent
+                                onDropped: function(drop) {
+                                    var sourceData = drop.source.playlistData
+                                    if (!sourceData || sourceData.special) return
+                                    var targetData = modelData
+                                    if (!targetData || targetData.special) return
+                                    if (sourceData.id === targetData.id) return
+
+                                    var currentIds = []
+                                    for (var i = 0; i < root.playlists.length; i++) {
+                                        if (root.playlists[i].id !== "favorites") {
+                                            currentIds.push(root.playlists[i].id)
+                                        }
+                                    }
+                                    var sourceIdx = currentIds.indexOf(sourceData.id)
+                                    var targetIdx = currentIds.indexOf(targetData.id)
+                                    if (sourceIdx < 0 || targetIdx < 0) return
+                                    currentIds.splice(sourceIdx, 1)
+                                    currentIds.splice(targetIdx, 0, sourceData.id)
+                                    root.reorderRequested(currentIds)
+                                }
+                            }
                         }
                     }
                 }

@@ -167,6 +167,7 @@ Item {
                     playlists: root.backend ? root.backend.playlists : []
                     activePlaylistId: root.backend ? root.backend.activePlaylistId : ""
                     favoriteIds: root.backend ? root.backend.favoriteIds : []
+                    wallpapers: root.backend ? root.backend.wallpapers : []
 
                     onActivePlaylistChanged: function(playlistId) {
                         if (root.backend) root.backend.setActivePlaylist(playlistId)
@@ -182,6 +183,10 @@ Item {
                     }
                     onDeletePlaylistRequested: function(playlistId) {
                         if (root.backend) root.backend.deletePlaylist(playlistId)
+                    }
+
+                    onReorderRequested: function(orderedIds) {
+                        if (root.backend) root.backend.reorderPlaylists(orderedIds)
                     }
 
                     onPanelStateChanged: {
