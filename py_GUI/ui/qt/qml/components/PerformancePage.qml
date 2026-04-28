@@ -526,7 +526,7 @@ Item {
                         Ctrl.GButton {
                             text: "Clear"
                             variant: "outline"
-                            size: "sm"
+                            sizeVariant: "sm"
                             enabled: screenshotList.count > 0
                             onClicked: {
                                 if (root.backend) root.backend.clearScreenshotHistory()
@@ -622,7 +622,7 @@ Item {
                                         // Action buttons
                                         Ctrl.GIconButton {
                                             name: "folder"
-                                            size: "sm"
+                                            sizeVariant: "sm"
                                             onClicked: {
                                                 if (root.backend) root.backend.openFolder(modelData.outputPath)
                                             }
@@ -630,7 +630,7 @@ Item {
 
                                         Ctrl.GIconButton {
                                             name: "image"
-                                            size: "sm"
+                                            sizeVariant: "sm"
                                             onClicked: {
                                                 if (root.backend) root.backend.openExternalUrl(Qt.resolvedUrl(modelData.outputPath))
                                             }
