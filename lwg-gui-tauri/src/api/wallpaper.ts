@@ -115,15 +115,22 @@ const BASE_MOCK_TEMPLATES: Wallpaper[] = [
   },
 ];
 
-// Generate expanded mock data
-const EXPANDED_MOCK_WALLPAPERS = Array.from({ length: 1500 }).map((_, i) => {
-  const template = BASE_MOCK_TEMPLATES[i % BASE_MOCK_TEMPLATES.length];
-  return {
-    ...template,
-    id: `mock_wp_${i}`,
-    title: `${template.title} #${i + 1}`,
-  };
-});
+// Generate mock wallpapers lazily — avoid pre-allocating 1500 objects.
+// Each call returns the same small template set with unique IDs,
+// so the JS heap isn't burdened with 1500 wallpaper objects on init.
+function getMockWallpapers(): Wallpaper[] {
+  const count = 1500;
+  const result: Wallpaper[] = new Array(count);
+  for (let i = 0; i < count; i++) {
+    const template = BASE_MOCK_TEMPLATES[i % BASE_MOCK_TEMPLATES.length];
+    result[i] = {
+      ...template,
+      id: `mock_wp_${i}`,
+      title: `${template.title} #${i + 1}`,
+    };
+  }
+  return result;
+}
 
 // ================= API Functions =================
 
@@ -144,7 +151,7 @@ export async function scanWallpapers(): Promise<Wallpaper[]> {
   } catch (error) {
     console.warn("⚠️ 环境检测：无法连接 Rust 后端，已切换至 Mock 数据模式。");
     await new Promise((resolve) => setTimeout(resolve, 600));
-    return EXPANDED_MOCK_WALLPAPERS;
+    return getMockWallpapers();
   }
 }
 

@@ -78,8 +78,10 @@ export const WallpaperCard = memo(function WallpaperCard({
 
   return (
     // 1. 最外层容器：负责响应点击、布局位置和传入的 className
+    // content-visibility:auto skips rendering for off-screen cards, reducing WebKit memory
     <div
       onClick={handleClick}
+      style={{ contentVisibility: "auto" } as React.CSSProperties}
       className={cn(
         "group relative cursor-pointer select-none",
         "aspect-square",

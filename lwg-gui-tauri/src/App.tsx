@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { listen } from "@tauri-apps/api/event";
@@ -18,11 +18,11 @@ import { AppNavbar } from "./components/layout/AppNavbar";
 import { CommandPalette } from "./components/layout/CommandPalette";
 import { WelcomeDialog } from "./components/dialogs/WelcomeDialog";
 
-// 页面组件
+// 页面组件 — Performance lazy-loaded (recharts is heavy)
 import { Library } from "./pages/Library";
 import { Settings } from "./pages/Settings";
-import { Performance } from "./pages/Performance";
 import { CompactMode } from "./pages/Compact";
+const Performance = lazy(() => import("./pages/Performance").then(m => ({ default: m.Performance })));
 
 import { useAppStore } from "./store/appStore";
 
@@ -48,6 +48,25 @@ export function App() {
 
   const welcomeDialogOpen = useAppStore((s) => s.welcomeDialogOpen);
   const welcomeDialogRequired = useAppStore((s) => s.welcomeDialogRequired);
+
+  // Periodic memory cleanup — combats WebKit memory leaks
+  useEffect(() => {
+    const cleanup = () => {
+      // Trigger JS garbage collection if available (needs --expose-gc)
+      const g = (window as unknown as { gc?: () => void }).gc;
+      if (typeof g === "function") g();
+
+      // Call Rust-side cache cleanup
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke("trigger_memory_cleanup").catch(() => {});
+      });
+    };
+
+    // Periodic cleanup every 3 minutes
+    const interval = setInterval(cleanup, 180_000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -269,7 +288,9 @@ export function App() {
                 transition={pageTransition}
                 className="h-full"
               >
-                <Performance />
+                <Suspense fallback={<div className="flex items-center justify-center h-full text-muted-foreground">Loading…</div>}>
+                  <Performance />
+                </Suspense>
               </motion.div>
             )}
           </AnimatePresence>

@@ -36,9 +36,9 @@ interface RawProcessStats {
   thread_names?: string[];
 }
 
-const HISTORY_SIZE = 60;
+const HISTORY_SIZE = 30;
 const UPDATE_INTERVAL_MS = 2000;
-const GC_INTERVAL_MS = 30000;
+const GC_INTERVAL_MS = 60000;
 
 function mapEventToStats(raw: RawPerformanceEvent): SystemStats {
   const createDefaultProcess = (name: string): ProcessStats => ({

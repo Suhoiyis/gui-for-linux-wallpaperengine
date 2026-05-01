@@ -5,6 +5,7 @@ use tauri::{Emitter, Manager, State};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
+use std::path::Path;
 use tokio::sync::Mutex;
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_window_state::StateFlags;
@@ -487,12 +488,17 @@ async fn get_wallpapers(_state: State<'_, TauriState>) -> Result<Vec<Wallpaper>,
         let wallpapers = manager.scan()
             .map_err(|e| format!("扫描失败: {:?}", e))?;
 
-        // 转换为前端需要的格式
+        // 转换为前端需要的格式，同时生成缩略图
         let result: Vec<Wallpaper> = wallpapers.values().map(|w| {
+            let preview_path = w.preview.clone();
+            let thumb_path = ensure_thumbnail(&preview_path, 320);
+
             Wallpaper {
                 id: w.id.clone(),
                 title: w.title.clone(),
-                preview: w.preview.to_string_lossy().to_string(),
+                // Use thumbnail if available, otherwise original
+                preview: thumb_path.unwrap_or_else(|| preview_path.clone())
+                    .to_string_lossy().to_string(),
                 wtype: w.wp_type.clone(),
                 path: format!("{}/{}", workshop_path, w.id),
                 description: if w.description.is_empty() { None } else { Some(w.description.clone()) },
@@ -1534,14 +1540,72 @@ async fn open_image(path: String) -> Result<(), String> {
     }
 }
 
-/// Preview image cache to avoid repeated file reads + base64 encoding
-fn preview_image_cache() -> &'static std::sync::Mutex<HashMap<String, String>> {
-    use std::sync::OnceLock;
-    static CACHE: OnceLock<std::sync::Mutex<HashMap<String, String>>> = OnceLock::new();
-    CACHE.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+/// Generate a 320px (max dimension) thumbnail next to the original preview.
+/// Returns Some(path) to the thumbnail on success, None if generation failed.
+/// Skips if thumbnail already exists or source is unreadable.
+fn ensure_thumbnail(preview_path: &Path, max_size: u32) -> Option<std::path::PathBuf> {
+    use image::GenericImageView;
+
+    let thumb_path = preview_path.with_file_name("preview_thumb.jpg");
+    if thumb_path.exists() {
+        return Some(thumb_path);
+    }
+
+    let data = std::fs::read(preview_path).ok()?;
+    let img = image::load_from_memory(&data).ok()?;
+    let (w, h) = img.dimensions();
+    let longest = w.max(h);
+    if longest <= max_size {
+        // Already small enough — just symlink / copy
+        let _ = std::fs::copy(preview_path, &thumb_path);
+        return Some(thumb_path);
+    }
+
+    let ratio = max_size as f64 / longest as f64;
+    let new_w = (w as f64 * ratio) as u32;
+    let new_h = (h as f64 * ratio) as u32;
+    let resized = img.resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3);
+    let mut buf = std::io::Cursor::new(Vec::new());
+    resized.write_to(&mut buf, image::ImageFormat::Jpeg).ok()?;
+    std::fs::write(&thumb_path, buf.into_inner()).ok()?;
+    Some(thumb_path)
 }
 
-const PREVIEW_CACHE_MAX_SIZE: usize = 100;
+/// Clear all in-memory caches (Rust side).
+/// Frontend should also listen for the `memory-cleanup` event to clear JS caches.
+#[tauri::command]
+async fn trigger_memory_cleanup(app: tauri::AppHandle) -> Result<(), String> {
+    // Clear Rust preview cache
+    if let Ok(mut cache) = preview_cache().lock() {
+        cache.map.clear();
+        cache.total_bytes = 0;
+    }
+    // Notify frontend to clear its caches
+    let _ = app.emit("memory-cleanup", ());
+    Ok(())
+}
+
+/// Preview image cache with LRU eviction and memory-bound limit.
+struct PreviewCache {
+    map: indexmap::IndexMap<String, String>,
+    total_bytes: usize,
+}
+
+fn preview_cache() -> &'static std::sync::Mutex<PreviewCache> {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<std::sync::Mutex<PreviewCache>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        std::sync::Mutex::new(PreviewCache {
+            map: indexmap::IndexMap::new(),
+            total_bytes: 0,
+        })
+    })
+}
+
+/// Max cached entries. Thumbnails are typically 100-300 KB as base64.
+const PREVIEW_CACHE_MAX_ENTRIES: usize = 32;
+/// Hard cap on total stored data (≈ 8 MB of base64-encoded previews).
+const PREVIEW_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
 
 #[tauri::command]
 async fn read_preview_image(path: String) -> Result<String, String> {
@@ -1552,9 +1616,9 @@ async fn read_preview_image(path: String) -> Result<String, String> {
 
     let cache_key = canonical.to_string_lossy().to_string();
 
-    // Check cache first
-    if let Ok(cache) = preview_image_cache().lock() {
-        if let Some(cached) = cache.get(&cache_key) {
+    // Check cache
+    if let Ok(cache) = preview_cache().lock() {
+        if let Some(cached) = cache.map.get(&cache_key) {
             return Ok(cached.clone());
         }
     }
@@ -1563,8 +1627,8 @@ async fn read_preview_image(path: String) -> Result<String, String> {
         .file_name()
         .and_then(|f| f.to_str())
         .unwrap_or("");
-    
-    if !matches!(filename, "preview.jpg" | "preview.jpeg" | "preview.png" | "preview.gif" | "preview.webp") {
+
+    if !matches!(filename, "preview.jpg" | "preview.jpeg" | "preview.png" | "preview.gif" | "preview.webp" | "preview_thumb.jpg") {
         return Err("Only preview images are allowed".to_string());
     }
 
@@ -1587,12 +1651,22 @@ async fn read_preview_image(path: String) -> Result<String, String> {
         general_purpose::STANDARD.encode(&data)
     );
 
-    // Store in cache
-    if let Ok(mut cache) = preview_image_cache().lock() {
-        if cache.len() >= PREVIEW_CACHE_MAX_SIZE {
-            cache.clear(); // Simple eviction: clear all when full
+    // Store with LRU eviction
+    if let Ok(mut cache) = preview_cache().lock() {
+        let entry_bytes = cache_key.len() + result.len();
+
+        while cache.map.len() >= PREVIEW_CACHE_MAX_ENTRIES
+            || cache.total_bytes + entry_bytes > PREVIEW_CACHE_MAX_BYTES
+        {
+            if let Some((old_key, old_val)) = cache.map.shift_remove_index(0) {
+                cache.total_bytes = cache.total_bytes.saturating_sub(old_key.len() + old_val.len());
+            } else {
+                break;
+            }
         }
-        cache.insert(cache_key, result.clone());
+
+        cache.total_bytes += entry_bytes;
+        cache.map.insert(cache_key, result.clone());
     }
 
     Ok(result)
@@ -2737,6 +2811,8 @@ pub fn run() {
             set_cycle_screen,
             // Memory profiling commands
             get_webkit_process_memory,
+            // Memory management
+            trigger_memory_cleanup,
         ])
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {

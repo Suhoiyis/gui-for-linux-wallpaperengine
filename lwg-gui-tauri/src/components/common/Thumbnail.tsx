@@ -1,8 +1,17 @@
-import React, { memo, useMemo, useRef, useEffect, useState } from "react";
+import React, { memo, useMemo, useRef, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
-import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
+
+function toAssetUrl(filePath: string): string {
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+    return filePath;
+  }
+  if (filePath.startsWith("/")) {
+    return `http://asset.localhost${filePath}`;
+  }
+  return "";
+}
 
 interface ThumbnailProps {
   wallpaperId: string;
@@ -18,36 +27,9 @@ export const Thumbnail = memo(
       return wallpapers.find((w) => w.id === wallpaperId);
     }, [wallpapers, wallpaperId]);
 
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-    useEffect(() => {
-      if (!wallpaper?.preview) {
-        setPreviewUrl(null);
-        return;
-      }
-
-      // HTTP/HTTPS 链接直接使用
-      if (
-        wallpaper.preview.startsWith("http://") ||
-        wallpaper.preview.startsWith("https://")
-      ) {
-        setPreviewUrl(wallpaper.preview);
-        return;
-      }
-
-      // 本地路径：通过 Rust 命令读取并返回 base64
-      let cancelled = false;
-      invoke<string>("read_preview_image", { path: wallpaper.preview })
-        .then((dataUrl) => {
-          if (!cancelled) setPreviewUrl(dataUrl);
-        })
-        .catch(() => {
-          if (!cancelled) setPreviewUrl(null);
-        });
-
-      return () => {
-        cancelled = true;
-      };
+    const previewUrl = useMemo(() => {
+      if (!wallpaper?.preview) return null;
+      return toAssetUrl(wallpaper.preview) || null;
     }, [wallpaper?.preview]);
 
     const isGif = useMemo(() => {
