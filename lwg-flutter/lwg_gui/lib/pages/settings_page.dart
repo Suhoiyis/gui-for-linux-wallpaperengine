@@ -92,7 +92,7 @@ class SettingsPage extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           _buildSidebarItem(Icons.speed_outlined, 'FPS: ${state.settings?.fps ?? 30}'),
-          _buildSidebarItem(Icons.volume_up_outlined, '音量: ${(state.settings?.volume ?? 0.5 * 100).round()}%'),
+          _buildSidebarItem(Icons.volume_up_outlined, '音量: ${((state.settings?.volume ?? 0.5) * 100).round()}%'),
         ],
       ),
     );
@@ -118,7 +118,7 @@ class SettingsPage extends ConsumerWidget {
   Widget _buildPlaybackSettings(AppConfig settings, AppNotifier notifier) {
     return Column(
       children: [
-        _buildSliderSetting('FPS', settings.fps, 1, 144, (v) => notifier.updateSettings(settings.copyWith(fps: v.round()))),
+        _buildSliderSetting('FPS', settings.fps.toDouble(), 1, 144, (v) => notifier.updateSettings(settings.copyWith(fps: v.round()))),
         _buildDropdownSetting('缩放模式', settings.scaling, ['default', 'fit', 'fill', 'stretch'], (v) => notifier.updateSettings(settings.copyWith(scaling: v))),
         _buildDropdownSetting('裁剪模式', settings.clamping, ['stretch', 'clamp', 'crop'], (v) => notifier.updateSettings(settings.copyWith(clamping: v))),
         _buildSwitchSetting('暂停全屏应用时停止播放', settings.noFullscreenPause, (v) => notifier.updateSettings(settings.copyWith(noFullscreenPause: v))),
@@ -138,7 +138,7 @@ class SettingsPage extends ConsumerWidget {
         _buildSwitchSetting('禁用音频处理', settings.noAudioProcessing, (v) => notifier.updateSettings(settings.copyWith(noAudioProcessing: v))),
         _buildSwitchSetting('壁纸轮播', settings.cycleEnabled, (v) => notifier.updateSettings(settings.copyWith(cycleEnabled: v))),
         if (settings.cycleEnabled)
-          _buildSliderSetting('轮播间隔(秒)', settings.cycleInterval, 5, 3600, (v) => notifier.updateSettings(settings.copyWith(cycleInterval: v.round()))),
+          _buildSliderSetting('轮播间隔(秒)', settings.cycleInterval.toDouble(), 5, 3600, (v) => notifier.updateSettings(settings.copyWith(cycleInterval: v.round()))),
         _buildDropdownSetting('轮播顺序', settings.cycleOrder, ['random', 'sequential'], (v) => notifier.updateSettings(settings.copyWith(cycleOrder: v))),
       ],
     );
@@ -152,7 +152,7 @@ class SettingsPage extends ConsumerWidget {
         _buildSwitchSetting('自动恢复壁纸', settings.autoRestore, (v) => notifier.updateSettings(settings.copyWith(autoRestore: v))),
         _buildSwitchSetting('紧凑模式', settings.compactMode, (v) => notifier.updateSettings(settings.copyWith(compactMode: v))),
         _buildSwitchSetting('使用Xvfb截图', settings.preferXvfb, (v) => notifier.updateSettings(settings.copyWith(preferXvfb: v))),
-        _buildSliderSetting('截图延迟(秒)', settings.screenshotDelay, 1, 30, (v) => notifier.updateSettings(settings.copyWith(screenshotDelay: v.round()))),
+        _buildSliderSetting('截图延迟(秒)', settings.screenshotDelay.toDouble(), 1, 30, (v) => notifier.updateSettings(settings.copyWith(screenshotDelay: v.round()))),
       ],
     );
   }

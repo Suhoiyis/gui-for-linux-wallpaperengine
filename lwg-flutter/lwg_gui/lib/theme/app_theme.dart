@@ -57,7 +57,7 @@ class AppTheme {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.all(primary.withValues(alpha: 0.5)),
+            borderSide: BorderSide(color: primary.withValues(alpha: 0.5)),
           ),
           hintStyle: const TextStyle(color: textSecondary),
           contentPadding: const EdgeInsets.symmetric(

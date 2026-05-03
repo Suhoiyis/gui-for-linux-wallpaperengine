@@ -53,7 +53,7 @@ class PerformancePage extends ConsumerWidget {
           const SizedBox(height: 24),
           Row(
             children: [
-              _buildOverviewCard('CPU', '${statsAsync.value?.cpuUsage.toStringAsFixed(1) ?? '--'}%', Icons.processor, AppTheme.primary),
+              _buildOverviewCard('CPU', '${statsAsync.value?.cpuUsage.toStringAsFixed(1) ?? '--'}%', Icons.memory_outlined, AppTheme.primary),
               const SizedBox(width: 16),
               _buildOverviewCard('内存', '${statsAsync.value?.memoryUsage.toStringAsFixed(1) ?? '--'}%', Icons.memory, AppTheme.secondary),
               const SizedBox(width: 16),

@@ -50,10 +50,12 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
+  final _keyboardFocusNode = FocusNode();
+
   @override
-  void initState() {
-    super.initState();
-    RawKeyboardListener.instance;
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,13 +71,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
 
     return KeyboardListener(
-      focusNode: FocusNode(),
+      focusNode: _keyboardFocusNode,
       onKeyEvent: (event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.keyK &&
-            (event.physicalKey == LogicalKeyboardKey.controlLeft ||
-             event.physicalKey == LogicalKeyboardKey.controlRight)) {
-          showCommandPalette(context);
+        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyK) {
+          final isCtrl = HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.controlLeft) ||
+              HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.controlRight);
+          if (isCtrl) {
+            showCommandPalette(context);
+          }
         }
       },
       child: Scaffold(

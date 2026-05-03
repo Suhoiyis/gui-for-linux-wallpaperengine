@@ -38,23 +38,25 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
     return Material(
       color: Colors.transparent,
       child: Center(
-        child: Container(
-          width: 600,
-          maxHeight: 500,
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSearchBar(),
-              const Divider(color: AppTheme.border, height: 1),
-              Flexible(child: _buildCommandList(commands)),
-            ],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 500),
+          child: Container(
+            width: 600,
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSearchBar(),
+                const Divider(color: AppTheme.border, height: 1),
+                Flexible(child: _buildCommandList(commands)),
+              ],
+            ),
           ),
         ),
       ),

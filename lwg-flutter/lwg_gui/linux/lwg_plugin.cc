@@ -35,47 +35,49 @@ static FlMethodResponse* handle_get_wallpapers(
 
   for (int i = 0; i < 6; i++) {
     g_autoptr(FlValue) item = fl_value_new_map();
-    fl_value_set_string(item, "id", std::to_string(1000 + i).c_str());
-    fl_value_set_string(item, "title", titles[i]);
-    fl_value_set_string(item, "preview", "");
-    fl_value_set_string(item, "path",
-                         ("/tmp/wallpaper_" + std::to_string(i + 1)).c_str());
-    fl_value_set_string(item, "type", types[i]);
-    fl_value_set_string(item, "size", sizes[i]);
-    fl_value_list_append(result, item);
+    fl_value_set_string_take(item, "id",
+        fl_value_new_string(std::to_string(1000 + i).c_str()));
+    fl_value_set_string_take(item, "title", fl_value_new_string(titles[i]));
+    fl_value_set_string_take(item, "preview", fl_value_new_string(""));
+    fl_value_set_string_take(item, "path",
+        fl_value_new_string(
+            ("/tmp/wallpaper_" + std::to_string(i + 1)).c_str()));
+    fl_value_set_string_take(item, "type", fl_value_new_string(types[i]));
+    fl_value_set_string_take(item, "size", fl_value_new_string(sizes[i]));
+    fl_value_append_take(result, fl_value_ref(item));
   }
 
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(result));
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
 static FlMethodResponse* handle_apply_wallpaper(
     FlMethodCall* method_call) {
   FlValue* args = fl_method_call_get_args(method_call);
   if (args == nullptr || fl_value_get_type(args) != FL_VALUE_TYPE_MAP) {
-    return FL_METHOD_RESPONSE(fl_method_response_new_error(
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
         "INVALID_ARGS", "Arguments must be a map", nullptr));
   }
 
-  FlValue* id_value = fl_value_lookup_map_string(args, "id");
+  FlValue* id_value = fl_value_lookup_string(args, "id");
   if (id_value == nullptr) {
-    return FL_METHOD_RESPONSE(fl_method_response_new_error(
+    return FL_METHOD_RESPONSE(fl_method_error_response_new(
         "MISSING_ID", "Wallpaper ID is required", nullptr));
   }
 
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(
-      fl_value_new_bool(true)));
+  return FL_METHOD_RESPONSE(
+      fl_method_success_response_new(fl_value_new_bool(true)));
 }
 
 static FlMethodResponse* handle_stop_wallpaper(
     FlMethodCall* method_call) {
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(
-      fl_value_new_bool(true)));
+  return FL_METHOD_RESPONSE(
+      fl_method_success_response_new(fl_value_new_bool(true)));
 }
 
 static FlMethodResponse* handle_delete_wallpaper(
     FlMethodCall* method_call) {
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(
-      fl_value_new_bool(true)));
+  return FL_METHOD_RESPONSE(
+      fl_method_success_response_new(fl_value_new_bool(true)));
 }
 
 static FlMethodResponse* handle_get_settings(
@@ -87,60 +89,51 @@ static FlMethodResponse* handle_get_settings(
     std::stringstream buffer;
     buffer << config_file.rdbuf();
     config_file.close();
-
-    g_autoptr(JsonParser) parser = json_parser_new();
-    if (json_parser_load_from_data(parser, buffer.str().c_str(),
-                                    buffer.str().length(), nullptr)) {
-      JsonNode* root = json_parser_get_root(parser);
-      if (JSON_NODE_HOLDS_OBJECT(root)) {
-        JsonObject* obj = json_node_get_object(root);
-        fl_value_set_string(result, "fps",
-            std::to_string(json_object_get_int_member(obj, "fps")).c_str());
-        fl_value_set_string(result, "scaling",
-            json_object_get_string_member_or_null(obj, "scaling") ?: "default");
-        fl_value_set_string(result, "clamping",
-            json_object_get_string_member_or_null(obj, "clamping") ?: "stretch");
-        fl_value_set_string(result, "volume",
-            std::to_string(json_object_get_double_member(obj, "volume")).c_str());
-        fl_value_set_string(result, "muteAudio",
-            json_object_get_boolean_member(obj, "muteAudio") ? "true" : "false");
-      }
-    }
+    // Simplified: return raw JSON string for Dart to parse
+    fl_value_set_string_take(result, "rawJson",
+        fl_value_new_string(buffer.str().c_str()));
   } else {
-    fl_value_set_string(result, "fps", "30");
-    fl_value_set_string(result, "scaling", "default");
-    fl_value_set_string(result, "clamping", "stretch");
-    fl_value_set_string(result, "volume", "0.5");
-    fl_value_set_string(result, "muteAudio", "false");
+    // Defaults as individual fields
+    fl_value_set_string_take(result, "fps", fl_value_new_int(30));
+    fl_value_set_string_take(result, "scaling",
+        fl_value_new_string("default"));
+    fl_value_set_string_take(result, "clamping",
+        fl_value_new_string("stretch"));
+    fl_value_set_string_take(result, "volume",
+        fl_value_new_float(0.5));
+    fl_value_set_string_take(result, "muteAudio",
+        fl_value_new_bool(false));
   }
 
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(result));
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
 static FlMethodResponse* handle_save_settings(
     FlMethodCall* method_call) {
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(
-      fl_value_new_bool(true)));
+  return FL_METHOD_RESPONSE(
+      fl_method_success_response_new(fl_value_new_bool(true)));
 }
 
 static FlMethodResponse* handle_get_connected_monitors(
     FlMethodCall* method_call) {
   g_autoptr(FlValue) result = fl_value_new_list();
-  fl_value_list_append_string(result, "HDMI-1");
-  fl_value_list_append_string(result, "DP-1");
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(result));
+  const gchar* monitors[] = {"HDMI-1", "DP-1"};
+  for (int i = 0; i < 2; i++) {
+    fl_value_append_take(result, fl_value_new_string(monitors[i]));
+  }
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
 static FlMethodResponse* handle_get_playlists(
     FlMethodCall* method_call) {
   g_autoptr(FlValue) result = fl_value_new_list();
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(result));
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
 static FlMethodResponse* handle_get_app_version(
     FlMethodCall* method_call) {
-  g_autoptr(FlValue) result = fl_value_new_string("0.1.0");
-  return FL_METHOD_RESPONSE(fl_method_response_new_success(result));
+  return FL_METHOD_RESPONSE(
+      fl_method_success_response_new(fl_value_new_string("0.1.0")));
 }
 
 static void method_call_handler(FlMethodChannel* channel,
@@ -169,8 +162,7 @@ static void method_call_handler(FlMethodChannel* channel,
   } else if (strcmp(method, kGetAppVersion) == 0) {
     response = handle_get_app_version(method_call);
   } else {
-    response = FL_METHOD_RESPONSE(fl_method_response_new_error(
-        "NOT_FOUND", "Method not found", nullptr));
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
   fl_method_call_respond(method_call, response, nullptr);

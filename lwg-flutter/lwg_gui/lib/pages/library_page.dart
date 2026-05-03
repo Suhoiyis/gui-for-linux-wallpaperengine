@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lwg_gui/theme/app_theme.dart';
 import 'package:lwg_gui/providers/app_provider.dart';
+import 'package:lwg_gui/models/wallpaper.dart';
 import 'package:lwg_gui/components/wallpaper_card.dart';
 
 class LibraryPage extends ConsumerWidget {
