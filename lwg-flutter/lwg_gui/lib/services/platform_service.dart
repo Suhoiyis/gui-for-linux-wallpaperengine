@@ -7,6 +7,8 @@ class PlatformService {
   Future<dynamic> invoke(String method, [Map<String, dynamic>? args]) async {
     try {
       return await _channel.invokeMethod(method, args);
+    } on MissingPluginException {
+      return null;
     } on PlatformException catch (e) {
       throw PlatformException(
         code: e.code,

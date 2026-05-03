@@ -12,6 +12,7 @@ class WallpaperService {
     final raw = await _platform.invoke('get_wallpapers');
     if (raw == null) return _mockWallpapers();
     final list = raw as List;
+    if (list.isEmpty) return _mockWallpapers();
     return list.map((item) {
       final map = item as Map;
       return Wallpaper(
