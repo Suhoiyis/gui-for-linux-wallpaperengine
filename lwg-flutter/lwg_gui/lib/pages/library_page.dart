@@ -29,29 +29,29 @@ class LibraryPage extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context, AppState state, AppNotifier notifier) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.search, color: Colors.white.withValues(alpha: 0.5)),
-                  const SizedBox(width: 12),
+                  Icon(Icons.search, color: Colors.white.withValues(alpha: 0.5), size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: '搜索壁纸...',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onChanged: (value) => notifier.setSearchQuery(value),
                     ),
@@ -60,28 +60,20 @@ class LibraryPage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          _buildActionButton(Icons.filter_list, '筛选'),
-          const SizedBox(width: 12),
-          PopupMenuButton<SortBy>(
-            icon: _buildActionButton(Icons.sort, '排序'),
-            onSelected: (sort) => notifier.setSortBy(sort),
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: SortBy.name, child: Text('按名称')),
-              const PopupMenuItem(value: SortBy.id, child: Text('按ID')),
-              const PopupMenuItem(value: SortBy.size, child: Text('按大小')),
-            ],
-          ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           if (state.runtimeState.values.any((w) => w.isPlaying))
-            ElevatedButton.icon(
-              onPressed: () => notifier.stopWallpaper(),
-              icon: const Icon(Icons.stop, size: 16),
-              label: const Text('停止'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.error.withValues(alpha: 0.2),
-                foregroundColor: AppTheme.error,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: ElevatedButton.icon(
+                onPressed: () => notifier.stopWallpaper(),
+                icon: const Icon(Icons.stop, size: 14),
+                label: const Text('停止', style: TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error.withValues(alpha: 0.2),
+                  foregroundColor: AppTheme.error,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
               ),
             ),
         ],

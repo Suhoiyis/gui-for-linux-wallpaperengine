@@ -13,10 +13,12 @@ class SettingsPage extends ConsumerWidget {
     final notifier = ref.read(appProvider.notifier);
     final settings = state.settings ?? const AppConfig();
 
-    return Row(
-      children: [
-        _buildSettingsSidebar(state),
-        Expanded(
+    return Expanded(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSettingsSidebar(state),
+          Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(32),
             child: Column(
@@ -58,8 +60,9 @@ class SettingsPage extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSettingsSidebar(AppState state) {
     final isPlaying = state.runtimeState.values.any((w) => w.isPlaying);

@@ -85,6 +85,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         body: state.isCompactMode
             ? const CompactPage()
             : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Sidebar(),
                   Expanded(

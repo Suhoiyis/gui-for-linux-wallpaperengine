@@ -69,7 +69,7 @@ class _WallpaperCardState extends ConsumerState<WallpaperCard> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -82,15 +82,15 @@ class _WallpaperCardState extends ConsumerState<WallpaperCard> {
                               child: GestureDetector(
                                 onTap: () => notifier.toggleFavorite(widget.wallpaper.id),
                                 child: Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Icon(
                                     isFavorite ? Icons.favorite : Icons.favorite_border,
                                     color: isFavorite ? AppTheme.error : Colors.white,
-                                    size: 18,
+                                    size: 16,
                                   ),
                                 ),
                               ),
@@ -100,56 +100,54 @@ class _WallpaperCardState extends ConsumerState<WallpaperCard> {
                         const Spacer(),
                         Text(
                           widget.wallpaper.title,
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.wallpaper.size,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
-                        ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Row(
                           children: [
+                            Flexible(child: Text(
+                              widget.wallpaper.size,
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                              overflow: TextOverflow.ellipsis,
+                            )),
+                            const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
                                 color: AppTheme.primary.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
                                 _typeLabel(),
-                                style: const TextStyle(color: Colors.white, fontSize: 10),
+                                style: const TextStyle(color: Colors.white, fontSize: 9),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          height: _isHovered ? 36 : 0,
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 200),
-                            opacity: _isHovered ? 1 : 0,
+                        if (_isHovered)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
                             child: GestureDetector(
                               onTap: () => notifier.applyWallpaper(widget.wallpaper.id, null),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   gradient: AppTheme.primaryGradient,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.play_arrow, color: Colors.white, size: 16),
+                                    Icon(Icons.play_arrow, color: Colors.white, size: 14),
                                     SizedBox(width: 4),
-                                    Text('应用', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                    Text('应用', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),

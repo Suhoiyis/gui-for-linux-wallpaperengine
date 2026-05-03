@@ -19,19 +19,20 @@ class Sidebar extends ConsumerWidget {
 
     return Container(
       width: 240,
+      constraints: const BoxConstraints(minHeight: 600),
       decoration: BoxDecoration(
-        gradient: AppTheme.surfaceGradient,
-        borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(4, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
+          gradient: AppTheme.surfaceGradient,
+          borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(4, 0),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
           const SizedBox(height: 40),
           Container(
             padding: const EdgeInsets.all(16),
@@ -58,6 +59,7 @@ class Sidebar extends ConsumerWidget {
           const Spacer(),
           _buildStatusIndicator(state),
         ],
+      ),
       ),
     );
   }
