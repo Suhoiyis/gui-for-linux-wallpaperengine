@@ -9,7 +9,6 @@
 #include <file_selector_linux/file_selector_plugin.h>
 #include <screen_retriever/screen_retriever_plugin.h>
 #include <window_manager/window_manager_plugin.h>
-#include "../lwg_plugin.h"
 
 void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) file_selector_linux_registrar =
@@ -21,7 +20,4 @@ void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) window_manager_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "WindowManagerPlugin");
   window_manager_plugin_register_with_registrar(window_manager_registrar);
-  g_autoptr(FlPluginRegistrar) lwg_plugin_registrar =
-      fl_plugin_registry_get_registrar_for_plugin(registry, "LwgPlugin");
-  lwg_plugin_register_with_registrar(lwg_plugin_registrar);
 }
