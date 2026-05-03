@@ -102,6 +102,7 @@ class AppState {
       }
     }
 
+    filtered = [...filtered];
     filtered.sort((a, b) {
       return switch (sortBy) {
         SortBy.name => a.title.compareTo(b.title),
