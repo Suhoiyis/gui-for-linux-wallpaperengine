@@ -149,21 +149,7 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
-            Layout.fillWidth: true
-            height: 40
-            color: themeBridge.cStatusBarBg
-
-            Label {
-                anchors.centerIn: parent
-                text: (window.backendRef && window.backendRef.statusMessage.length > 0)
-                    ? window.backendRef.statusMessage
-                    : (window.backendRef && window.backendRef.selectedId
-                       ? "Selected: " + window.backendRef.selectedId
-                       : "Click a wallpaper to select")
-                color: themeBridge.cFgMuted
-            }
-        }
+        // Status bar removed - using toast messages instead
     }
 
     Comp.ToastManager {

@@ -22,6 +22,7 @@ Item {
         visible: root.totalPages > 1
 
         Ctrl.GIconButton {
+            themeBridge: root.themeBridge
             iconName: "chevronRight"
             size: Theme.iconButtonSm
             enabled: root.currentPage > 1
@@ -49,6 +50,7 @@ Item {
         }
 
         Ctrl.GIconButton {
+            themeBridge: root.themeBridge
             iconName: "chevronDown"
             size: Theme.iconButtonSm
             enabled: root.currentPage < root.totalPages

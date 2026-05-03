@@ -15,8 +15,7 @@ Rectangle {
     signal selectRequested(string wallpaperId)
 
     color: tb ? tb.cSurface : Theme.surface
-    border.width: 1
-    border.color: tb ? tb.cBorder : Theme.border
+    border.width: 0
 
     RowLayout {
         anchors.fill: parent

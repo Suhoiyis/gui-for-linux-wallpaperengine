@@ -12,8 +12,7 @@ Rectangle {
     property var tb: themeBridge || null
 
     color: tb ? tb.cSurface : Theme.surface
-    border.width: 1
-    border.color: tb ? tb.cBorder : Theme.border
+    border.width: 0
     radius: Theme.radiusXl
     implicitHeight: Theme.navHeight
 
@@ -24,6 +23,7 @@ Rectangle {
         spacing: Theme.spaceSm
 
         Ctrl.GIconButton {
+            themeBridge: root.themeBridge
             iconName: "maximize2"
             size: Theme.iconButtonMd
             tooltip: "Switch to Normal Mode"

@@ -20,8 +20,7 @@ Rectangle {
     property var tb: themeBridge || null
 
     color: tb ? tb.cRowSelected : Theme.rowSelected
-    border.width: 1
-    border.color: tb ? tb.cBorder : Theme.border
+    border.width: 0
     radius: Theme.radiusLg
     implicitHeight: 48
 
@@ -40,16 +39,19 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
         Ctrl.GButton {
+            themeBridge: root.themeBridge
             text: "Select All"
             onClicked: root.selectAllRequested()
         }
 
         Ctrl.GButton {
+            themeBridge: root.themeBridge
             text: "Deselect"
             onClicked: root.deselectRequested()
         }
 
         Ctrl.GComboBox {
+            themeBridge: root.themeBridge
             id: playlistCombo
             model: root.playlists
             textRole: "name"
@@ -58,6 +60,7 @@ Rectangle {
         }
 
         Ctrl.GButton {
+            themeBridge: root.themeBridge
             text: "Add to Playlist"
             enabled: root.selectedCount > 0 && playlistCombo.count > 0
             onClicked: {
@@ -68,6 +71,7 @@ Rectangle {
         }
 
         Ctrl.GButton {
+            themeBridge: root.themeBridge
             text: "Create Playlist"
             variant: "brand"
             enabled: root.selectedCount > 0
@@ -75,6 +79,7 @@ Rectangle {
         }
 
         Ctrl.GButton {
+            themeBridge: root.themeBridge
             text: "Cancel"
             onClicked: root.cancelRequested()
         }

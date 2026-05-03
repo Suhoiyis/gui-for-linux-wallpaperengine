@@ -53,8 +53,7 @@ Item {
         anchors.fill: parent
         color: tb ? tb.cBg : Theme.bg
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
 
         RowLayout {
             anchors.fill: parent
@@ -179,8 +178,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 120
                         color: tb ? Theme.withAlpha(tb.cBg, 0.5) : Theme.withAlpha(Theme.bg, 0.5)
-                        border.width: 1
-                        border.color: tb ? tb.cBorder : Theme.border
+                        border.width: 0
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -188,6 +186,7 @@ Item {
                             spacing: Theme.spaceSm
 
                             Ctrl.GButton {
+                                themeBridge: root.themeBridge
                                 Layout.fillWidth: true
                                 text: "Save Changes"
                                 iconName: "check"
@@ -201,6 +200,7 @@ Item {
                                 spacing: Theme.spaceSm
 
                                 Ctrl.GButton {
+                                    themeBridge: root.themeBridge
                                     Layout.fillWidth: true
                                     text: "Reload"
                                     iconName: "edit3"
@@ -211,6 +211,7 @@ Item {
                                 }
 
                                 Ctrl.GButton {
+                                    themeBridge: root.themeBridge
                                     Layout.fillWidth: true
                                     text: "Stop"
                                     iconName: "square"
@@ -295,12 +296,14 @@ Item {
                                 Layout.fillWidth: true
                                 Item { Layout.fillWidth: true }
                                 Ctrl.GButton {
+                                    themeBridge: root.themeBridge
                                     text: "Manage Nicknames"
                                     iconName: "edit3"
                                     variant: "outline"
                                     onClicked: root.showNicknameManager = true
                                 }
                                 Ctrl.GButton {
+                                    themeBridge: root.themeBridge
                                     text: "Manage Favorites"
                                     iconName: "star"
                                     variant: "outline"

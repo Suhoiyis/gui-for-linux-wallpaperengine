@@ -14,8 +14,7 @@ Frame {
     background: Rectangle {
         color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
     padding: Theme.spaceMd
 
@@ -38,6 +37,7 @@ Frame {
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 id: cycleSwitch
                 checked: root.backend ? root.backend.cycleEnabled : false
                 onToggled: {
@@ -93,6 +93,7 @@ Frame {
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GComboBox {
+                themeBridge: root.themeBridge
                 id: orderCombo
                 Layout.fillWidth: true
                 model: ["random", "title", "size", "type", "id"]
@@ -126,6 +127,7 @@ Frame {
                 Layout.preferredWidth: Theme.spaceXl * 7
             }
             Ctrl.GComboBox {
+                themeBridge: root.themeBridge
                 id: playlistCombo
                 Layout.fillWidth: true
                 textRole: "name"

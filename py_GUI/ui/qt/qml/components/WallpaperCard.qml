@@ -42,12 +42,17 @@ Item {
     Rectangle {
         id: cardContainer
         anchors.fill: parent
-        radius: Theme.radius3xl
+        radius: Theme.radiusLg
+        y: mouseArea.containsMouse ? -3 : 0
+
+        Behavior on y {
+            NumberAnimation { duration: Theme.animNormal; easing.type: Easing.OutCubic }
+        }
 
         color: tb ? tb.cSurface : Theme.surface
 
-        border.width: root.isSelected ? 2 : 1
-        border.color: root.isSelected ? (tb ? tb.cBrand : Theme.brand) : (mouseArea.containsMouse ? (tb ? tb.cBorderHover : Theme.borderHover) : (tb ? tb.cBorder : Theme.border))
+        border.width: root.isSelected ? 2 : 0
+        border.color: root.isSelected ? (tb ? tb.cBrand : Theme.brand) : "transparent"
 
         Behavior on border.color {
             ColorAnimation { duration: Theme.animNormal }
@@ -122,7 +127,7 @@ Item {
                         when: mouseArea.containsMouse
                         PropertyChanges {
                             target: previewImage
-                            scale: 1.10
+                            scale: 1.05
                         }
                     }
                 ]
@@ -139,7 +144,7 @@ Item {
             height: 22
             radius: 11
             color: root.selectionChecked ? (tb ? tb.cBrand : Theme.brand) : (tb ? tb.cSurface : Theme.surface)
-            border.width: 1
+            border.width: root.selectionChecked ? 0 : 1
             border.color: root.selectionChecked ? (tb ? tb.cBrand : Theme.brand) : (tb ? tb.cBorderHover : Theme.borderHover)
 
             Ctrl.GIcon {
@@ -155,10 +160,9 @@ Item {
         Rectangle {
             visible: root.selectionMode && root.selectionChecked
             anchors.fill: parent
-            radius: Theme.radius3xl
+            radius: Theme.radiusLg
             color: tb ? tb.cSelectionOverlay : Theme.selectionOverlay
-            border.width: 2
-            border.color: tb ? tb.cBrand : Theme.brand
+            border.width: 0
         }
 
         // Favorite button
@@ -173,8 +177,7 @@ Item {
             radius: Theme.radius2xl
 
             color: root.isFavorite ? (tb ? tb.cFavoriteGoldBg : Theme.favoriteGoldBg) : Theme.withAlpha("#000000", 0.40)
-            border.width: 1
-            border.color: root.isFavorite ? (tb ? tb.cFavoriteGold : Theme.favoriteGold) : (tb ? tb.cBorderHover : Theme.borderHover)
+            border.width: 0
             opacity: mouseArea.containsMouse || root.isFavorite ? 1 : 0
 
             Behavior on opacity {
@@ -234,7 +237,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: 52
-            radius: Theme.radius3xl
+            radius: Theme.radiusLg
 
             gradient: Gradient {
                 orientation: Gradient.Vertical
@@ -258,14 +261,14 @@ Item {
             }
         }
 
-        // Hover outline
-        Rectangle {
-            anchors.fill: parent
-            radius: Theme.radius3xl
-            color: "transparent"
-            border.width: 1
-            border.color: Theme.withAlpha("#ffffff", 0.06)
-            visible: mouseArea.containsMouse && !root.isSelected
-        }
+        // Hover outline - removed, using lift animation instead
+        // Rectangle {
+        //     anchors.fill: parent
+        //     radius: Theme.radiusLg
+        //     color: "transparent"
+        //     border.width: 1
+        //     border.color: Theme.withAlpha("#ffffff", 0.06)
+        //     visible: mouseArea.containsMouse && !root.isSelected
+        // }
     }
 }

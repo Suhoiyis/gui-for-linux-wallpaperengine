@@ -21,8 +21,7 @@ Dialog {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cElevated : Theme.elevated
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     onOpened: step = 0
@@ -66,8 +65,7 @@ Dialog {
             Layout.fillHeight: true
             radius: Theme.radiusLg
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
 
             Label {
                 anchors.centerIn: parent
@@ -88,6 +86,7 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Back"
                 enabled: root.step > 0
                 onClicked: root.step = Math.max(0, root.step - 1)

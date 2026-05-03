@@ -19,8 +19,7 @@ Dialog {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cElevated : Theme.elevated
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     function rebuildRows() {
@@ -51,6 +50,7 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Select All"
                 onClicked: {
                     var arr = root.rows.slice()
@@ -59,6 +59,7 @@ Dialog {
                 }
             }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Deselect All"
                 onClicked: {
                     var arr = root.rows.slice()
@@ -68,6 +69,7 @@ Dialog {
             }
             Item { Layout.fillWidth: true }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Clear Selected"
                 onClicked: {
                     var arr = root.rows.slice()
@@ -132,7 +134,11 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
-            Ctrl.GButton { text: "Cancel"; onClicked: root.close() }
+            Ctrl.GButton {
+                text: "Cancel"
+                themeBridge: root.themeBridge
+                onClicked: root.close()
+            }
             Ctrl.GPillButton {
                 text: "Save Changes"
                 onClicked: {

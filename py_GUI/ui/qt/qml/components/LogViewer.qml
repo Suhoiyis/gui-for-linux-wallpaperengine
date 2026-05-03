@@ -15,8 +15,7 @@ Frame {
     background: Rectangle {
         color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
     padding: Theme.spaceMd
 
@@ -34,12 +33,14 @@ Frame {
             }
             Item { Layout.fillWidth: true }
             Ctrl.GComboBox {
+                themeBridge: root.themeBridge
                 id: sourceFilter
                 model: ["All", "GUI", "Core", "Engine", "Controller"]
                 currentIndex: 0
                 onActivated: root.filterSource = currentText
             }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Clear"
                 onClicked: if (root.backend) root.backend.clearLogs()
             }

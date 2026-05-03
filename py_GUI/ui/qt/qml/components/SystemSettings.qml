@@ -14,8 +14,7 @@ Frame {
     background: Rectangle {
         color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
     padding: Theme.spaceMd
 
@@ -73,6 +72,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Target Resolution"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GComboBox {
+                themeBridge: root.themeBridge
                 id: resolutionCombo
                 Layout.fillWidth: true
                 editable: true
@@ -107,6 +107,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Prefer Xvfb"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.preferXvfb : true
                 onToggled: {
                     if (root.backend) root.backend.setPreferXvfb(checked)
@@ -119,6 +120,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Start Hidden"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.startHidden : false
                 onToggled: {
                     if (root.backend) root.backend.setStartHidden(checked)
@@ -131,6 +133,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Auto Restore"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.autoRestore : false
                 onToggled: {
                     if (root.backend) root.backend.setAutoRestore(checked)

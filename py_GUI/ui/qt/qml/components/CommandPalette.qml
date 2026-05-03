@@ -20,8 +20,7 @@ Popup {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cBg : Theme.bg
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     property string query: ""

@@ -22,16 +22,15 @@ Rectangle {
 
     radius: Theme.radiusXl
     color: tb ? tb.cElevated : Theme.elevated
-    border.width: 1
-    border.color: tb ? tb.cBorder : Theme.border
+    border.width: 0
     implicitHeight: Theme.navHeight
 
     Effects.GDropShadow {
         shadowWidth: root.width
         shadowHeight: root.height
         radius: root.radius
-        color: Theme.withAlpha("#000000", 0.08)
-        spread: 2
+        color: Theme.withAlpha("#000000", 0.06)
+        spread: 1
         verticalOffset: 1
     }
 
@@ -69,6 +68,7 @@ Rectangle {
         }
 
         Ctrl.GComboBox {
+            themeBridge: root.themeBridge
             id: sortBox
             model: ["name", "id", "size"]
             currentIndex: {
@@ -83,6 +83,7 @@ Rectangle {
         }
 
         Ctrl.GButton {
+            themeBridge: root.themeBridge
             text: root.selectionMode ? "Cancel Select" : "Select"
             iconName: root.selectionMode ? "x" : "check"
             variant: root.selectionMode ? "destructive" : "outline"

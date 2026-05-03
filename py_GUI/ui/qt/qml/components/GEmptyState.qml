@@ -44,6 +44,7 @@ ColumnLayout {
     }
 
     Ctrl.GButton {
+        themeBridge: root.themeBridge
         text: root.actionText
         visible: root.actionText.length > 0
         onClicked: root.actionTriggered()

@@ -14,8 +14,7 @@ Frame {
     background: Rectangle {
         color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
     padding: Theme.spaceMd
 
@@ -68,6 +67,7 @@ Frame {
                 Layout.preferredWidth: Theme.spaceXl * 8.5
             }
             Ctrl.GComboBox {
+                themeBridge: root.themeBridge
                 id: scalingCombo
                 Layout.fillWidth: true
                 model: ["default", "stretch", "fit", "fill"]
@@ -88,6 +88,7 @@ Frame {
                 Layout.preferredWidth: Theme.spaceXl * 8.5
             }
             Ctrl.GComboBox {
+                themeBridge: root.themeBridge
                 id: clampingCombo
                 Layout.fillWidth: true
                 model: ["clamp", "border", "repeat"]
@@ -104,6 +105,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Disable Parallax"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.disableParallax : false
                 onToggled: {
                     if (root.backend) root.backend.setDisableParallax(checked)
@@ -116,6 +118,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Disable Particles"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.disableParticles : false
                 onToggled: {
                     if (root.backend) root.backend.setDisableParticles(checked)
@@ -128,6 +131,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "No Fullscreen Pause"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.noFullscreenPause : false
                 onToggled: {
                     if (root.backend) root.backend.setNoFullscreenPause(checked)
@@ -140,6 +144,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Disable Mouse Interaction"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.disableMouse : false
                 onToggled: {
                     if (root.backend) root.backend.setDisableMouse(checked)

@@ -28,19 +28,17 @@ Rectangle {
     signal appMenuQuitRequested()
     signal commandPaletteRequested()
 
-    color: tb ? tb.cSurface : Theme.surface
-    border.width: 1
-    border.color: tb ? tb.cBorder : Theme.border
+    color: tb ? tb.cNavBgAlpha : Theme.navBgAlpha
+    border.width: 0
     radius: Theme.radiusXl
     height: Theme.navHeight
 
-    Effects.GDropShadow {
-        shadowWidth: root.width
-        shadowHeight: root.height
-        radius: root.radius
-        color: Theme.withAlpha("#000000", 0.10)
-        spread: 3
-        verticalOffset: 1
+    // Bottom divider instead of shadow
+    Rectangle {
+        anchors.bottom: parent.bottom
+        width: parent.width
+        height: 1
+        color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
     }
 
     RowLayout {
@@ -56,6 +54,7 @@ Rectangle {
             iconName: "minimize2"
             size: Theme.navHeight - Theme.spaceMd * 2
             tooltip: "Compact Mode"
+            themeBridge: root.themeBridge
             onClicked: root.pageChanged("compact")
         }
 
@@ -63,8 +62,7 @@ Rectangle {
         Rectangle {
             radius: Theme.radiusMd
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
             implicitHeight: Theme.navHeight - Theme.spaceMd * 2
 
             RowLayout {
@@ -77,6 +75,7 @@ Rectangle {
                     iconName: "image"
                     variant: root.currentPage === "library" ? "default" : "ghost"
                     sizeVariant: "sm"
+                    themeBridge: root.themeBridge
                     onClicked: root.pageChanged("library")
                 }
                 Ctrl.GButton {
@@ -84,6 +83,7 @@ Rectangle {
                     iconName: "activity"
                     variant: root.currentPage === "performance" ? "default" : "ghost"
                     sizeVariant: "sm"
+                    themeBridge: root.themeBridge
                     onClicked: root.pageChanged("performance")
                 }
                 Ctrl.GButton {
@@ -91,6 +91,7 @@ Rectangle {
                     iconName: "settings"
                     variant: root.currentPage === "settings" ? "default" : "ghost"
                     sizeVariant: "sm"
+                    themeBridge: root.themeBridge
                     onClicked: root.pageChanged("settings")
                 }
             }
@@ -130,8 +131,7 @@ Rectangle {
                 Rectangle {
                     radius: Theme.radiusSm
                     color: tb ? tb.cElevated : Theme.elevated
-                    border.width: 1
-                    border.color: tb ? tb.cBorder : Theme.border
+                    border.width: 0
                     implicitHeight: 18
                     implicitWidth: 40
 
@@ -139,7 +139,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "Ctrl+K"
                         color: tb ? tb.cFgSubtle : Theme.fgSubtle
-                        font.pixelSize: Theme.fontSizeXs - 2
+                        font.pixelSize: Theme.fontSizeXs
                     }
                 }
             }
@@ -155,8 +155,7 @@ Rectangle {
         Rectangle {
             radius: Theme.radiusMd
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
             implicitHeight: Theme.navHeight - Theme.spaceMd * 2
 
             RowLayout {
@@ -169,6 +168,7 @@ Rectangle {
                     id: screenCombo
                     model: root.screens
                     implicitWidth: 120
+                    themeBridge: root.themeBridge
 
                     Component.onCompleted: {
                         var idx = root.screens.indexOf(root.selectedScreen)
@@ -194,7 +194,7 @@ Rectangle {
                 Rectangle {
                     width: 1
                     height: 16
-                    color: tb ? tb.cBorder : Theme.border
+                    color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
                 }
 
                 // Stop button
@@ -203,6 +203,7 @@ Rectangle {
                     variant: "destructive"
                     size: 28
                     tooltip: "Stop"
+                    themeBridge: root.themeBridge
                     onClicked: if (root.backend) root.backend.stopWallpaper()
                 }
 
@@ -211,6 +212,7 @@ Rectangle {
                     iconName: "shuffle"
                     size: 28
                     tooltip: "Shuffle"
+                    themeBridge: root.themeBridge
                     onClicked: if (root.backend) root.backend.applyRandomWallpaper()
                 }
 
@@ -243,6 +245,7 @@ Rectangle {
                     iconName: "camera"
                     size: 28
                     tooltip: root.screenshotHintActive ? "Click me to screenshot!!" : "Screenshot"
+                    themeBridge: root.themeBridge
                     onClicked: {
                         if (!root.backend) return
                         var targetId = root.backend.selectedId || ""
@@ -254,7 +257,7 @@ Rectangle {
                 Rectangle {
                     width: 1
                     height: 16
-                    color: tb ? tb.cBorder : Theme.border
+                    color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
                 }
 
                 AppMenu {

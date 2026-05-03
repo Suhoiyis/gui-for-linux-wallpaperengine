@@ -14,8 +14,7 @@ Frame {
     background: Rectangle {
         color: tb ? tb.cElevated : Theme.elevated
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
     padding: Theme.spaceMd
 
@@ -34,6 +33,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Pause Only When Active"; color: tb ? tb.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 9.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.waylandOnlyActive : false
                 onToggled: {
                     if (root.backend) root.backend.setWaylandOnlyActive(checked)

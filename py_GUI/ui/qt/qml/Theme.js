@@ -30,8 +30,9 @@ var dark = {
     destructiveFg: "#ffffff",
     success:     "#9ece6a",
     warning:     "#e0af68",
-    border:      "#2f344b",
+    border:      "#1e2035",
     borderHover: "#4f5f8f",
+    borderSubtle: "#141622",
     input:       "#16161e",
     ring:        "#7aa2f7",
     rowEven:     "#1f2335",
@@ -55,8 +56,9 @@ var light = {
     destructiveFg: "#ffffff",
     success:     "#16a34a",
     warning:     "#d97706",
-    border:      "#d1d5db",
+    border:      "#e2e5ea",
     borderHover: "#9ca3af",
+    borderSubtle: "#eaecf0",
     input:       "#e5e7eb",
     ring:        "#3b82f6",
     rowEven:     "#f0f1f5",
@@ -147,18 +149,25 @@ function resolvePalette(mode) {
     result.applyHover    = palette.accent
     result.applyPressed  = mode === "light" ? "#1d4ed8" : "#3d59a1"
 
+    // Alpha-based tokens for subtle visual hierarchy (no-border design)
+    result.dividerAlpha     = withAlpha(palette.fg, 0.08)
+    result.navBgAlpha       = withAlpha(palette.surface, 0.80)
+    result.sidebarBgAlpha   = withAlpha(palette.surface, 0.90)
+    result.cardHoverBorder  = withAlpha(palette.fg, 0.10)
+    result.borderSubtle     = palette.borderSubtle
+
     return result
 }
 
 // ── Typography ──
 
-var fontSizeXs    = 10
-var fontSizeSm    = 11
-var fontSizeMd    = 12
-var fontSizeLg    = 14
-var fontSizeXl    = 16
-var fontSize2xl   = 18
-var fontSize3xl   = 20
+var fontSizeXs    = 11
+var fontSizeSm    = 13
+var fontSizeMd    = 14
+var fontSizeLg    = 16
+var fontSizeXl    = 18
+var fontSize2xl   = 22
+var fontSize3xl   = 26
 
 // Font weight constants (QML Font enum values)
 var fontWeightLight  = 25   // Font.Light
@@ -187,10 +196,10 @@ var space2xl  = 24
 
 // ── Sizing tokens ──
 
-var navHeight         = 50
-var navButtonSize     = 36
-var iconButtonSm      = 28
-var iconButtonMd      = 34
+var navHeight         = 56
+var navButtonSize     = 40
+var iconButtonSm      = 30
+var iconButtonMd      = 36
 var sidebarWidth      = 360
 var sidebarPreviewSize = 280
 
@@ -200,8 +209,6 @@ var radiusSm    = 6
 var radiusMd    = 8
 var radiusLg    = 10
 var radiusXl    = 12
-var radius2xl   = 14
-var radius3xl   = 16
 var radiusPill  = 25
 
 // ── Focus ring ──

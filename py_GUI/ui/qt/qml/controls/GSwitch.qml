@@ -5,7 +5,9 @@ import "../Theme.js" as Theme
 Switch {
     id: root
 
-    property color checkedColor: Theme.brand
+    property var themeBridge: null
+    property var tb: themeBridge || null
+    property color checkedColor: tb ? tb.cBrand : Theme.brand
 
     indicator: Rectangle {
         x: root.leftPadding
@@ -14,8 +16,8 @@ Switch {
         height: 20
         radius: 10
         color: {
-            if (!root.enabled) return Theme.overlay
-            return root.checked ? root.checkedColor : Theme.border
+            if (!root.enabled) return tb ? tb.cOverlay : Theme.overlay
+            return root.checked ? root.checkedColor : (tb ? tb.cBorder : Theme.border)
         }
 
         Behavior on color { ColorAnimation { duration: Theme.animNormal } }
@@ -26,7 +28,7 @@ Switch {
             width: 16
             height: 16
             radius: 8
-            color: root.checked ? Theme.brandFg : Theme.fgMuted
+            color: root.checked ? (tb ? tb.cBrandFg : Theme.brandFg) : (tb ? tb.cFgMuted : Theme.fgMuted)
 
             Behavior on x { NumberAnimation { duration: Theme.animNormal; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: Theme.animNormal } }
@@ -36,7 +38,7 @@ Switch {
     contentItem: Text {
         text: root.text
         font.pixelSize: Theme.fontSizeMd
-        color: root.enabled ? Theme.fg : Theme.fgSubtle
+        color: root.enabled ? (tb ? tb.cFg : Theme.fg) : (tb ? tb.cFgSubtle : Theme.fgSubtle)
         verticalAlignment: Text.AlignVCenter
         leftPadding: root.indicator.width + root.rightPadding
     }

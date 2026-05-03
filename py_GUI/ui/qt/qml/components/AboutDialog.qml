@@ -18,8 +18,7 @@ Dialog {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cElevated : Theme.elevated
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     ColumnLayout {
@@ -53,6 +52,7 @@ Dialog {
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "GitHub"
                 onClicked: {
                     if (root.backend) {
@@ -61,6 +61,7 @@ Dialog {
                 }
             }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Close"
                 onClicked: root.close()
             }

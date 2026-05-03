@@ -19,8 +19,7 @@ Dialog {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cElevated : Theme.elevated
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     // Custom header
@@ -93,6 +92,7 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Select All"
                 variant: "ghost"
                 sizeVariant: "sm"
@@ -103,6 +103,7 @@ Dialog {
                 }
             }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Deselect All"
                 variant: "ghost"
                 sizeVariant: "sm"
@@ -114,6 +115,7 @@ Dialog {
             }
             Item { Layout.fillWidth: true }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Remove Selected" + (selectedCount() > 0 ? " (" + selectedCount() + ")" : "")
                 variant: "destructive"
                 sizeVariant: "sm"
@@ -231,6 +233,7 @@ Dialog {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Close"
                 variant: "outline"
                 onClicked: root.close()

@@ -19,8 +19,7 @@ Dialog {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cElevated : Theme.elevated
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     // Custom header with icon
@@ -64,14 +63,13 @@ Dialog {
         anchors.fill: parent
         spacing: Theme.spaceMd
 
-        // History list with rounded border
+        // History list
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: Theme.radiusLg
             color: tb ? tb.cSurface : Theme.surface
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
 
             ListView {
                 anchors.fill: parent
@@ -130,6 +128,7 @@ Dialog {
                         }
 
                         Ctrl.GButton {
+                            themeBridge: root.themeBridge
                             text: "Reuse"
                             sizeVariant: "sm"
                             onClicked: {
@@ -170,6 +169,7 @@ Dialog {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Clear History"
                 variant: "outline"
                 enabled: (root.backend ? root.backend.history.length : 0) > 0

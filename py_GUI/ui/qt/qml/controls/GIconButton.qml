@@ -10,6 +10,8 @@ Button {
     property string variant: "default"
     property string tooltip: ""
     property int size: Theme.iconButtonMd
+    property var themeBridge: null
+    property var tb: themeBridge || null
 
     width: size
     height: size
@@ -25,30 +27,30 @@ Button {
         color: {
             if (!root.enabled) return "transparent"
             if (root.variant === "destructive") {
-                if (root.down) return Theme.destructive10
-                if (root.hovered) return Theme.destructive10
-                return Theme.withAlpha(Theme.destructive, 0.15)
+                if (root.down) return tb ? tb.cDestructive10 : Theme.destructive10
+                if (root.hovered) return tb ? tb.cDestructive10 : Theme.destructive10
+                return Theme.withAlpha(tb ? tb.cDestructive : Theme.destructive, 0.15)
             }
-            if (root.down) return Theme.overlay
-            if (root.hovered) return Theme.elevated
+            if (root.down) return tb ? tb.cOverlay : Theme.overlay
+            if (root.hovered) return tb ? tb.cElevated : Theme.elevated
             return "transparent"
         }
         border.width: root.variant === "destructive" && root.hovered ? 1 : 0
-        border.color: root.variant === "destructive" ? Theme.destructive : "transparent"
+        border.color: root.variant === "destructive" ? (tb ? tb.cDestructive : Theme.destructive) : "transparent"
 
         Behavior on color { ColorAnimation { duration: Theme.animFast } }
         Behavior on scale { NumberAnimation { duration: Theme.animFast; easing.type: Easing.OutCubic } }
 
-        scale: root.down ? 0.93 : 1.0
+        scale: root.down ? 0.93 : (root.hovered ? 1.05 : 1.0)
     }
 
     contentItem: Controls.GIcon {
         name: root.iconName
         size: Math.round(root.size * 0.5)
         color: {
-            if (!root.enabled) return Theme.fgSubtle
-            if (root.variant === "destructive") return root.hovered ? Theme.destructive : Theme.fgMuted
-            return root.hovered ? Theme.fg : Theme.fgMuted
+            if (!root.enabled) return tb ? tb.cFgSubtle : Theme.fgSubtle
+            if (root.variant === "destructive") return root.hovered ? (tb ? tb.cDestructive : Theme.destructive) : (tb ? tb.cFgMuted : Theme.fgMuted)
+            return root.hovered ? (tb ? tb.cFg : Theme.fg) : (tb ? tb.cFgMuted : Theme.fgMuted)
         }
     }
 }

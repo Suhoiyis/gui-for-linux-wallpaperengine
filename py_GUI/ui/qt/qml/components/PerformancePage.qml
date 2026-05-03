@@ -56,8 +56,7 @@ Item {
                         Layout.preferredHeight: 180
                         radius: Theme.radiusLg
                         color: tb ? tb.cSurface : Theme.surface
-                        border.width: 1
-                        border.color: tb ? tb.cBorder : Theme.border
+                        border.width: 0
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -123,8 +122,7 @@ Item {
                         Layout.preferredHeight: 180
                         radius: Theme.radiusLg
                         color: tb ? tb.cSurface : Theme.surface
-                        border.width: 1
-                        border.color: tb ? tb.cBorder : Theme.border
+                        border.width: 0
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -193,8 +191,7 @@ Item {
                         Layout.preferredHeight: 180
                         radius: Theme.radiusLg
                         color: tb ? tb.cSurface : Theme.surface
-                        border.width: 1
-                        border.color: tb ? tb.cBorder : Theme.border
+                        border.width: 0
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -274,7 +271,7 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: tb ? tb.cBorder : Theme.border
+                    color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
                 }
 
                 // Process details section
@@ -297,8 +294,7 @@ Item {
                             implicitHeight: processColumn.implicitHeight + Theme.spaceMd * 2
                             radius: Theme.radiusLg
                             color: tb ? tb.cSurface : Theme.surface
-                            border.width: 1
-                            border.color: tb ? tb.cBorder : Theme.border
+                            border.width: 0
 
                             ColumnLayout {
                                 id: processColumn
@@ -487,7 +483,7 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: tb ? tb.cBorder : Theme.border
+                    color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
                 }
 
                 // Screenshot History section
@@ -526,6 +522,7 @@ Item {
                         Item { Layout.fillWidth: true }
 
                         Ctrl.GButton {
+                            themeBridge: root.themeBridge
                             text: "Clear"
                             variant: "outline"
                             sizeVariant: "sm"
@@ -623,6 +620,7 @@ Item {
 
                                         // Action buttons
                                         Ctrl.GIconButton {
+                                            themeBridge: root.themeBridge
                                             iconName: "folder"
                                             size: Theme.iconButtonSm
                                             onClicked: {
@@ -631,6 +629,7 @@ Item {
                                         }
 
                                         Ctrl.GIconButton {
+                                            themeBridge: root.themeBridge
                                             iconName: "image"
                                             size: Theme.iconButtonSm
                                             onClicked: {
@@ -680,6 +679,7 @@ Item {
                             }
 
                             Ctrl.GButton {
+                                themeBridge: root.themeBridge
                                 text: "Go Screenshot!"
                                 variant: "brand"
                                 Layout.alignment: Qt.AlignHCenter

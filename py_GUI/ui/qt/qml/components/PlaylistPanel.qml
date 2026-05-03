@@ -97,8 +97,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         color: tb ? tb.cSurface : Theme.surface
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
 
         ColumnLayout {
             anchors.fill: parent
@@ -256,8 +255,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
                 color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.5)
-                border.width: 1
-                border.color: tb ? tb.cBorder : Theme.border
+                border.width: 0
 
                 Rectangle {
                     anchors.centerIn: parent
@@ -310,8 +308,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         color: tb ? tb.cSurface : Theme.surface
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
         z: 20
 
         HoverHandler {
@@ -358,6 +355,7 @@ Item {
                     }
 
                     Ctrl.GIconButton {
+                        themeBridge: root.themeBridge
                         iconName: "pin"
                         size: Theme.iconButtonSm
                         tooltip: "Pin (locked mode)"
@@ -370,7 +368,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: tb ? tb.cBorder : Theme.border
+                color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
             }
 
             ScrollView {
@@ -418,8 +416,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
                 color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.5)
-                border.width: 1
-                border.color: tb ? tb.cBorder : Theme.border
+                border.width: 0
 
                 RowLayout {
                     anchors.fill: parent
@@ -428,6 +425,7 @@ Item {
                     spacing: Theme.spaceSm
 
                     Ctrl.GButton {
+                        themeBridge: root.themeBridge
                         Layout.fillWidth: true
                         text: "New Playlist"
                         iconName: "plus"
@@ -447,8 +445,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         color: tb ? tb.cSurface : Theme.surface
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
 
         ColumnLayout {
             anchors.fill: parent
@@ -483,6 +480,7 @@ Item {
                     }
 
                     Ctrl.GIconButton {
+                        themeBridge: root.themeBridge
                         iconName: "pin"
                         size: Theme.iconButtonSm
                         tooltip: "Unpin (floating mode)"
@@ -495,7 +493,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: tb ? tb.cBorder : Theme.border
+                color: tb ? tb.cDividerAlpha : Theme.dividerAlpha
             }
 
             ScrollView {
@@ -568,8 +566,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
                 color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.5)
-                border.width: 1
-                border.color: tb ? tb.cBorder : Theme.border
+                border.width: 0
 
                 RowLayout {
                     anchors.fill: parent
@@ -578,6 +575,7 @@ Item {
                     spacing: Theme.spaceSm
 
                     Ctrl.GButton {
+                        themeBridge: root.themeBridge
                         Layout.fillWidth: true
                         text: "New Playlist"
                         iconName: "plus"
@@ -601,8 +599,7 @@ Item {
         background: Rectangle {
             radius: Theme.radiusXl
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
         }
 
         readonly property var okButton: standardButton(Dialog.Ok)
@@ -654,8 +651,7 @@ Item {
         background: Rectangle {
             radius: Theme.radiusXl
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
         }
 
         readonly property var okButton: standardButton(Dialog.Ok)
@@ -707,8 +703,7 @@ Item {
         background: Rectangle {
             radius: Theme.radiusXl
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
         }
 
         onAccepted: {

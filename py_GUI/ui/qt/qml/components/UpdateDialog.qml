@@ -22,8 +22,7 @@ Dialog {
     background: Rectangle {
         radius: Theme.radiusXl
         color: tb ? tb.cElevated : Theme.elevated
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
     }
 
     // Custom header
@@ -62,8 +61,7 @@ Dialog {
             height: 80
             radius: Theme.radiusLg
             color: tb ? tb.cSurface : Theme.surface
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
 
             ColumnLayout {
                 anchors.fill: parent
@@ -116,11 +114,13 @@ Dialog {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Later"
                 variant: "outline"
                 onClicked: root.close()
             }
             Ctrl.GButton {
+                themeBridge: root.themeBridge
                 text: "Download"
                 onClicked: {
                     if (root.backend && root.downloadUrl.length > 0) {

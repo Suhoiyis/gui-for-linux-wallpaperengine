@@ -85,6 +85,7 @@ Item {
 
                     // Apply Button - styled like Tauri
                     Ctrl.GButton {
+                        themeBridge: root.themeBridge
                         Layout.alignment: Qt.AlignHCenter
                         Layout.preferredWidth: 280
                         text: "Apply Wallpaper"

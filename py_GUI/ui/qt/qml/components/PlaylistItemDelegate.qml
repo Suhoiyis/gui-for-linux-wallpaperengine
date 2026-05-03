@@ -135,6 +135,7 @@ Item {
                 }
 
                 Ctrl.GIconButton {
+                    themeBridge: root.themeBridge
                     iconName: expanded ? "chevronDown" : "chevronRight"
                     size: Theme.iconButtonSm
                     onClicked: expanded = !expanded

@@ -88,6 +88,13 @@ QtObject {
     readonly property color cApplyPressed:  colors.applyPressed
     readonly property color cFavoriteGoldBg: colors.favoriteGoldBg
 
+    // Alpha-based tokens for no-border visual hierarchy
+    readonly property color cDividerAlpha:    colors.dividerAlpha
+    readonly property color cNavBgAlpha:      colors.navBgAlpha
+    readonly property color cSidebarBgAlpha:  colors.sidebarBgAlpha
+    readonly property color cCardHoverBorder: colors.cardHoverBorder
+    readonly property color cBorderSubtle:    colors.borderSubtle
+
     // Badge colors (shared across themes)
     readonly property color cTypeBlue:      Theme.typeBlue
     readonly property color cIdOrange:      Theme.idOrange

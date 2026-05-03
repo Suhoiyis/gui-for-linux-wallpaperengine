@@ -35,8 +35,7 @@ Item {
         radius: Theme.radiusLg
         tintColor: tb ? tb.cOverlay : Theme.overlay
         tintOpacity: 0.95
-        border.width: 1
-        border.color: tb ? tb.cBorder : Theme.border
+        border.width: 0
         visible: root.visibleToast
         opacity: root.visibleToast ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.animToast } }
@@ -70,6 +69,7 @@ Item {
             }
 
             Ctrl.GIconButton {
+                themeBridge: root.themeBridge
                 iconName: "x"
                 size: Theme.iconButtonSm
                 onClicked: root.visibleToast = false

@@ -42,8 +42,7 @@ Rectangle {
     signal nicknameEditRequested(string wallpaperId, string nickname)
 
     color: tb ? tb.cSurface : Theme.surface
-    border.width: 1
-    border.color: tb ? tb.cBorder : Theme.border
+    border.width: 0
 
     ColumnLayout {
         anchors.fill: parent
@@ -70,10 +69,9 @@ Rectangle {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: width
-                        radius: Theme.radius2xl
+                        radius: Theme.radiusXl
                         color: tb ? tb.cSurface : Theme.surface
-                        border.width: 1
-                        border.color: tb ? tb.cBorder : Theme.border
+                        border.width: 0
                         clip: true
 
                         Image {
@@ -88,8 +86,7 @@ Rectangle {
                             anchors.fill: parent
                             color: tb ? tb.cElevated : Theme.elevated
                             visible: !root.hasWallpaper
-                            border.width: 2
-                            border.color: tb ? tb.cBorder : Theme.border
+                            border.width: 0
 
                             Column {
                                 anchors.centerIn: parent
@@ -101,8 +98,7 @@ Rectangle {
                                     height: 64
                                     radius: Theme.radiusLg
                                     color: "transparent"
-                                    border.width: 2
-                                    border.color: tb ? tb.cFgSubtle : Theme.fgSubtle
+                                    border.width: 0
                                 }
 
                                 Text {
@@ -136,6 +132,7 @@ Rectangle {
                             }
 
                             Ctrl.GIconButton {
+                                themeBridge: root.themeBridge
                                 enabled: root.hasWallpaper
                                 iconName: "edit3"
                                 size: 24
@@ -144,6 +141,7 @@ Rectangle {
                             }
 
                             Ctrl.GIconButton {
+                                themeBridge: root.themeBridge
                                 enabled: root.hasWallpaper
                                 iconName: "star"
                                 size: 24
@@ -171,8 +169,7 @@ Rectangle {
                                 height: 20
                                 radius: Theme.radiusSm
                                 color: Theme.withAlpha("#64748b", 0.2)
-                                border.width: 1
-                                border.color: Theme.withAlpha("#64748b", 0.3)
+                                border.width: 0
 
                                 Text {
                                     anchors.centerIn: parent
@@ -196,8 +193,7 @@ Rectangle {
                                 height: 20
                                 radius: Theme.radiusSm
                                 color: Theme.withAlpha(tb ? tb.cFavoriteGold : Theme.favoriteGold, 0.2)
-                                border.width: 1
-                                border.color: Theme.withAlpha(tb ? tb.cFavoriteGold : Theme.favoriteGold, 0.3)
+                                border.width: 0
 
                                 Text {
                                     anchors.centerIn: parent
@@ -232,8 +228,7 @@ Rectangle {
                                 height: 20
                                 radius: Theme.radiusSm
                                 color: Theme.withAlpha(tb ? tb.cDestructive : Theme.destructive, 0.2)
-                                border.width: 1
-                                border.color: Theme.withAlpha(tb ? tb.cDestructive : Theme.destructive, 0.3)
+                                border.width: 0
 
                                 Text {
                                     anchors.centerIn: parent
@@ -283,8 +278,7 @@ Rectangle {
                                         height: 20
                                         radius: Theme.radiusSm
                                         color: "transparent"
-                                        border.width: 1
-                                        border.color: tb ? tb.cBorder : Theme.border
+                                        border.width: 0
 
                                         Text {
                                             anchors.centerIn: parent
@@ -370,15 +364,15 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 64
-            color: Theme.withAlpha(tb ? tb.cBg : Theme.bg, 0.8)
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            color: tb ? tb.cElevated : Theme.elevated
+            border.width: 0
 
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: Theme.spaceMd
 
                 Ctrl.GButton {
+                    themeBridge: root.themeBridge
                     Layout.fillWidth: true
                     enabled: root.hasWallpaper
                     text: "Apply Wallpaper"
@@ -399,8 +393,7 @@ Rectangle {
         background: Rectangle {
             radius: Theme.radiusXl
             color: tb ? tb.cElevated : Theme.elevated
-            border.width: 1
-            border.color: tb ? tb.cBorder : Theme.border
+            border.width: 0
         }
 
         readonly property var okButton: standardButton(Dialog.Ok)

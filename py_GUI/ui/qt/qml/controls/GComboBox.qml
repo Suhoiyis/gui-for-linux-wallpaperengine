@@ -7,16 +7,18 @@ ComboBox {
     id: root
 
     property bool hasError: false
+    property var themeBridge: null
+    property var tb: themeBridge || null
 
     background: Rectangle {
         radius: Theme.radiusMd
-        color: root.enabled ? Theme.input : Theme.elevated
+        color: root.enabled ? (tb ? tb.cInput : Theme.input) : (tb ? tb.cElevated : Theme.elevated)
         border.width: 1
         border.color: {
-            if (!root.enabled) return Theme.border
-            if (root.hasError) return Theme.destructive
-            if (root.activeFocus) return Theme.ring
-            return Theme.border
+            if (!root.enabled) return tb ? tb.cBorder : Theme.border
+            if (root.hasError) return tb ? tb.cDestructive : Theme.destructive
+            if (root.activeFocus) return tb ? tb.cRing : Theme.ring
+            return tb ? tb.cBorder : Theme.border
         }
 
         Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
@@ -25,7 +27,7 @@ ComboBox {
     contentItem: Text {
         text: root.displayText
         font.pixelSize: Theme.fontSizeMd
-        color: root.enabled ? Theme.fg : Theme.fgSubtle
+        color: root.enabled ? (tb ? tb.cFg : Theme.fg) : (tb ? tb.cFgSubtle : Theme.fgSubtle)
         leftPadding: Theme.spaceSm
         rightPadding: Theme.spaceSm
         verticalAlignment: Text.AlignVCenter
@@ -49,9 +51,9 @@ ComboBox {
 
         background: Rectangle {
             radius: Theme.radiusXl
-            color: Theme.overlay
+            color: tb ? tb.cOverlay : Theme.overlay
             border.width: 1
-            border.color: Theme.border
+            border.color: tb ? tb.cBorder : Theme.border
         }
     }
 
@@ -60,13 +62,13 @@ ComboBox {
         contentItem: Text {
             text: root.model[index]
             font.pixelSize: Theme.fontSizeMd
-            color: highlighted ? Theme.accentFg : Theme.fg
+            color: highlighted ? (tb ? tb.cAccentFg : Theme.accentFg) : (tb ? tb.cFg : Theme.fg)
             verticalAlignment: Text.AlignVCenter
         }
         highlighted: root.highlightedIndex === index
         background: Rectangle {
             radius: Theme.radiusSm
-            color: highlighted ? Theme.accent : (hovered ? Theme.overlay : "transparent")
+            color: highlighted ? (tb ? tb.cAccent : Theme.accent) : (hovered ? (tb ? tb.cOverlay : Theme.overlay) : "transparent")
         }
     }
 }

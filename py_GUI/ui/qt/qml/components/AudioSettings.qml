@@ -13,8 +13,7 @@ Frame {
     background: Rectangle {
         color: root.themeBridge ? root.themeBridge.cElevated : Theme.elevated
         radius: Theme.radiusXl
-        border.width: 1
-        border.color: root.themeBridge ? root.themeBridge.cBorder : Theme.border
+        border.width: 0
     }
     padding: Theme.spaceMd
 
@@ -159,6 +158,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Mute Audio"; color: root.themeBridge ? root.themeBridge.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 id: muteSwitch
                 checked: root.backend ? root.backend.silence : true
                 onToggled: {
@@ -192,6 +192,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "Disable Auto Mute"; color: root.themeBridge ? root.themeBridge.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.noAutomute : false
                 onToggled: {
                     if (root.backend) root.backend.setNoAutomute(checked)
@@ -204,6 +205,7 @@ Frame {
             Layout.fillWidth: true
             Label { text: "No Audio Processing"; color: root.themeBridge ? root.themeBridge.cFg : Theme.fg; Layout.preferredWidth: Theme.spaceXl * 8.5 }
             Ctrl.GSwitch {
+                themeBridge: root.themeBridge
                 checked: root.backend ? root.backend.noAudioProcessing : false
                 onToggled: {
                     if (root.backend) root.backend.setNoAudioProcessing(checked)
